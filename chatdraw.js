@@ -103,7 +103,7 @@ let LocalChatDraw = (function() {
 					})
 					var copyAnimation = document.createElement("a")
 					copyAnimation.textContent = "📋"
-					copyAnimation.setAttribute("title", "Copy whole animation")
+					copyAnimation.title = "Copy whole animation"
 					copyAnimation.addEventListener("click", function() {
 						UXUtilities.Confirm("Copying this animation will OVERWRITE your current animation. Make sure you save your work first! Are you sure you want to copy this animation?", function(confirmed) {
 							if (!confirmed) return
@@ -154,8 +154,9 @@ let LocalChatDraw = (function() {
 		tButton.addEventListener('click', function() {
 			//First, deselect ALL other buttons
 			let toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton")
-			for(let i = 0; i < toolButtons.length; i++) {
-				if (toolButtons[i] != tButton) toolButtons[i].removeAttribute("data-selected")
+			for (let i = 0; i < toolButtons.length; i++) {
+				if (toolButtons[i] != tButton)
+					delete toolButtons[i].dataset.selected
 			}
 			
 			//Now figure out if we're just selecting this button or cycling
@@ -164,7 +165,7 @@ let LocalChatDraw = (function() {
 				nextTool = (nextTool + 1) % toolNames.length
 			
 			tButton.textContent = displayCharacters[nextTool]
-			tButton.setAttribute("data-selected", "true")
+			tButton.dataset.selected = true
 			drawer.currentTool = toolNames[nextTool]
 		})
 		return tButton
@@ -183,8 +184,8 @@ let LocalChatDraw = (function() {
 			
 			//These are the only elements that will be displayed if the drawing area
 			//goes hidden. CSS doesn't have to look at these, ofc.
-			buttonArea.setAttribute("data-keep", "true")
-			toggleButton.setAttribute("data-keep", "true")
+			buttonArea.dataset.keep = true
+			toggleButton.dataset.keep = true
 			toggleButton.textContent = "✎"
 			toggleButton.addEventListener("click", toggleInterface)
 			sendButton.textContent = "➥"
@@ -197,8 +198,8 @@ let LocalChatDraw = (function() {
 			
 			drawIframe.src = window.location.protocol + "//draw.smilebasicsource.com?nocache=1&nobg=1"
 			drawArea.id = drawAreaID
-			drawArea.setAttribute("data-fixedsize", "true")
-			drawArea.setAttribute("data-scale", "2")
+			drawArea.dataset.fixedsize = true
+			drawArea.dataset.scale = 2
 			drawArea.appendChild(drawIframe)
 			buttonArea.appendChild(positionButton)
 			buttonArea.appendChild(sendButton)
@@ -244,7 +245,7 @@ let LocalChatDraw = (function() {
 	let getColorString = function(colors) {
 		let colorSet = ""
 		
-		for(let i = 0; i < colors.length; i++) {
+		for (let i = 0; i < colors.length; i++) {
 			colorSet += rgbToFillStyle(colors[i])
 			if (i !== colors.length - 1)
 				colorSet += "/"
@@ -257,7 +258,7 @@ let LocalChatDraw = (function() {
 		let colors = string.split("/")
 		let result = []
 		
-		for(let i = 0; i < colors.length; i++)
+		for (let i = 0; i < colors.length; i++)
 			result.push(fillStyleToRgb(colors[i]))
 		
 		return result
@@ -266,7 +267,7 @@ let LocalChatDraw = (function() {
 	let setButtonColors = function(palette) {
 		let buttons = getColorButtons()
 		
-		for(let i = 0; i < palette.length; i++) {
+		for (let i = 0; i < palette.length; i++) {
 			if (i < buttons.length) {
 				buttons[i].style.color = palette[i].ToRGBString(); //colors[i]
 				
@@ -280,8 +281,8 @@ let LocalChatDraw = (function() {
 	
 	let widthToggle = function (widthButton) {
 		let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
-		widthButton.textContent = String(width)
-		widthButton.setAttribute("data-width", String(width))
+		widthButton.textContent = width
+		widthButton.dataset.width = width
 		drawer.lineWidth = width
 	}
 	
@@ -293,7 +294,7 @@ let LocalChatDraw = (function() {
 			
 			let result = []
 			
-			for(let i = 0; i < json.result.length; i++)
+			for (let i = 0; i < json.result.length; i++)
 				if (json.result[i].endsWith(animationTag))
 					result.push(json.result[i].slice(0, -animationTag.length))
 			
@@ -306,7 +307,7 @@ let LocalChatDraw = (function() {
 		animationPlayer.FromStorageObject(storeObject)
 		animateFrames.ClearAllFrames()
 		
-		for(let i = 0; i < animationPlayer.frames.length; i++) {
+		for (let i = 0; i < animationPlayer.frames.length; i++) {
 			animateFrames.InsertNewFrame(i - 1)
 			animateFrames.SetFrame(animationPlayer.frames[i], i)
 		}
@@ -353,10 +354,10 @@ let LocalChatDraw = (function() {
 			let i
 			
 			if (lightboxCount > 0) {
-				for(i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
+				for (i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
 					lightboxFrames.push(animateFrames.GetFrame(i))
 			} else {
-				for(i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
+				for (i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
 					lightboxFrames.push(animateFrames.GetFrame(i))
 			}
 			
@@ -375,7 +376,7 @@ let LocalChatDraw = (function() {
 		
 		//Set up the color picker
 		colorPicker.id = colorPickerID
-		colorPicker.setAttribute("type", "color")
+		colorPicker.type = 'color'
 		colorPicker.style.position = "absolute"
 		colorPicker.style.left = "-10000px"
 		colorPicker.style.top = "-10000px"
@@ -384,8 +385,7 @@ let LocalChatDraw = (function() {
 		colorPicker.addEventListener("change", function(event) {
 			let frame = animateFrames.GetFrame(); //GetSelectedFrame()
 			let newColor = StyleUtilities.GetColor(event.target.value)
-			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), 
-			                          StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
+			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
 			event.target.associatedButton.style.color = newColor.ToRGBString()
 			drawer.color = newColor.ToRGBString()
 			drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
@@ -416,8 +416,8 @@ let LocalChatDraw = (function() {
 			if (ev.keyCode === 38)
 				selectPreviousRadio()
 		})
-		widthButton.textContent = String(defaultLineWidth - 1)
-		widthButton.setAttribute("data-width", String(defaultLineWidth - 1))
+		widthButton.textContent = defaultLineWidth - 1
+		widthButton.dataset.width = defaultLineWidth - 1
 		widthButton.addEventListener("click", widthToggle.callBind(widthButton))
 		sendButton.textContent = "➥"
 		sendButton.dataset.button = "sendDrawing"
@@ -434,15 +434,15 @@ let LocalChatDraw = (function() {
 		
 		//These are the only elements that will be displayed if the drawing area
 		//goes hidden. CSS doesn't have to look at these, ofc.
-		toggleButton.setAttribute("data-keep", "true")
-		buttonArea2.setAttribute("data-keep", "true")
+		toggleButton.dataset.keep = true
+		buttonArea2.dataset.keep = true
 		
 		buttonArea.appendChild(cSizeButton)
 		buttonArea.appendChild(undoButton)
 		buttonArea.appendChild(redoButton)
 		
 		//Create the color picking buttons
-		for(i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
+		for (i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
 			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			colorButton.textContent = "■"
@@ -487,24 +487,24 @@ let LocalChatDraw = (function() {
 		let loadAnimationButton = HTMLUtilities.CreateUnsubmittableButton("☝")
 		let listAnimations = HTMLUtilities.CreateUnsubmittableButton("L")
 		saveInput = document.createElement("input")
-		saveInput.setAttribute("name", "name")
-		saveInput.setAttribute("placeholder", "Animation Name")
-		saveAnimationButton.setAttribute("title", "Save animation to server")
-		loadAnimationButton.setAttribute("title", "Load animation from server")
-		listAnimations.setAttribute("title", "List all animations (in chat)")
-		lightboxButton.setAttribute("title", "Lightbox toggle")
-		exportAnimation.setAttribute("title", "Export animation to gif")
-		playPause.setAttribute("title", "Play / Stop animation")
-		repeatAnimation.setAttribute("title", "Toggle animation loop")
-		newFrame.setAttribute("title", "Insert new frame after current")
-		sendAnimation.setAttribute("title", "Send animation in chat")
+		saveInput.name = "name"
+		saveInput.placeholder = "Animation Name"
+		saveAnimationButton.title = "Save animation to server"
+		loadAnimationButton.title = "Load animation from server"
+		listAnimations.title = "List all animations (in chat)"
+		lightboxButton.title = "Lightbox toggle"
+		exportAnimation.title = "Export animation to gif"
+		playPause.title = "Play / Stop animation"
+		repeatAnimation.title = "Toggle animation loop"
+		newFrame.title = "Insert new frame after current"
+		sendAnimation.title = "Send animation in chat"
 		sendAnimation.dataset.button = "sendAnimation"
 		
-		frameSkip.setAttribute("type", "number")
-		frameSkip.setAttribute("min", "1")
-		frameSkip.setAttribute("max", "600")
-		frameSkip.setAttribute("placeholder", "1=60fps")
-		frameSkip.setAttribute("title", "Frame skip (1=60fps)")
+		frameSkip.type = 'number'
+		frameSkip.min = 1
+		frameSkip.max = 600
+		frameSkip.placeholder = "1=60fps"
+		frameSkip.title = "Frame skip (1=60fps)"
 		frameSkip.value = 3
 		
 		lightboxButton.addEventListener("click", function(event) {
@@ -534,7 +534,7 @@ let LocalChatDraw = (function() {
 					
 					console.log("Loading an older animation")
 					
-					for(let i = 0; i < value.times.length; i++) {
+					for (let i = 0; i < value.times.length; i++) {
 						/* jshint ignore:start */
 						let index = i
 						readPersistent(name + animationTag + "_" + index, function(drawing) {
@@ -600,10 +600,10 @@ let LocalChatDraw = (function() {
 		
 		repeatAnimation.addEventListener("click", function(event) {
 			if (repeatAnimation.hasAttribute("data-repeat")) {
-				repeatAnimation.removeAttribute("data-repeat")
+				delete repeatAnimation.dataset.repeat
 				repeatAnimation.textContent = "→"
 			} else {
-				repeatAnimation.setAttribute("data-repeat", "true")
+				repeatAnimation.dataset.repeat = true
 				repeatAnimation.textContent = "⟲"
 			}
 		})
@@ -746,9 +746,9 @@ let LocalChatDraw = (function() {
 			let container = document.getElementById(drawAreaID)
 			
 			if (container.dataset.hidden)
-				container.removeAttribute("data-hidden")
+				delete container.dataset.hidden
 			else
-				container.setAttribute("data-hidden", "true")
+				container.dataset.hidden = true
 			
 			if (drawIframe && !firstTimeRecentered && (allowResize !== false)) {
 				console.debug("DOING A HIDDEN DISPLAY FORCE SIZE HACK")
@@ -768,11 +768,11 @@ let LocalChatDraw = (function() {
 			drawArea = drawArea || document.getElementById(drawAreaID)
 			let positionButton = drawArea.querySelector("button.position")
 			if (dock) {
-				drawArea.setAttribute("data-docked", "true")
+				drawArea.dataset.docked = true
 				positionButton.textContent = "◱"
 				writeStorage("chatDrawDocked", true)
 			} else {
-				drawArea.removeAttribute("data-docked")
+				delete drawArea.dataset.docked
 				positionButton.textContent = "◲"
 				writeStorage("chatDrawDocked", false)
 			}
@@ -808,8 +808,8 @@ let LocalChatDraw = (function() {
 		let buttons = getColorButtons()
 		
 		//Reset everything
-		for(let i = 0; i < buttons.length; i++) {
-			buttons[i].removeAttribute("data-selected")
+		for (let i = 0; i < buttons.length; i++) {
+			delete buttons[i].dataset.selected
 		}
 		
 		//Set current button to this one.
@@ -847,7 +847,7 @@ let LocalChatDraw = (function() {
 		let colors = []
 		let buttons = getColorButtons()
 		
-		for(let i = 0; i < buttons.length; i++)
+		for (let i = 0; i < buttons.length; i++)
 			colors.push(fillStyleToRgb(buttons[i].style.color))
 		
 		return colors
@@ -860,7 +860,7 @@ let LocalChatDraw = (function() {
 		let max = 0
 		let clearColor = 0
 		
-		for(let i = 0; i < colors.length; i++) {
+		for (let i = 0; i < colors.length; i++) {
 			let full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2)
 			
 			if (full > max) {
@@ -976,7 +976,7 @@ class AnimatorFrameSet {
 	
 	_GetIndexOfFrame(frame) {
 		let elements = this._GetAllFrameElements()
-		for(let i = 0; i < elements.length; i++) {
+		for (let i = 0; i < elements.length; i++) {
 			if (elements[i].isSameNode(frame))
 				return i
 		}
@@ -1023,7 +1023,7 @@ class AnimatorFrameSet {
 		let selected = this._GetAllFrameElements(true)
 		let i
 		
-		for(i = 0; i < selected.length; i++)
+		for (i = 0; i < selected.length; i++)
 			selected[i].removeAttribute(this.SelectedAttribute)
 		
 		frameElement.setAttribute(this.SelectedAttribute, "true")
@@ -1148,7 +1148,7 @@ class AnimatorFrameSet {
 	GetSelectedFrameIndex() {
 		let allFrames = this._GetAllFrameElements()
 		
-		for(let i = 0; i < allFrames.length; i++) {
+		for (let i = 0; i < allFrames.length; i++) {
 			if (allFrames[i].hasAttribute(this.SelectedAttribute))
 				return i
 		}
@@ -1165,7 +1165,7 @@ class AnimatorFrameSet {
 		let allFrames = []
 		let allElements = this._GetAllFrameElements()
 		
-		for(let i = 0; i < allElements.length; i++)
+		for (let i = 0; i < allElements.length; i++)
 			allFrames.push(this._GetDataFromFrame(allElements[i]))
 		
 		return allFrames
@@ -1278,7 +1278,7 @@ class AnimationPlayer {
 		
 		this.frames = []
 		
-		for(let i = 0; i < storeObject.data.length; i++) {
+		for (let i = 0; i < storeObject.data.length; i++) {
 			this.frames[i] = ChatDrawUtilities.ChatDrawToFrame(storeObject.data[i])
 			this.frames[i].time = storeObject.times[i]
 		}
@@ -1296,7 +1296,7 @@ class AnimationPlayer {
 			data: []
 		}
 		
-		for(let i = 0; i < this.frames.length; i++) {
+		for (let i = 0; i < this.frames.length; i++) {
 			if (this.frames[i].time)
 				baseData.times.push(this.frames[i].time)
 			else
@@ -1338,7 +1338,7 @@ let ChatDrawUtilities = {
 	PaletteToString: function(palette) {
 		let colorSet = ""
 		
-		for(let i = 0; i < palette.length; i++) {
+		for (let i = 0; i < palette.length; i++) {
 			colorSet += palette[i].ToRGBString()
 			if (i !== palette.length - 1) colorSet += "/"
 		}
@@ -1349,7 +1349,7 @@ let ChatDrawUtilities = {
 		let colors = string.split("/")
 		let result = []
 		
-		for(let i = 0; i < colors.length; i++)
+		for (let i = 0; i < colors.length; i++)
 			result.push(StyleUtilities.GetColor(colors[i]))
 		
 		return result
@@ -1359,7 +1359,7 @@ let ChatDrawUtilities = {
 		let max = 0
 		let clearColor = 0
 		
-		for(let i = 0; i < palette.length; i++) {
+		for (let i = 0; i < palette.length; i++) {
 			let full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2)
 			
 			if (full > max) {
@@ -1385,7 +1385,7 @@ let ChatDrawUtilities = {
 		
 		let context = destination.getContext("2d")
 		
-		for(let i = 0; i < frames.length; i++) {
+		for (let i = 0; i < frames.length; i++) {
 			//This might be expensive! Make sure the browser doesn't slow down
 			//from all these created canvases!
 			let copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas)
@@ -1417,11 +1417,11 @@ let ChatDrawUtilities = {
 		
 		let paletteArray = []
 		
-		for(i = 0; i < palette.length; i++)
+		for (i = 0; i < palette.length; i++)
 			paletteArray.push(palette[i].ToArray())
 		
 		//Go by 4 because RGBA. Data is encoded in row-major order.
-		for(i = 0; i < pixelData.length; i+=4) {
+		for (i = 0; i < pixelData.length; i+=4) {
 			//Shift is how much to shift the current palette value. All this math
 			//and we still can't add up T_T
 			shift = ((i / 4) % pixelsPerByte) * bitsPerPixel
@@ -1455,8 +1455,8 @@ let ChatDrawUtilities = {
 		
 		//OY! Before you go, add all the palette data. Yeah that's right, we
 		//encode the full RGB color space in the palette data. So what?
-		for(i = 0; i < paletteArray.length; i++)
-			for(j = 0; j < 3; j++) //DO NOT INCLUDE THE ALPHA CHANNEL!
+		for (i = 0; i < paletteArray.length; i++)
+			for (j = 0; j < 3; j++) //DO NOT INCLUDE THE ALPHA CHANNEL!
 				baseData += String.fromCharCode(paletteArray[i][j])
 		
 		baseData += String.fromCharCode(paletteArray.length)
@@ -1486,11 +1486,11 @@ let ChatDrawUtilities = {
 			palette = []
 			
 			//Now read all the "apparent" palette bytes.
-			for(i = 0; i < paletteCount; i++) {
+			for (i = 0; i < paletteCount; i++) {
 				let color = []
 				
 				//build color from 3 channels
-				for(j = 0; j < 3; j++)
+				for (j = 0; j < 3; j++)
 					color.push(realData.charCodeAt(realData.length - 1 - (paletteCount - i) * 3 + j));   
 				
 				palette.push(new Color(color[0], color[1], color[2]))

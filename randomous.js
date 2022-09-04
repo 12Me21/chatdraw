@@ -52,14 +52,15 @@ let HTMLUtilities = {
 		selectedAttribute = selectedAttribute || "data-selected"
 		selectedValue = selectedValue || "true"
 		let fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
-		for(let i = 0; i < fakeRadios.length; i++)
+		for (let i = 0; i < fakeRadios.length; i++)
 			fakeRadios[i].removeAttribute(selectedAttribute)
 		selected.setAttribute(selectedAttribute, selectedValue)
 	},
 	CreateUnsubmittableButton: function(text) {
 		let button = document.createElement('button')
-		button.setAttribute("type", "button")
-		if (text) button.textContent = text
+		button.type = 'button'
+		if (text)
+			button.textContent = text
 		return button
 	},
 	CreateContainer: function(className, id) {
@@ -72,12 +73,13 @@ let HTMLUtilities = {
 	},
 	CreateSelect: function(options, name) {
 		let select = document.createElement("select")
-		if (name) select.setAttribute("name", name)
+		if (name)
+			select.name = name
 		for (let i = 0; i < options.length; i++) {
 			let option = document.createElement("option")
 			if (options[i].value && options[i].text) {
 				option.textContent = options[i].text
-				option.setAttribute("value", options[i].value)
+				option.value = options[i].value
 			} else {
 				option.textContent = options[i]
 			}
@@ -159,11 +161,11 @@ class Toaster {
 		this.container.appendChild(toast)
 		
 		setTimeout(function() {
-			toast.removeAttribute("data-initialize")
+			delete toast.dataset.initialize
 		}, 10)
 		//Give a big buffer zone of fadingin just in case people have long effects
 		setTimeout(function() {
-			toast.removeAttribute("data-fadingin")
+			delete toast.dataset.fadingin
 		}, 1000)
 		setTimeout(function() {
 			toast.dataset.fadingout = "true"
@@ -305,7 +307,7 @@ class DialogBox {
 		let i
 		let me = this
 		
-		for(i = 0; i < buttons.length; i++) {
+		for (i = 0; i < buttons.length; i++) {
 			let btext = buttons[i]
 			if (buttons[i].text) btext = buttons[i].text
 			let callback = buttons[i].callback
@@ -483,7 +485,7 @@ let RequestUtilities = {
 			xhr.open("GET", page)
 		
 		if (extraHeaders) {
-			for(let key in extraHeaders) {
+			for (let key in extraHeaders) {
 				if (extraHeaders.hasOwnProperty(key))
 					xhr.setRequestHeader(key, extraHeaders[key])
 			}
@@ -595,7 +597,7 @@ let StyleUtilities = {
 			let i, finalSelectors = []
 			if (!Array.isArray(selectors)) selectors = [ selectors ]
 			if (!Array.isArray(rules)) rules = [ rules ]
-			for(i = 0; i < selectors.length; i++) {
+			for (i = 0; i < selectors.length; i++) {
 				if (!Array.isArray(selectors[i])) selectors[i] = [ selectors[i] ]
 				finalSelectors.push(selectors[i].join(" "))
 			}
@@ -605,9 +607,9 @@ let StyleUtilities = {
 		mStyle.AppendClasses = function(classnames, rules) {
 			let i, j
 			if (!Array.isArray(classnames)) classnames = [ classnames ]
-			for(i = 0; i < classnames.length; i++) {
+			for (i = 0; i < classnames.length; i++) {
 				if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ]
-				for(j = 0; j < classnames[i].length; j++)
+				for (j = 0; j < classnames[i].length; j++)
 					classnames[i][j] = "." + classnames[i][j]
 			}
 			mStyle.Append(classnames, rules)
@@ -749,8 +751,8 @@ let CanvasUtilities = {
 		cx -= 0.5; //A HACK OOPS
 		cy -= 0.5
 		
-		for(y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
-			for(x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
+		for (y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
+			for (x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
 				if (x*x*rs2+y*y*rs1 <= rss) {
 					ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1)
 					break
@@ -862,7 +864,7 @@ let CanvasUtilities = {
 	ComputeTotalBoundingBox: function(boxes) {
 		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
 		
-		for(let i = 0; i < boxes.length; i++) {
+		for (let i = 0; i < boxes.length; i++) {
 			if (!boxes[i] || boxes[i].length < 4) return false
 			finalBox[0] = Math.min(boxes[0], finalBox[0])
 			finalBox[1] = Math.min(boxes[1], finalBox[1])
@@ -882,7 +884,7 @@ let CanvasUtilities = {
 	//PutColorInData: function(color, data, i)
 	//{
 	//   var array = color.ToArray(true)
-	//   for(var i = 0; i < 
+	//   for (var i = 0; i < 
 	//},
 	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
 	//falls outside the canvas.
@@ -913,7 +915,7 @@ let CanvasUtilities = {
 				for (east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++)
 					//Move from west to east EXCLUSIVE and fill the queue with matching
 					//north and south nodes.
-					for(column = west + 1; column < east; column++) {
+					for (column = west + 1; column < east; column++) {
 						if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
 							enqueue(column, row + 1)
 						if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
@@ -935,7 +937,7 @@ let CanvasUtilities = {
 			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
 			if (originalColor.MaxDifference(currentColor) <= threshold) {
-				for(let j = 0; j < 4; j++)
+				for (let j = 0; j < 4; j++)
 					d[i + j] = colorArray[j]
 				return true
 			} else {
@@ -951,11 +953,11 @@ let CanvasUtilities = {
 		let newArray = newColor.ToArray(true)
 		let i, j
 		
-		for(i = 0; i < data.length; i+=4) {
+		for (i = 0; i < data.length; i+=4) {
 			let cCol = CanvasUtilities.GetColorFromData(data, i)
 			
 			if (cCol.MaxDifference(original) <= threshold) {
-				for(j = 0; j < 4; j++)
+				for (j = 0; j < 4; j++)
 					data[i+j] = newArray[j]
 			}
 		}
@@ -993,8 +995,8 @@ let CanvasUtilities = {
 // Functions to help with built-in events (such as the mouse event).
 
 let EventUtilities = {
-	SignalCodes: { Cancel: 2, Run: 1, Wait: 0},
-	mButtonMap: [ 1, 4, 2, 8, 16 ],
+	SignalCodes: {Cancel: 2, Run: 1, Wait: 0},
+	mButtonMap: [1, 4, 2, 8, 16],
 	MouseButtonToButtons: function(button) {
 		return EventUtilities.mButtonMap[button]
 	},
@@ -1011,43 +1013,6 @@ let EventUtilities = {
 			window.setTimeout(function() {
 				EventUtilities.ScheduleWaitingTask(signal, perform, interval)
 			}, interval)
-	}
-}
-
-// --- Screen Utilities ---
-// Functions to help with setting up or altering the screen (such as fullscreen
-// elements and whatever)
-
-let ScreenUtilities = {
-	LaunchIntoFullscreen: function(element) {
-		if (element.requestFullscreen)
-			element.requestFullscreen()
-		else if (element.mozRequestFullScreen)
-			element.mozRequestFullScreen()
-		else if (element.webkitRequestFullscreen)
-			element.webkitRequestFullscreen()
-		else if (element.msRequestFullscreen)
-			element.msRequestFullscreen()
-		
-		//Keep the UXUtilities INSIDE the fullscreen thingy.
-		element.appendChild(UXUtilities.UtilitiesContainer)
-	},
-	ExitFullscreen: function() {
-		if (document.exitFullscreen)
-			document.exitFullscreen()
-		else if (document.mozCancelFullScreen)
-			document.mozCancelFullScreen()
-		else if (document.webkitExitFullscreen)
-			document.webkitExitFullscreen()
-		
-		//Replace the utilities back into the body.
-		document.body.appendChild(UXUtilities.UtilitiesContainer)
-	},
-	IsFullscreen: function() {
-		if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement)
-			return true
-		
-		return false
 	}
 }
 

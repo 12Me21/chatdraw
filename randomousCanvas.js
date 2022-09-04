@@ -423,7 +423,7 @@ class CanvasDrawer extends CanvasPerformer {
 	//Convert layer ID (which can be anything) to actual index into layer buffer.
 	//Only works if there is actually a buffer.
 	LayerIDToBufferIndex(id) {
-		for(let i = 0; i < this.buffers.length; i++)
+		for (let i = 0; i < this.buffers.length; i++)
 			if (this.buffers[i].id === id)
 				return i
 		
@@ -582,7 +582,7 @@ class CanvasDrawer extends CanvasPerformer {
 		//context.clearRect(bounding[0] + offsetX, bounding[1] + offsetY, bounding[2] * zoom, bounding[3] * zoom)
 		context.clearRect(bounding[0], bounding[1], bounding[2], bounding[3])
 		if (this.overlay.active) this.buffers.splice(this.CurrentLayerIndex() + 1, 0, this.overlay)
-		for(let i = 0; i < this.buffers.length; i++) {
+		for (let i = 0; i < this.buffers.length; i++) {
 			context.globalAlpha = this.buffers[i].opacity
 			//context.drawImage(this.buffers[i].canvas, 
 			//   bounding[0], bounding[1], bounding[2], bounding[3],
@@ -700,7 +700,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.buffers = []
 		
-		for(i = 0; i < layers.length; i++)
+		for (i = 0; i < layers.length; i++)
 			this.buffers.push(new CanvasDrawerLayer(layers[i], i))
 		
 		if (undoCount)
@@ -735,7 +735,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		if (this.Buffered()) {
 			object.buffered = true
-			for(let i = 0; i < this.buffers.length; i++) {
+			for (let i = 0; i < this.buffers.length; i++) {
 				layers.push(layerToObject(this.buffers[i]))
 			}
 		} else {
@@ -770,7 +770,7 @@ class CanvasDrawer extends CanvasPerformer {
 				loadedBuffers++
 				if (loadedBuffers >= object.layers.length) version1LoadComplete()
 			}
-			for(let i = 0; i < object.layers.length; i++) {
+			for (let i = 0; i < object.layers.length; i++) {
 				me.buffers[i].canvas.width = object.width
 				me.buffers[i].canvas.height = object.height
 				layerLoadFunction(object.layers[i], me.buffers[i], redrawCheck)
@@ -981,7 +981,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let count = data.lineWidth * drawer.sprayRate
 			//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
 			//data.lineWidth * drawer.sprayRate
-			for(let i=0;i<count;i+=0.1) {
+			for (let i=0;i<count;i+=0.1) {
 				if (MathUtilities.IntRandom(10))
 					continue
 				do {
@@ -1023,7 +1023,7 @@ class CanvasDrawer extends CanvasPerformer {
 				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 				let currentColor = new Color(copyData[i], copyData[i+1], copyData[i+2], copyData[i+3]/255)
 				if (originalColor.MaxDifference(currentColor) <= drawer.floodThreshold) {
-					for(let j = 0; j < 4; j++) {
+					for (let j = 0; j < 4; j++) {
 						d[i + j] = colorArray[j]
 						copyData[i + j] = colorArray[j]
 					}
