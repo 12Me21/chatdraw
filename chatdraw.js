@@ -17,9 +17,9 @@ let LocalChatDraw = (function() {
 	let chatDrawCanvasWidth = 200
 	let chatDrawCanvasHeight = 100
 	
-	let drawAreaID = "chatdraw"
 	let colorButtonClass = "colorChange"
-	let colorPickerID = "colorPicker"
+	let colorPicker = null
+	let drawArea = null
 	let hideCharacters = 20
 	let maxLineWidth = 7
 	let maxScale = 5
@@ -153,7 +153,7 @@ let LocalChatDraw = (function() {
 		tButton.className = "toolButton"
 		tButton.addEventListener('click', function() {
 			//First, deselect ALL other buttons
-			let toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton")
+			let toolButtons = drawArea.querySelectorAll("button.toolButton")
 			for (let i = 0; i < toolButtons.length; i++) {
 				if (toolButtons[i] != tButton)
 					delete toolButtons[i].dataset.selected
@@ -169,61 +169,6 @@ let LocalChatDraw = (function() {
 			drawer.currentTool = toolNames[nextTool]
 		})
 		return tButton
-	}
-	
-	let setupInterface2 = function() {
-		try {
-			let messagePane = document.querySelector("#sendpane")
-			
-			let drawArea = document.createElement("draw-area")
-			let buttonArea = document.createElement("button-area")
-			drawIframe = document.createElement("iframe")
-			let toggleButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
-			let sendButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
-			let positionButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
-			
-			//These are the only elements that will be displayed if the drawing area
-			//goes hidden. CSS doesn't have to look at these, ofc.
-			buttonArea.dataset.keep = true
-			toggleButton.dataset.keep = true
-			toggleButton.textContent = "✎"
-			toggleButton.addEventListener("click", toggleInterface)
-			sendButton.textContent = "➥"
-			sendButton.addEventListener("click", sendDrawing2)
-			positionButton.textContent = "◲"
-			positionButton.className = "position"
-			positionButton.addEventListener("click", function(e) {
-				dockInterface(!drawArea.hasAttribute("data-docked"))
-			})
-			
-			drawIframe.src = window.location.protocol + "//draw.smilebasicsource.com?nocache=1&nobg=1"
-			drawArea.id = drawAreaID
-			drawArea.dataset.fixedsize = true
-			drawArea.dataset.scale = 2
-			drawArea.appendChild(drawIframe)
-			buttonArea.appendChild(positionButton)
-			buttonArea.appendChild(sendButton)
-			buttonArea.appendChild(toggleButton)
-			drawArea.appendChild(buttonArea)
-			messagePane.appendChild(drawArea)
-			
-			//Make sure the interface is hidden, since we create it exposed.
-			toggleInterface({target: toggleButton}, false)
-			if (readStorage("chatDrawDocked")) dockInterface(true, drawArea)
-			
-			//Now set up the overall document events.
-			document.querySelector("#sendpane textarea").addEventListener("keyup", onKeyUp)
-			window.addEventListener("message", function(e) {
-				if (e.data.type === "uploadImage") {
-					if (e.data.link.indexOf("http://") === 0)
-						sendMessage("/img " + e.data.link)
-					else
-						alert("Something went wrong: " + e.data.link)
-				}
-			})
-		} catch(ex) {
-			LogSystem.RootLogger.log("Error while setting up drawing interface: " + ex)
-		}
 	}
 	
 	let selectNextRadio = function() {
@@ -319,7 +264,7 @@ let LocalChatDraw = (function() {
 		let messagePane = interfaceContainer || document.querySelector("#sendpane")
 		let i
 		
-		let drawArea = document.createElement("draw-area")
+		drawArea = document.createElement("draw-area")
 		let canvasContainer = document.createElement("canvas-container")
 		let buttonArea = document.createElement("button-area")
 		let buttonArea2 = document.createElement("button-area")
@@ -336,7 +281,7 @@ let LocalChatDraw = (function() {
 		let moveButton = createToolButton(["↔️"], ["mover"])
 		let canvas = ChatDrawUtilities.CreateCanvas()
 		let lightbox = ChatDrawUtilities.CreateCanvas()
-		let colorPicker = document.createElement("input")
+		colorPicker = document.createElement("input")
 		lightbox.className = "lightbox"
 		
 		let frameContainer = document.createElement("animate-frames")
@@ -375,7 +320,6 @@ let LocalChatDraw = (function() {
 		}
 		
 		//Set up the color picker
-		colorPicker.id = colorPickerID
 		colorPicker.type = 'color'
 		colorPicker.style.position = "absolute"
 		colorPicker.style.left = "-10000px"
@@ -407,7 +351,6 @@ let LocalChatDraw = (function() {
 			                      rgbToFillStyle(getClearColor()))
 			drawer.Redraw()
 		})
-		drawArea.id = drawAreaID
 		drawArea.setAttribute("tabindex", "-1")
 		drawArea.addEventListener("keydown", function(ev) {
 			if (drawArea.dataset.hidden) return
@@ -723,8 +666,8 @@ let LocalChatDraw = (function() {
 		freehandButton.click()
 		toggleInterface({target: toggleButton})
 		
-		drawArea.dataset.scale = 
-			String(MathUtilities.MinMax(Math.floor((drawArea.getBoundingClientRect().right - 200) / 200), 1, 3))
+		let scale = Math.floor((drawArea.getBoundingClientRect().right - 200) / 200)
+		drawArea.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
 		
@@ -735,7 +678,7 @@ let LocalChatDraw = (function() {
 	
 	let interfaceVisible = function() {
 		try {
-			return !document.getElementById(drawAreaID).dataset.hidden
+			return !drawArea.dataset.hidden
 		} catch(ex) {
 			LogSystem.RootLogger.log("Error while checking interface visibility: " + ex)
 		}
@@ -743,12 +686,10 @@ let LocalChatDraw = (function() {
 	
 	let toggleInterface = function(event, allowResize) {
 		try {
-			let container = document.getElementById(drawAreaID)
-			
-			if (container.dataset.hidden)
-				delete container.dataset.hidden
+			if (drawArea.dataset.hidden)
+				delete drawArea.dataset.hidden
 			else
-				container.dataset.hidden = true
+				drawArea.dataset.hidden = true
 			
 			if (drawIframe && !firstTimeRecentered && (allowResize !== false)) {
 				console.debug("DOING A HIDDEN DISPLAY FORCE SIZE HACK")
@@ -763,16 +704,16 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let dockInterface = function(dock, drawArea) {
+	let dockInterface = function(dock, drawArea2) {
 		try {
-			drawArea = drawArea || document.getElementById(drawAreaID)
-			let positionButton = drawArea.querySelector("button.position")
+			drawArea2 = drawArea2 || drawArea
+			let positionButton = drawArea2.querySelector("button.position")
 			if (dock) {
-				drawArea.dataset.docked = true
+				drawArea2.dataset.docked = true
 				positionButton.textContent = "◱"
 				writeStorage("chatDrawDocked", true)
 			} else {
-				delete drawArea.dataset.docked
+				delete drawArea2.dataset.docked
 				positionButton.textContent = "◲"
 				writeStorage("chatDrawDocked", false)
 			}
@@ -783,10 +724,9 @@ let LocalChatDraw = (function() {
 	
 	let scaleInterface = function(event) {
 		try {
-			let container = document.getElementById(drawAreaID)
-			let rect = container.getBoundingClientRect()
+			let rect = drawArea.getBoundingClientRect()
 			
-			let scale = Number(container.dataset.scale)
+			let scale = +drawArea.style.getPropertyValue('--scale') || 1
 			let originalWidth = rect.width / scale
 			
 			//Figure out the NEXT scale.
@@ -795,7 +735,7 @@ let LocalChatDraw = (function() {
 			else
 				scale = 1
 			
-			container.dataset.scale = String(scale)
+			drawArea.style.setProperty('--scale', scale)
 		} catch(ex) {
 			LogSystem.RootLogger.log("Error while scaling drawing interface: " + ex)
 		}
@@ -817,7 +757,6 @@ let LocalChatDraw = (function() {
 		
 		//If this button was already selected, perform the color swap.
 		if (alreadySelected) {
-			let colorPicker = document.getElementById(colorPickerID)
 			colorPicker.associatedButton = colorButton
 			colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
 			colorPicker.focus()
@@ -874,12 +813,11 @@ let LocalChatDraw = (function() {
 	
 	//Get the buttons representing the color switching
 	let getColorButtons = function() {
-		return document.querySelectorAll("#" + drawAreaID + " button-area button." + colorButtonClass)
+		return drawArea.querySelectorAll("button-area button." + colorButtonClass)
 	}
 	
 	let onKeyUp = function(event) {
 		try {
-			let drawArea = document.getElementById(drawAreaID)
 			if (event.target.value.length > hideCharacters)
 				drawArea.style.visibility = "hidden"
 			else
@@ -893,7 +831,6 @@ let LocalChatDraw = (function() {
 		"getColorButtons": getColorButtons,
 		"checkMessageForDrawing": checkMessageForDrawing,
 		"setupInterface": setupInterface,
-		"setupAdvancedInterface": setupInterface2,
 		"getButtonColors": getButtonColors,
 		"drawingWidth": chatDrawCanvasWidth,
 		"drawingHeight": chatDrawCanvasHeight,
