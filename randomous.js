@@ -17,7 +17,7 @@
 
 // --- Library OnLoad Setup ---
 // This stuff needs to be performed AFTER the document is loaded and all that.
-window.addEventListener("DOMContentLoaded", function() {
+window.addEventListener("DOMContentLoaded", ()=>{
 	UXUtilities._Setup()
 })
 
@@ -42,13 +42,13 @@ Function.prototype.callBind = function() {
 
 let HTMLUtilities = {
 	_nextID: 0,
-	MoveToEnd: function(element) {
+	MoveToEnd(element)=>{
 		element.parentNode.appendChild(element)
 	},
-	GetUniqueID: function(base) {
+	GetUniqueID(base) {
 		return "genID_" + this._nextID++ + (base ? "_" + base : "")
 	},
-	SimulateRadioSelect: function(selected, parent, selectedAttribute, selectedValue) {
+	SimulateRadioSelect(selected, parent, selectedAttribute, selectedValue) {
 		selectedAttribute = selectedAttribute || "data-selected"
 		selectedValue = selectedValue || "true"
 		let fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
@@ -56,14 +56,14 @@ let HTMLUtilities = {
 			fakeRadios[i].removeAttribute(selectedAttribute)
 		selected.setAttribute(selectedAttribute, selectedValue)
 	},
-	CreateUnsubmittableButton: function(text) {
+	CreateUnsubmittableButton(text) {
 		let button = document.createElement('button')
 		button.type = 'button'
 		if (text)
 			button.textContent = text
 		return button
 	},
-	CreateContainer: function(className, id) {
+	CreateContainer(className, id) {
 		let container = document.createElement("div")
 		container.className = className
 		if (id)
@@ -71,7 +71,7 @@ let HTMLUtilities = {
 		container.dataset.createdon = new Date().getTime()
 		return container
 	},
-	CreateSelect: function(options, name) {
+	CreateSelect(options, name) {
 		let select = document.createElement("select")
 		if (name)
 			select.name = name
@@ -87,7 +87,7 @@ let HTMLUtilities = {
 		}
 		return select
 	},
-	SwapElements: function (obj1, obj2) {
+	SwapElements(obj1, obj2) {
 		// save the location of obj2
 		let parent2 = obj2.parentNode
 		let next2 = obj2.nextSibling
@@ -160,18 +160,18 @@ class Toaster {
 		console.debug("Popping toast: " + text)
 		this.container.appendChild(toast)
 		
-		setTimeout(function() {
+		setTimeout(()=>{
 			delete toast.dataset.initialize
 		}, 10)
 		//Give a big buffer zone of fadingin just in case people have long effects
-		setTimeout(function() {
+		setTimeout(()=>{
 			delete toast.dataset.fadingin
 		}, 1000)
-		setTimeout(function() {
+		setTimeout(()=>{
 			toast.dataset.fadingout = "true"
 		}, duration)
 		//Give a big buffer zone of fadingout just in case people have long effects
-		setTimeout(function() {
+		setTimeout(()=>{
 			toast.remove()
 		}, duration + 2000)
 	}
@@ -375,27 +375,30 @@ let UXUtilities = {
 	_DefaultToaster: new Toaster(),
 	_ScreenFader: new Fader(),
 	_DefaultDialog: new DialogBox(),
-	_Setup: function() {
+	_Setup() {
 		document.body.appendChild(UXUtilities.UtilitiesContainer)
 		UXUtilities._DefaultToaster.AttachFullscreen(UXUtilities.UtilitiesContainer)
 		UXUtilities._ScreenFader.AttachFullscreen(UXUtilities.UtilitiesContainer)
 		UXUtilities._DefaultDialog.AttachFullscreen(UXUtilities.UtilitiesContainer)
 	},
-	Toast: function(message, duration) { 
+	Toast(message, duration) { 
 		UXUtilities._DefaultToaster.Toast(message,duration)
 	},
-	FadeScreen: function(duration, color) {
+	FadeScreen(duration, color) {
 		UXUtilities._ScreenFader.Fade(duration, color)
 	},
-	Confirm: function(message, callback, yesMessage, noMessage) {
+	Confirm(message, callback, yesMessage, noMessage) {
 		UXUtilities._DefaultDialog.Show(message, [
-			{text: noMessage || "No", callback: function() { callback(false); }},
-			{text: yesMessage || "Yes", callback: function() { callback(true); }}
+			{text: noMessage || "No", callback: ()=>{ callback(false) }},
+			{text: yesMessage || "Yes", callback: ()=>{ callback(true) }}
 		])
 	},
-	Alert: function(message, callback, okMessage) {
+	Alert(message, callback, okMessage) {
 		UXUtilities._DefaultDialog.Show(message, [
-			{ text: okMessage || "OK", callback: function() { if (callback) callback(); }}
+			{ text: okMessage || "OK", callback: ()=>{
+				if (callback)
+					callback()
+			}}
 		])
 	}
 }
@@ -405,12 +408,11 @@ let UXUtilities = {
 // localstorage, etc.
 
 let StorageUtilities = {
-	WriteLocal: function(name, value) {
+	WriteLocal(name, value) {
 		localStorage.setItem(name, JSON.stringify(value))
 	},
-	ReadLocal: function (name) {
-		try
-		{
+	ReadLocal(name) {
+		try {
 			return JSON.parse(localStorage.getItem(name))
 		} catch(error) {
 			//console.log("Failed to retrieve " + name + " from local storage")
@@ -423,14 +425,14 @@ let StorageUtilities = {
 // Functions for parsing/manipulating URLs and... stuff.
 
 let URLUtilities = {
-	GetQueryString: function(url) {
+	GetQueryString(url) {
 		let queryPart = url.match(/(\?[^#]*)/)
 		if (!queryPart) return ""
 		return queryPart[1]
 	},
 	//Taken from Tarik on StackOverflow:
 	//http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
-	GetQueryVariable: function(variable, url) {
+	GetQueryVariable(variable, url) {
 		let query = url ? URLUtilities.GetQueryString(url) : window.location.search
 		let vars = query.substring(1).split('&')
 		
@@ -443,7 +445,7 @@ let URLUtilities = {
 		
 		return null
 	},
-	AddQueryVariable: function(variable, value, url) {
+	AddQueryVariable(variable, value, url) {
 		if (URLUtilities.GetQueryString(url)) 
 			url += "&"
 		else
@@ -453,30 +455,11 @@ let URLUtilities = {
 	}
 }
 
-//Special console logging
-let _loglevel = 0
-console.debug = function() {}
-console.trace = function() {}
-
-if (URLUtilities.GetQueryVariable("trace"))
-	_loglevel = 100
-else if (URLUtilities.GetQueryVariable("debug"))
-	_loglevel = 50
-
-if (_loglevel >= 50) {
-	console.log("Debug mode is activated.")
-	console.debug = console.log
-}
-if (_loglevel >= 100) {
-	console.log("Trace mode is activated.")
-	console.trace = console.log
-}
-
 // --- Request ---
 // Helpers for POST/GET requests
 
 let RequestUtilities = {
-	XHRSimple: function(page, callback, data, extraHeaders) {
+	XHRSimple(page, callback, data, extraHeaders) {
 		let xhr = new XMLHttpRequest()
 		
 		if (data)
@@ -492,7 +475,7 @@ let RequestUtilities = {
 		}
 		
 		//Use generic completion function with given success callback
-		xhr.addEventListener("load", function(event) {
+		xhr.addEventListener("load", event=>{
 			try {
 				callback(event.target.response)
 			} catch(e) {
@@ -506,8 +489,8 @@ let RequestUtilities = {
 		else
 			xhr.send()
 	},
-	XHRJSON: function(page, callback, data) {
-		RequestUtilities.XHRSimple(page, function(response) {
+	XHRJSON(page, callback, data) {
+		RequestUtilities.XHRSimple(page, (response)=>{
 			callback(JSON.parse(response))
 		}, data, {"Content-type": "application/json"})
 	}
@@ -565,31 +548,31 @@ class Color {
 
 let StyleUtilities = {
 	_cContext: document.createElement("canvas").getContext("2d"),
-	GetColor: function(input) {
+	GetColor(input) {
 		this._cContext.clearRect(0,0,1,1)
 		this._cContext.fillStyle = input
 		this._cContext.fillRect(0,0,1,1)
 		let data = this._cContext.getImageData(0,0,1,1).data
 		return new Color(data[0], data[1], data[2], data[3] / 255)
 	},
-	_GetColorMath: function(f, func) {
+	_GetColorMath(f, func) {
 		let arr = [0,0,0]
 		func(f, arr)
 		return new Color(255 * arr[0], 255 * arr[1], 255 * arr[2], 1)
 	},
-	GetGray: function(f) {
+	GetGray(f) {
 		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetGray)
 	},
-	GetRGB: function(f) {
+	GetRGB(f) {
 		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetRGB)
 	},
-	GetHue: function(f) {
+	GetHue(f) {
 		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetHue)
 	},
 	//Create a style element WITHOUT inserting it into the head. The given ID
 	//will be set. The style element returned will have extra functionality
 	//attached to it for easy style appending.
-	CreateStyleElement: function(id) {
+	CreateStyleElement(id) {
 		let mStyle = document.createElement("style")
 		mStyle.appendChild(document.createTextNode(""))
 		mStyle.nextInsert = 0
@@ -614,15 +597,16 @@ let StyleUtilities = {
 			}
 			mStyle.Append(classnames, rules)
 		}
-		if (id) mStyle.id = id
+		if (id)
+			mStyle.id = id
 		return mStyle
 	},
-	InsertStylesAtTop: function(styles) {
+	InsertStylesAtTop(styles) {
 		if (!Array.isArray(styles)) styles = [ styles ]
 		for (let i = styles.length - 1; i >= 0; i--)
 			document.head.insertBefore(styles[i], document.head.firstChild)
 	},
-	TrySingleStyle: function(id) {
+	TrySingleStyle(id) {
 		if (document.getElementById(id))
 			return false
 		
@@ -632,7 +616,7 @@ let StyleUtilities = {
 	},
 	//Converts width and height into the true width and height on the device (or
 	//as close to it, anyway). Usefull mostly for canvases.
-	GetTrueRect: function(element) {
+	GetTrueRect(element) {
 		window.devicePixelRatio = window.devicePixelRatio || 1
 		let pixelRatio = 1
 		let rect = element.getBoundingClientRect()
@@ -642,7 +626,7 @@ let StyleUtilities = {
 			window.devicePixelRatio
 		return rect
 	},
-	NoImageInterpolationRules: function() {
+	NoImageInterpolationRules() {
 		return ["image-rendering:moz-crisp-edges","image-rendering:crisp-edges", "image-rendering:optimizespeed","image-rendering:pixelated"]
 	}
 }
@@ -655,24 +639,24 @@ StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height =
 let CanvasUtilities = {
 	//WARNING! This function breaks canvases without a style set width or height 
 	//on devices with a higher devicePixelRatio than 1 O_O
-	AutoSize: function(canvas) {
+	AutoSize(canvas) {
 		let rect = StyleUtilities.GetTrueRect(canvas)
 		canvas.width = rect.width
 		canvas.height = rect.height
 	},
 	//Basically the opposite of autosize: sets the style to match the canvas
 	//size.
-	AutoStyle: function(canvas) {
+	AutoStyle(canvas) {
 		canvas.style.width = canvas.width + "px"
 		canvas.style.height = canvas.height + "px"
 	},
-	GetScaling: function(canvas) {
+	GetScaling(canvas) {
 		let rect = StyleUtilities.GetTrueRect(canvas)
 		return [rect.width / canvas.width, rect.height / canvas.height]
 	},
 	//Set scaling of canvas. Alternatively, set the scaling of the given element
 	//(canvas will remain unaffected)
-	SetScaling: function(canvas, scale, element) {
+	SetScaling(canvas, scale, element) {
 		if (!Array.isArray(scale)) scale = [scale, scale]
 		let oldWidth = canvas.style.width
 		let oldHeight = canvas.style.height
@@ -688,7 +672,7 @@ let CanvasUtilities = {
 		element.style.width = (rect.width * scale[0]) + "px"
 		element.style.height = (rect.height * scale[1]) + "px"
 	},
-	CreateCopy: function(canvas, copyImage, x, y, width, height) {
+	CreateCopy(canvas, copyImage, x, y, width, height) {
 		//Width and height are cropping, not scaling. X and Y are the place to
 		//start the copy within the original canvas 
 		x = x || 0; y = y || 0
@@ -700,7 +684,7 @@ let CanvasUtilities = {
 		if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
 		return newCanvas
 	},
-	CopyInto: function(context, canvas, x, y) {
+	CopyInto(context, canvas, x, y) {
 		//x and y are the offset locations to place the copy into on the
 		//receiving canvas
 		x = x || 0; y = y || 0
@@ -709,7 +693,7 @@ let CanvasUtilities = {
 		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y)
 		context.globalCompositeOperation = oldComposition
 	},
-	OptimizedDrawImage: function(context, image, x, y, scaleX, scaleY) {
+	OptimizedDrawImage(context, image, x, y, scaleX, scaleY) {
 		scaleX = scaleX || image.width
 		scaleY = scaleY || image.height
 		let oldImageSmoothing = context.imageSmoothingEnabled
@@ -717,7 +701,7 @@ let CanvasUtilities = {
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
 		context.imageSmoothingEnabled = oldImageSmoothing
 	},
-	Clear: function(canvas, color) {
+	Clear(canvas, color) {
 		let context = canvas.getContext("2d")
 		let oldStyle = context.fillStyle
 		let oldAlpha = context.globalAlpha
@@ -731,7 +715,7 @@ let CanvasUtilities = {
 		context.fillStyle = oldStyle
 		context.globalAlpha = oldAlpha
 	},
-	DrawSolidCenteredRectangle: function(ctx, cx, cy, width, height, clear) {
+	DrawSolidCenteredRectangle(ctx, cx, cy, width, height, clear) {
 		cx = Math.round(cx - width / 2)
 		cy = Math.round(cy - height / 2)
 		if (clear)
@@ -741,7 +725,7 @@ let CanvasUtilities = {
 		//The bounding rectangle for the area that was updated on the canvas.
 		return [cx, cy, width, height]
 	},
-	DrawSolidEllipse: function(ctx, cx, cy, radius1, radius2, clear) {
+	DrawSolidEllipse(ctx, cx, cy, radius1, radius2, clear) {
 		radius2 = radius2 || radius1
 		let line = clear ? "clearRect" : "fillRect"
 		let rs1 = radius1 * radius1
@@ -762,7 +746,7 @@ let CanvasUtilities = {
 		
 		return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2]
 	},
-	DrawNormalCenteredRectangle: function(ctx, cx, cy, width, height) {
+	DrawNormalCenteredRectangle(ctx, cx, cy, width, height) {
 		cx = cx - (width - 1) / 2
 		cy = cy - (height - 1) / 2
 		
@@ -772,7 +756,7 @@ let CanvasUtilities = {
 		return [cx, cy, width, height]
 	},
 	//For now, doesn't actually draw an ellipse
-	DrawNormalCenteredEllipse: function(ctx, cx, cy, width, height) {
+	DrawNormalCenteredEllipse(ctx, cx, cy, width, height) {
 		ctx.beginPath()
 		ctx.arc(cx, cy, width / 2, 0, Math.PI * 2, 0)
 		ctx.fill()
@@ -782,7 +766,7 @@ let CanvasUtilities = {
 	},
 	//Wraps the given "normal eraser" function in the necessary crap to get the
 	//eraser to function properly. Then you just have to fill wherever necessary.
-	PerformNormalEraser: function(ctx, func) {
+	PerformNormalEraser(ctx, func) {
 		let oldStyle = ctx.fillStyle
 		let oldComposition = ctx.globalCompositeOperation
 		ctx.fillStyle = "rgba(0,0,0,1)"
@@ -793,7 +777,7 @@ let CanvasUtilities = {
 		return result
 	},
 	//Draws a general line using the given function to generate each point.
-	DrawLineRaw: function(ctx, sx, sy, tx, ty, width, clear, func) {
+	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {
 		let dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
 		let ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
 		if (dist === 0) dist=0.001
@@ -805,63 +789,59 @@ let CanvasUtilities = {
 		return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width)
 	},
 	//How to draw a single point on the SolidSquare line
-	_DrawSolidSquareLineFunc: function(ctx, x, y, width, clear) { 
+	_DrawSolidSquareLineFunc(ctx, x, y, width, clear) { 
 		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear)
 	},
-	DrawSolidSquareLine: function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawSolidSquareLine(ctx, sx, sy, tx, ty, width, clear) {
 		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
 		                                   CanvasUtilities._DrawSolidSquareLineFunc)
 	},
 	//How to draw a single point on the SolidRound line
-	_DrawSolidRoundLineFunc: function(ctx, x, y, width, clear) { 
+	_DrawSolidRoundLineFunc(ctx, x, y, width, clear) { 
 		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear)
 	},
-	DrawSolidRoundLine: function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawSolidRoundLine(ctx, sx, sy, tx, ty, width, clear) {
 		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
 		                                   CanvasUtilities._DrawSolidRoundLineFunc)
 	},
 	//How to draw a single point on the NormalSquare line
-	_DrawNormalSquareLineFunc: function(ctx, x, y, width, clear) { 
+	_DrawNormalSquareLineFunc(ctx, x, y, width, clear) { 
 		CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear)
 	},
-	DrawNormalSquareLine: function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawNormalSquareLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-				                                   CanvasUtilities._DrawNormalSquareLineFunc)
+			return CanvasUtilities.PerformNormalEraser(ctx, ()=>{
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-			                                   CanvasUtilities._DrawNormalSquareLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
 		}
 	},
 	//How to draw a single point on the NormalRound line
-	_DrawNormalRoundLineFunc: function(ctx, x, y, width, clear) { 
+	_DrawNormalRoundLineFunc(ctx, x, y, width, clear) { 
 		CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear)
 	},
-	DrawNormalRoundLine: function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawNormalRoundLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-				                                   CanvasUtilities._DrawNormalRoundLineFunc)
+			return CanvasUtilities.PerformNormalEraser(ctx, ()=>{
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-			                                   CanvasUtilities._DrawNormalRoundLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
 		}
 	},
-	DrawHollowRectangle: function(ctx, x, y, x2, y2, width) {
+	DrawHollowRectangle(ctx, x, y, x2, y2, width) {
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y2, x2, y2, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x, y2, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x2, y, x2, y2, width)
 		return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width)
 	},
-	ComputeBoundingBox: function(x, y, x2, y2, width) {
+	ComputeBoundingBox(x, y, x2, y2, width) {
 		return [Math.min(x, x2) - width, Math.min(y, y2) - width,
 		        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1]
 	},
-	ComputeTotalBoundingBox: function(boxes) {
+	ComputeTotalBoundingBox(boxes) {
 		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
 		
 		for (let i = 0; i < boxes.length; i++) {
@@ -874,11 +854,11 @@ let CanvasUtilities = {
 		
 		return finalBox
 	},
-	GetColor: function(context, x, y) {
+	GetColor(context, x, y) {
 		let data = context.getImageData(x, y, 1, 1).data
 		return new Color(data[0], data[1], data[2], data[3] / 255)
 	},
-	GetColorFromData: function(data, i) {
+	GetColorFromData(data, i) {
 		return new Color(data[i], data[i+1], data[i+2], data[i+3]/255)
 	},
 	//PutColorInData: function(color, data, i)
@@ -888,19 +868,19 @@ let CanvasUtilities = {
 	//},
 	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
 	//falls outside the canvas.
-	ImageDataCoordinate: function(context, x, y) {
+	ImageDataCoordinate(context, x, y) {
 		if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height)
 			return -1
 		return 4 * (x + y * context.canvas.width)
 	},
-	GenericFlood: function(context, x, y, floodFunction) {
+	GenericFlood(context, x, y, floodFunction) {
 		x = Math.floor(x); y = Math.floor(y)
 		let canvas = context.canvas
 		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		let data = iData.data
 		let queueX = [], queueY = []
 		let west, east, row, column
-		let enqueue = function(qx, qy) {
+		let enqueue = (qx, qy)=>{
 			queueX.push(qx)
 			queueY.push(qy)
 		}
@@ -924,7 +904,7 @@ let CanvasUtilities = {
 		}
 		context.putImageData(iData, 0, 0)
 	},
-	FloodFill: function(context, sx, sy, color, threshold) {
+	FloodFill(context, sx, sy, color, threshold) {
 		sx = Math.floor(sx); sy = Math.floor(sy)
 		console.debug("Flood filling starting from " + sx + ", " + sy)
 		threshold = threshold || 0
@@ -933,7 +913,7 @@ let CanvasUtilities = {
 		let colorArray = color.ToArray(true)
 		if (color.MaxDifference(originalColor) <= threshold)
 			return
-		let floodFunction = function(c, x, y, d) {
+		let floodFunction = (c, x, y, d)=>{
 			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
 			if (originalColor.MaxDifference(currentColor) <= threshold) {
@@ -946,7 +926,7 @@ let CanvasUtilities = {
 		}
 		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction)
 	},
-	SwapColor: function(context, original, newColor, threshold) {
+	SwapColor(context, original, newColor, threshold) {
 		let canvas = context.canvas
 		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		let data = iData.data
@@ -964,13 +944,13 @@ let CanvasUtilities = {
 		
 		context.putImageData(iData, 0, 0)
 	},
-	ToString: function(canvas) {
+	ToString(canvas) {
 		return canvas.toDataURL("image/png")
 	},
-	FromString: function(string) {
+	FromString(string) {
 		let canvas = document.createElement("canvas")
 		let image = new Image()
-		image.addEventListener("load", function(e) {
+		image.addEventListener("load", (e)=>{
 			canvas.width = image.width
 			canvas.height = image.height
 			canvas.getContext("2d").drawImage(image, 0, 0)
@@ -979,11 +959,11 @@ let CanvasUtilities = {
 		return canvas
 	},
 	//Draw the image from a data url into the given canvas.
-	DrawDataURL: function(string, canvas, x, y, callback) {
+	DrawDataURL(string, canvas, x, y, callback) {
 		x = x || 0
 		y = y || 0
 		let image = new Image()
-		image.addEventListener("load", function(e) {
+		image.addEventListener("load", (e)=>{
 			canvas.getContext("2d").drawImage(image, x, y)
 			if (callback) callback(canvas, image)
 		})
@@ -997,12 +977,12 @@ let CanvasUtilities = {
 let EventUtilities = {
 	SignalCodes: {Cancel: 2, Run: 1, Wait: 0},
 	mButtonMap: [1, 4, 2, 8, 16],
-	MouseButtonToButtons: function(button) {
+	MouseButtonToButtons(button) {
 		return EventUtilities.mButtonMap[button]
 	},
 	//This is a NON-BLOCKING function that simply "schedules" the function to be
 	//performed later if the signal is in the "WAIT" phase.
-	ScheduleWaitingTask: function(signal, perform, interval) {
+	ScheduleWaitingTask(signal, perform, interval) {
 		interval = interval || 100
 		let s = signal()
 		if (s === EventUtilities.SignalCodes.Cancel)
@@ -1010,7 +990,7 @@ let EventUtilities = {
 		else if (s === EventUtilities.SignalCodes.Run)
 			perform()
 		else
-			window.setTimeout(function() {
+			window.setTimeout(()=>{
 				EventUtilities.ScheduleWaitingTask(signal, perform, interval)
 			}, interval)
 	}
@@ -1020,13 +1000,13 @@ let EventUtilities = {
 // Functions which provide extra math functionality.
 
 let MathUtilities = {
-	Distance: function(x1, y1, x2, y2) {
+	Distance(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
-	Midpoint: function(x1, y1, x2, y2) {
+	Midpoint(x1, y1, x2, y2) {
 		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
 	},
-	MinMax: function(value, min, max) {
+	MinMax(value, min, max) {
 		if (min > max) {
 			let temp = min
 			min = max
@@ -1034,10 +1014,10 @@ let MathUtilities = {
 		}
 		return  Math.max(Math.min(value, max), min)
 	},
-	SlopeAngle: function(x,y) { 
+	SlopeAngle(x,y) { 
 		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
 	},
-	IntRandom: function(max, min) {
+	IntRandom(max, min) {
 		min = min || 0; //getOrDefault(min, 0)
 		
 		if (min > max) {
@@ -1048,32 +1028,32 @@ let MathUtilities = {
 		
 		return Math.floor((Math.random() * (max - min)) + min)
 	},
-	LinearInterpolate: function(y1, y2, mu) {
+	LinearInterpolate(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},
-	CosInterpolate: function (y1, y2, mu) {
+	CosInterpolate (y1, y2, mu) {
 		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
 	},
-	NewGuid: function() {
-		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+	NewGuid() {
+		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c)=>{
 			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 		})
 	},
-	GetSquare: function(x, y, x2, y2) {
+	GetSquare(x, y, x2, y2) {
 		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
 	},
-	IsPointInSquare: function(point, square) {
+	IsPointInSquare(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
 			point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
 	Color: {
-		SetGray: function(f, arr) {
+		SetGray(f, arr) {
 			arr[0] = f
 			arr[1] = f
 			arr[2] = f
 		},
-		SetRGB: function(f, arr) {
+		SetRGB(f, arr) {
 			//Duplicate code but fewer branches
 			if (f < 0.5) {
 				arr[0] = 1 - 2 * f
@@ -1084,7 +1064,7 @@ let MathUtilities = {
 			}
 			arr[1] = 1 - Math.abs(f * 2 - 1)
 		},
-		SetHue: function(f, arr) {
+		SetHue(f, arr) {
 			if (f < 1 / 6) {
 				arr[0] = 1
 				arr[1] = f * 6
@@ -1278,8 +1258,17 @@ ConsoleEmulator.prototype.SetAsConsoleLog = function(colored) {
 	let trace = console.trace
 	let me = this
 	
-	console.log = function(object) { log(object); me.WriteLine(object);}
-	console.debug = function(object) { debug(object); me.WriteLine(object, colored ? "green": false);}
-	console.trace = function(object) { trace(object); me.WriteLine(object, colored ? "blue": false);}
+	console.log = (object)=>{
+		log(object)
+		me.WriteLine(object)
+	}
+	console.debug = (object)=>{
+		debug(object)
+		me.WriteLine(object, colored ? "green": false)
+	}
+	console.trace = (object)=>{
+		trace(object)
+		me.WriteLine(object, colored ? "blue": false)
+	}
 	console.debug("Attached console to ConsoleEmulator")
 }
