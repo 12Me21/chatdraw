@@ -613,7 +613,8 @@ var LocalChatDraw = (function() {
 		
 		sendAnimation.addEventListener("click", function(event) {
 			UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. Animation will use the currently selected frame as a title card. Are you sure you want to post your animation?", function(confirmed) {
-				if (!confirmed) return
+				if (!confirmed)
+					return
 				UXUtilities.Toast("Uploading animation... please wait")
 				animationPlayer.frames = animateFrames.GetAllFrames()
 				var animation = animationPlayer.ToStorageObject()
@@ -631,7 +632,8 @@ var LocalChatDraw = (function() {
 		
 		exportAnimation.addEventListener("click", function() {
 			UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. Frame timings may be slightly off due to gif timings, particularly lower frame times. Are you ready to export your animation?", function(confirmed) {
-				if (!confirmed) return
+				if (!confirmed)
+					return
 				UXUtilities.Toast("Exporting animation... please wait")
 				animationPlayer.frames = animateFrames.GetAllFrames()
 				var animation = animationPlayer.ToStorageObject(true)
@@ -639,12 +641,9 @@ var LocalChatDraw = (function() {
 				uploadData.append("animation", JSON.stringify(animation))
 				uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations")
 				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage", function(response) {
-					if (response.startsWith("http"))
-					{
+					if (response.startsWith("http")) {
 						window.open(response, "_blank")
-					}
-					else
-					{
+					} else {
 						console.log(response)
 						UXUtilities.Toast("The animation failed to upload! " + response)
 					}
@@ -908,45 +907,6 @@ var LocalChatDraw = (function() {
 		"loadAnimation" : loadAnimation
 	}
 	
-})()
-
-;(function() {
-	
-	window.addEventListener("load", onLoad)
-	
-	function onLoad(event) {
-		try {
-			if (window.addMessageEvent) {
-				if (addBindEvent) {
-					addBindEvent(function(first, modules) {
-						if (!first) {
-							LogSystem.RootLogger.log("Not first bind; skipping chatdraw setup")
-							return
-						}
-						if (modules.indexOf("draw") >= 0) {
-							LogSystem.RootLogger.log("Chat has drawing module; setting up the drawing interface")
-							
-							if (advancedChatDraw)
-								LocalChatDraw.setupAdvancedInterface()
-							else
-								LocalChatDraw.setupInterface()
-						} else {
-							LogSystem.RootLogger.log("There's no drawing module, so we're not setting up the interface")
-						}
-					})
-				} else {
-					LogSystem.RootLogger.log("Chatdraw doesn't appear to be running in chat.")
-				}
-				
-				//Oh, we also need to intercept messages that are encoded as a drawing.
-				addMessageEvent(LocalChatDraw.checkMessageForDrawing)
-			} else {
-				LogSystem.RootLogger.log("ChatDraw isn't running in native chat. Will not perform native setup")
-			}
-		} catch(ex) {
-			LogSystem.RootLogger.log("An error occurred while loading chatdraw: " + ex)
-		}
-	}
 })()
 
 //The legacy fixed palette, if you need it.

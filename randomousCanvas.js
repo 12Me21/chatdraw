@@ -9,17 +9,19 @@
 // Auxiliary object for describing generic cursor actions and data. Useful for
 // unified mouse/touch systems (like CanvasPerformer)
 
-function CursorActionData(action, x, y, zoomDelta) {
-	this.action = action
-	this.x = x
-	this.y = y
-	this.realX = x; //The real x and y relative to the canvas.
-	this.realY = y
-	this.zoomDelta = zoomDelta || false
-	this.onTarget = true
-	this.targetElement = false
-	this.time = 0; //Date.now()
-	this.modifiers = 0
+class CursorActionData {
+	constructor(action, x, y, zoomDelta) {
+		this.action = action
+		this.x = x
+		this.y = y
+		this.realX = x; //The real x and y relative to the canvas.
+		this.realY = y
+		this.zoomDelta = zoomDelta || false
+		this.onTarget = true
+		this.targetElement = false
+		this.time = 0; //Date.now()
+		this.modifiers = 0
+	}
 }
 
 const CursorActions = {
