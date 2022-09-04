@@ -7,7 +7,6 @@
 // ---- List of utilities ----
 // * HTMLUtilities
 // * StorageUtilities
-// * URLUtilities
 // * RequestUtilities
 // * StyleUtilities
 // * CanvasUtilities
@@ -21,22 +20,6 @@ window.addEventListener("DOMContentLoaded", ()=>{
 	UXUtilities._Setup()
 })
 
-// --- Extensions ---
-// Extensions to existing prototypes (yeah, I know you're not supposed to do this)
-
-//Returns a function that calls the associated function with any extra
-//given arguments. It fixes loop closure issues. Altered from 
-//www.cosmocode.de/en/blog/gohr/2009-10/15-javascript-fixing-the-closure-scope-in-loops
-//Example: You want x.addEventListener("click", myfunc(i)) in a loop.
-//Do this: x.addEventListener("click", myfunc.callBind(i))
-Function.prototype.callBind = function() {
-	let fnc = this
-	let args = arguments
-	return function() {
-		return fnc.apply(this, args)
-	}
-}
-
 // --- HTMLUtilities ---
 // Encode or decode HTML entitities / generate unique IDs for elements / etc.
 
@@ -47,14 +30,6 @@ let HTMLUtilities = {
 	},
 	GetUniqueID(base) {
 		return "genID_" + this._nextID++ + (base ? "_" + base : "")
-	},
-	SimulateRadioSelect(selected, parent, selectedAttribute, selectedValue) {
-		selectedAttribute = selectedAttribute || "data-selected"
-		selectedValue = selectedValue || "true"
-		let fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
-		for (let i = 0; i < fakeRadios.length; i++)
-			fakeRadios[i].removeAttribute(selectedAttribute)
-		selected.setAttribute(selectedAttribute, selectedValue)
 	},
 	CreateUnsubmittableButton(text) {
 		let button = document.createElement('button')
@@ -133,7 +108,7 @@ class Toaster {
 	
 	AttachFullscreen(toasterParent) {
 		this.Attach(toasterParent || document.body)
-		this.container.dataset.fullscreen = "true"
+		this.container.dataset.fullscreen = true
 	}
 	
 	Detach() {
@@ -153,8 +128,8 @@ class Toaster {
 		let toast = document.createElement("div")
 		toast.className = Toaster.ToastClass
 		toast.dataset.createdon = new Date().getTime()
-		toast.dataset.initialize = "true"
-		toast.dataset.fadingin = "true"
+		toast.dataset.initialize = true
+		toast.dataset.fadingin = true
 		toast.textContent = text
 		
 		console.debug("Popping toast: " + text)
@@ -168,7 +143,7 @@ class Toaster {
 			delete toast.dataset.fadingin
 		}, 1000)
 		setTimeout(()=>{
-			toast.dataset.fadingout = "true"
+			toast.dataset.fadingout = true
 		}, duration)
 		//Give a big buffer zone of fadingout just in case people have long effects
 		setTimeout(()=>{
@@ -208,7 +183,7 @@ class Fader {
 	
 	AttachFullscreen(faderParent) {
 		this.Attach(faderParent || document.body)
-		this.element.dataset.fullscreen = "true"
+		this.element.dataset.fullscreen = true
 	}
 	
 	Detach() {
@@ -239,12 +214,8 @@ Fader.TrySetDefaultStyles = function() {
 	
 	if (style) {
 		console.log("Setting up Fader default styles for the first time")
-		style.AppendClasses(Fader.FaderClass, [
-			"position:absolute","top:0","left:0","width:100%","height:100%",
-			"padding:0","margin:0","pointer-events:none","display:block",
-			"z-index:1900000000"])
-		style.Append("." + Fader.FaderClass + "[data-fullscreen]", [
-			"width:100vw","height:100vh","position:fixed"])
+		style.AppendClasses(Fader.FaderClass, ["position:absolute","top:0","left:0","width:100%","height:100%","padding:0","margin:0","pointer-events:none","display:block","z-index:1900000000"])
+		style.Append("." + Fader.FaderClass + "[data-fullscreen]", ["width:100vw","height:100vh","position:fixed"])
 	}
 }
 
@@ -273,8 +244,7 @@ class DialogBox {
 		if (this.container)
 			throw "DialogBox already attached: " + this.container.id
 		
-		this.container = HTMLUtilities.CreateContainer(DialogBox.ContainerClass,
-		                                               HTMLUtilities.GetUniqueID("dialogContainer"))
+		this.container = HTMLUtilities.CreateContainer(DialogBox.ContainerClass, HTMLUtilities.GetUniqueID("dialogContainer"))
 		
 		this.fader.Attach(dialogParent)
 		dialogParent.appendChild(this.container)
@@ -284,11 +254,12 @@ class DialogBox {
 		this.Attach(dialogParent || document.body)
 		this.fader.Detach()
 		this.fader.AttachFullscreen(dialogParent)
-		this.container.dataset.fullscreen = "true"
+		this.container.dataset.fullscreen = true
 	}
 	
 	Detach() {
-		if (!this.container) throw "DialogBox not attached yet!"
+		if (!this.container)
+			throw "DialogBox not attached yet!"
 		
 		this.fader.Detach()
 		this.container.remove()
@@ -304,26 +275,21 @@ class DialogBox {
 		dialog.appendChild(dialogText)
 		dialog.appendChild(dialogButtons)
 		
-		let i
-		let me = this
-		
-		for (i = 0; i < buttons.length; i++) {
+		for (let i = 0; i < buttons.length; i++) {
 			let btext = buttons[i]
 			if (buttons[i].text) btext = buttons[i].text
 			let callback = buttons[i].callback
 			let newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
 			
-			/* jshint ignore: start */
-			newButton.addEventListener("click", function(callback) {
+			newButton.addEventListener("click", ev=>{
 				dialog.remove()
 				
-				if (me.container.childNodes.length === 0)
-					me.fader.Fade(me.fadeOutTime, "rgba(0,0,0,0)", false)
+				if (this.container.childNodes.length === 0)
+					this.fader.Fade(this.fadeOutTime, "rgba(0,0,0,0)", false)
 				
 				if (callback)
 					callback()
-			}.callBind(callback))
-			/* jshint ignore: end */
+			})
 			
 			dialogButtons.appendChild(newButton)
 		}
@@ -344,24 +310,12 @@ DialogBox.TrySetDefaultStyles = function() {
 	
 	if (style) {
 		console.log("Setting up DialogBox default styles for the first time")
-		style.AppendClasses(DialogBox.ContainerClass, [
-			"position:absolute","top:50%","left:50%","transform:translate(-50%,-50%)",
-			"padding:0","margin:0","z-index:2000000000"])
+		style.AppendClasses(DialogBox.ContainerClass, ["position:absolute","top:50%","left:50%","transform:translate(-50%,-50%)", "padding:0","margin:0","z-index:2000000000"])
 		style.Append("." + DialogBox.ContainerClass + "[data-fullscreen]", ["position:fixed"])
-		style.AppendClasses(DialogBox.DialogClass, [
-			"max-width: 70vw","font-family:monospace","font-size:1.0rem",
-			"padding:1.0em 1.2em","background-color:#EEE","border-radius:0.5em",
-			"color:#333","opacity:1.0","transition: opacity 0.2s",
-			"display: block","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)"])
-		style.AppendClasses(DialogBox.TextClass, [
-			"display: block","font-family: monospace", "overflow: hidden",
-			"text-overflow: ellipsis","margin-bottom: 0.5em","white-space:pre-wrap"])
+		style.AppendClasses(DialogBox.DialogClass, ["max-width: 70vw","font-family:monospace","font-size:1.0rem","padding:1.0em 1.2em","background-color:#EEE","border-radius:0.5em","color:#333","opacity:1.0","transition: opacity 0.2s","display: block","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)"])
+		style.AppendClasses(DialogBox.TextClass, ["display: block","font-family: monospace", "overflow: hidden","text-overflow: ellipsis","margin-bottom: 0.5em","white-space:pre-wrap"])
 		style.AppendClasses(DialogBox.ButtonContainerClass, ["text-align: center","display: block"])
-		style.Append("." + DialogBox.ButtonContainerClass + " button", [
-			"border: none","font-family: monospace", "overflow: hidden",
-			"text-overflow: ellipsis","font-size: 1.0em","font-weight:bold",
-			"padding: 0.3em 0.5em","margin: 0.2em 0.4em","border-radius:0.35em",
-			"background-color: #DDD","display: inline","cursor:pointer"])
+		style.Append("." + DialogBox.ButtonContainerClass + " button", ["border: none","font-family: monospace", "overflow: hidden","text-overflow: ellipsis","font-size: 1.0em","font-weight:bold","padding: 0.3em 0.5em","margin: 0.2em 0.4em","border-radius:0.35em","background-color: #DDD","display: inline","cursor:pointer"])
 		style.Append("." + DialogBox.ButtonContainerClass + " button:hover", ["background-color: #CCC"])
 	}
 }
@@ -376,25 +330,25 @@ let UXUtilities = {
 	_ScreenFader: new Fader(),
 	_DefaultDialog: new DialogBox(),
 	_Setup() {
-		document.body.appendChild(UXUtilities.UtilitiesContainer)
-		UXUtilities._DefaultToaster.AttachFullscreen(UXUtilities.UtilitiesContainer)
-		UXUtilities._ScreenFader.AttachFullscreen(UXUtilities.UtilitiesContainer)
-		UXUtilities._DefaultDialog.AttachFullscreen(UXUtilities.UtilitiesContainer)
+		document.body.appendChild(this.UtilitiesContainer)
+		this._DefaultToaster.AttachFullscreen(this.UtilitiesContainer)
+		this._ScreenFader.AttachFullscreen(this.UtilitiesContainer)
+		this._DefaultDialog.AttachFullscreen(this.UtilitiesContainer)
 	},
 	Toast(message, duration) { 
-		UXUtilities._DefaultToaster.Toast(message,duration)
+		this._DefaultToaster.Toast(message,duration)
 	},
 	FadeScreen(duration, color) {
-		UXUtilities._ScreenFader.Fade(duration, color)
+		this._ScreenFader.Fade(duration, color)
 	},
 	Confirm(message, callback, yesMessage, noMessage) {
-		UXUtilities._DefaultDialog.Show(message, [
+		this._DefaultDialog.Show(message, [
 			{text: noMessage || "No", callback: ()=>{ callback(false) }},
 			{text: yesMessage || "Yes", callback: ()=>{ callback(true) }}
 		])
 	},
 	Alert(message, callback, okMessage) {
-		UXUtilities._DefaultDialog.Show(message, [
+		this._DefaultDialog.Show(message, [
 			{ text: okMessage || "OK", callback: ()=>{
 				if (callback)
 					callback()
@@ -418,40 +372,6 @@ let StorageUtilities = {
 			//console.log("Failed to retrieve " + name + " from local storage")
 			return undefined
 		}
-	}
-}
-
-// --- URLUtilities ---
-// Functions for parsing/manipulating URLs and... stuff.
-
-let URLUtilities = {
-	GetQueryString(url) {
-		let queryPart = url.match(/(\?[^#]*)/)
-		if (!queryPart) return ""
-		return queryPart[1]
-	},
-	//Taken from Tarik on StackOverflow:
-	//http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
-	GetQueryVariable(variable, url) {
-		let query = url ? URLUtilities.GetQueryString(url) : window.location.search
-		let vars = query.substring(1).split('&')
-		
-		for (let i = 0; i < vars.length; i++) {
-			let pair = vars[i].split('=')
-			
-			if (decodeURIComponent(pair[0]) == variable) 
-				return decodeURIComponent(pair[1])
-		}
-		
-		return null
-	},
-	AddQueryVariable(variable, value, url) {
-		if (URLUtilities.GetQueryString(url)) 
-			url += "&"
-		else
-			url += "?"
-		
-		return url + variable + "=" + value
 	}
 }
 
@@ -917,7 +837,7 @@ let CanvasUtilities = {
 		let colorArray = color.ToArray(true)
 		if (color.MaxDifference(originalColor) <= threshold)
 			return
-		let floodFunction = function(c, x, y, d) {
+		let floodFunction = (c, x, y, d)=>{
 			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
 			if (originalColor.MaxDifference(currentColor) <= threshold) {
@@ -935,13 +855,11 @@ let CanvasUtilities = {
 		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		let data = iData.data
 		let newArray = newColor.ToArray(true)
-		let i, j
 		
-		for (i = 0; i < data.length; i+=4) {
+		for (let i = 0; i < data.length; i+=4) {
 			let cCol = CanvasUtilities.GetColorFromData(data, i)
-			
 			if (cCol.MaxDifference(original) <= threshold) {
-				for (j = 0; j < 4; j++)
+				for (let j = 0; j < 4; j++)
 					data[i+j] = newArray[j]
 			}
 		}
@@ -954,7 +872,7 @@ let CanvasUtilities = {
 	FromString(string) {
 		let canvas = document.createElement("canvas")
 		let image = new Image()
-		image.addEventListener("load", function(e) {
+		image.addEventListener("load", ev=>{
 			canvas.width = image.width
 			canvas.height = image.height
 			canvas.getContext("2d").drawImage(image, 0, 0)
@@ -967,9 +885,10 @@ let CanvasUtilities = {
 		x = x || 0
 		y = y || 0
 		let image = new Image()
-		image.addEventListener("load", function(e) {
+		image.addEventListener("load", ev=>{
 			canvas.getContext("2d").drawImage(image, x, y)
-			if (callback) callback(canvas, image)
+			if (callback)
+				callback(canvas, image)
 		})
 		image.src = string
 	}
@@ -982,20 +901,20 @@ let EventUtilities = {
 	SignalCodes: {Cancel: 2, Run: 1, Wait: 0},
 	mButtonMap: [1, 4, 2, 8, 16],
 	MouseButtonToButtons(button) {
-		return EventUtilities.mButtonMap[button]
+		return this.mButtonMap[button]
 	},
 	//This is a NON-BLOCKING function that simply "schedules" the function to be
 	//performed later if the signal is in the "WAIT" phase.
 	ScheduleWaitingTask(signal, perform, interval) {
 		interval = interval || 100
 		let s = signal()
-		if (s === EventUtilities.SignalCodes.Cancel)
+		if (s === this.SignalCodes.Cancel)
 			return
-		else if (s === EventUtilities.SignalCodes.Run)
+		else if (s === this.SignalCodes.Run)
 			perform()
 		else
-			window.setTimeout(function() {
-				EventUtilities.ScheduleWaitingTask(signal, perform, interval)
+			window.setTimeout(()=>{
+				this.ScheduleWaitingTask(signal, perform, interval)
 			}, interval)
 	}
 }
@@ -1004,13 +923,13 @@ let EventUtilities = {
 // Functions which provide extra math functionality.
 
 let MathUtilities = {
-	Distance: function(x1, y1, x2, y2) {
+	Distance(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
-	Midpoint: function(x1, y1, x2, y2) {
+	Midpoint(x1, y1, x2, y2) {
 		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
 	},
-	MinMax: function(value, min, max) {
+	MinMax(value, min, max) {
 		if (min > max) {
 			let temp = min
 			min = max
@@ -1018,10 +937,10 @@ let MathUtilities = {
 		}
 		return  Math.max(Math.min(value, max), min)
 	},
-	SlopeAngle: function(x,y) { 
+	SlopeAngle(x,y) { 
 		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
 	},
-	IntRandom: function(max, min) {
+	IntRandom(max, min) {
 		min = min || 0; //getOrDefault(min, 0)
 		
 		if (min > max) {
@@ -1032,32 +951,31 @@ let MathUtilities = {
 		
 		return Math.floor((Math.random() * (max - min)) + min)
 	},
-	LinearInterpolate: function(y1, y2, mu) {
+	LinearInterpolate(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},
-	CosInterpolate: function (y1, y2, mu) {
+	CosInterpolate (y1, y2, mu) {
 		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
 	},
-	NewGuid: function() {
+	NewGuid() {
 		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
 			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 		})
 	},
-	GetSquare: function(x, y, x2, y2) {
+	GetSquare(x, y, x2, y2) {
 		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
 	},
-	IsPointInSquare: function(point, square) {
-		return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
-			point[1] >= square[1] && point[1] <= square[1] + square[3]
+	IsPointInSquare(point, square) {
+		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
 	Color: {
-		SetGray: function(f, arr) {
+		SetGray(f, arr) {
 			arr[0] = f
 			arr[1] = f
 			arr[2] = f
 		},
-		SetRGB: function(f, arr) {
+		SetRGB(f, arr) {
 			//Duplicate code but fewer branches
 			if (f < 0.5) {
 				arr[0] = 1 - 2 * f
@@ -1068,7 +986,7 @@ let MathUtilities = {
 			}
 			arr[1] = 1 - Math.abs(f * 2 - 1)
 		},
-		SetHue: function(f, arr) {
+		SetHue(f, arr) {
 			if (f < 1 / 6) {
 				arr[0] = 1
 				arr[1] = f * 6
@@ -1157,122 +1075,4 @@ class UndoBuffer {
 	ClearRedos() {
 		this.redoBuffer = []
 	}
-}
-
-// --- ConsoleEmulator ---
-// Allows you to create a console-like system that performs output and input.
-// You can attach logging to it to allow console logs to be seen on systems
-// without dev tools or inspection.
-
-function ConsoleEmulator() {
-	this.OnRead = false
-	this.OnReadChar = false
-	this.rawConsole = false
-	this.inputBuffer = false
-	this.cursor = false
-	let me = this
-	
-	this.keyPress = function(e) {
-		if (!e.key || e.key.length > 1) return
-		
-		me.inputBuffer.textContent += e.key
-		if (me.OnReadChar) me.OnReadChar(e.key)
-		me.FixFloatingObjects()
-	}
-	this.keyDown = function(e) {
-		if (e.keyCode === 8 && me.inputBuffer.textContent.length > 0) {
-			me.inputBuffer.textContent = me.inputBuffer.textContent.substring(0, 
-			                                                                  me.inputBuffer.textContent.length - 1)
-		} else if (e.keyCode === 13 && me.inputBuffer.textContent.length > 0) {
-			if (me.OnRead) me.OnRead(me.inputBuffer.textContent)
-			me.WriteLine(me.inputBuffer.textContent)
-			me.inputBuffer.textContent = ""
-		}
-	}
-}
-
-ConsoleEmulator.ClassName = "consoleEmulator"
-ConsoleEmulator.CursorClassName = "cursor"
-ConsoleEmulator.StyleID = HTMLUtilities.GetUniqueID("consoleEmulatorStyle")
-
-ConsoleEmulator.prototype.TrySetDefaultStyles = function() {
-	if (document.getElementById(ConsoleEmulator.StyleID))
-		return
-	
-	console.log("Setting up ConsoleEmulator default styles for the first time")
-	
-	let style = document.createElement("style")
-	style.appendChild(document.createTextNode(""))
-	style.id = ConsoleEmulator.StyleID
-	document.head.insertBefore(style, document.head.firstChild)
-	style.sheet.insertRule(".consoleEmulator { font-family: monospace; font-size: 12px; height: 30em; width: 45.5em; background-color: #222; color: #CCC; display: block; word-wrap: break-word; overflow: hidden; white-space: pre-wrap; padding: 1px; overflow-y: scroll; }", 0)
-	style.sheet.insertRule(".consoleEmulator .cursor { color: limegreen; /*animation: 1s blink step-end infinite;*/ } ", 1)
-	style.sheet.insertRule(".consoleEmulator .input { color: #EEE; }", 2)
-	style.sheet.insertRule(".consoleEmulator .red { color: red; }", 3)
-	style.sheet.insertRule(".consoleEmulator .blue { color: blue; }", 4)
-	style.sheet.insertRule(".consoleEmulator .green { color: green; }", 5)
-	style.sheet.insertRule(".consoleEmulator .yellow { color: yellow; }", 6)
-	style.sheet.insertRule(".consoleEmulator .purple { color: purple; }", 7)
-}
-
-ConsoleEmulator.prototype.FixFloatingObjects = function() {
-	HTMLUtilities.MoveToEnd(this.inputBuffer)
-	HTMLUtilities.MoveToEnd(this.cursor)
-}
-
-ConsoleEmulator.prototype.Write = function(output, color) {
-	let outputWrapper = document.createElement("span")
-	outputWrapper.innerHTML = output
-	if (color) outputWrapper.className = color
-	this.rawConsole.appendChild(outputWrapper)
-	this.FixFloatingObjects()
-}
-
-ConsoleEmulator.prototype.WriteLine = function(output, color) {
-	this.Write(output + "\n", color)
-}
-
-ConsoleEmulator.prototype.Generate = function() {
-	this.inputBuffer = document.createElement("span")
-	this.inputBuffer.className = "input"
-	
-	this.cursor = document.createElement("span")
-	this.cursor.className = ConsoleEmulator.CursorClassName
-	this.cursor.textContent = "█"
-	
-	this.rawConsole = document.createElement("div")
-	this.rawConsole.className = ConsoleEmulator.ClassName
-	this.rawConsole.addEventListener("keypress", this.keyPress)
-	this.rawConsole.addEventListener("keydown", this.keyDown)
-	this.rawConsole.setAttribute("tabindex", "-1")
-	
-	this.rawConsole.appendChild(this.inputBuffer)
-	this.rawConsole.appendChild(this.cursor)
-	
-	this.TrySetDefaultStyles()
-	
-	return this.rawConsole
-}
-
-//WARNING: this captures the ConsoleEmulator object and elements. It cannot be
-//detached or undone. Sorry!
-ConsoleEmulator.prototype.SetAsConsoleLog = function(colored) {
-	let log = console.log
-	let debug = console.debug
-	let trace = console.trace
-	let me = this
-	
-	console.log = (object)=>{
-		log(object)
-		me.WriteLine(object)
-	}
-	console.debug = (object)=>{
-		debug(object)
-		me.WriteLine(object, colored ? "green": false)
-	}
-	console.trace = (object)=>{
-		trace(object)
-		me.WriteLine(object, colored ? "blue": false)
-	}
-	console.debug("Attached console to ConsoleEmulator")
 }

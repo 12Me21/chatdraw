@@ -263,7 +263,6 @@ let LocalChatDraw = (()=>{
 	
 	let setupInterface = (interfaceContainer)=>{
 		let messagePane = interfaceContainer
-		let i
 		
 		drawArea = document.createElement("draw-area")
 		let canvasContainer = document.createElement("canvas-container")
@@ -297,13 +296,12 @@ let LocalChatDraw = (()=>{
 			let lightboxCount = Number(lightboxButton.textContent)
 			let selectedIndex = animateFrames.GetSelectedFrameIndex()
 			let totalFrames = animateFrames.GetFrameCount()
-			let i
 			
 			if (lightboxCount > 0) {
-				for (i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
+				for (let i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
 					lightboxFrames.push(animateFrames.GetFrame(i))
 			} else {
-				for (i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
+				for (let i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
 					lightboxFrames.push(animateFrames.GetFrame(i))
 			}
 			
@@ -364,18 +362,26 @@ let LocalChatDraw = (()=>{
 		})
 		widthButton.textContent = defaultLineWidth - 1
 		widthButton.dataset.width = defaultLineWidth - 1
-		widthButton.addEventListener("click", widthToggle.callBind(widthButton))
+		widthButton.addEventListener("click", ev=>{
+			widthToggle(widthButton)
+		})
 		sendButton.textContent = "➥"
 		sendButton.dataset.button = "sendDrawing"
-		sendButton.addEventListener("click", ev=>{sendDrawing();})
+		sendButton.addEventListener("click", ev=>{
+			sendDrawing()
+		})
 		toggleButton.textContent = "✎"
 		toggleButton.addEventListener("click", toggleInterface)
 		cSizeButton.textContent = "◲"
 		cSizeButton.addEventListener("click", scaleInterface)
 		undoButton.textContent = "↶"
-		undoButton.addEventListener("click", ev=>{ drawer.Undo(); })
+		undoButton.addEventListener("click", ev=>{
+			drawer.Undo()
+		})
 		redoButton.textContent = "↷"
-		redoButton.addEventListener("click", ev=>{ drawer.Redo(); })
+		redoButton.addEventListener("click", ev=>{
+			drawer.Redo()
+		})
 		drawer.DoUndoStateChange()
 		
 		//These are the only elements that will be displayed if the drawing area
@@ -388,12 +394,14 @@ let LocalChatDraw = (()=>{
 		buttonArea.appendChild(redoButton)
 		
 		//Create the color picking buttons
-		for (i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
+		for (let i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
 			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			colorButton.textContent = "■"
 			colorButton.className = colorButtonClass
-			colorButton.addEventListener("click", colorButtonSelect.callBind(colorButton, canvas))
+			colorButton.addEventListener("click", ev=>{
+				colorButtonSelect(colorButton, canvas)
+			})
 			
 			buttonArea.appendChild(colorButton)
 			
@@ -455,7 +463,8 @@ let LocalChatDraw = (()=>{
 		
 		lightboxButton.addEventListener("click", event=>{
 			let next = Number(lightboxButton.textContent) + 1
-			if (next > 3) next = -3
+			if (next > 3)
+				next = -3
 			lightboxButton.textContent = String(next)
 			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex())
 		})
