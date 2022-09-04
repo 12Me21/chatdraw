@@ -6,7 +6,7 @@
 
 //Make sure there's at least SOMETHING there. It won't log, but it won't throw
 //errors either (I think).
-if(!window.LogSystem)
+if (!window.LogSystem)
 	window.LogSystem = {RootLogger : {log : function(message, level){
 		console.log(message)
 	}}};
@@ -49,7 +49,7 @@ var LocalChatDraw = (function() {
 		{
 			var content = messageElement.querySelector('[data-encoding="draw"]');
 			
-			if(content) {
+			if (content) {
 				LogSystem.RootLogger.log("Converting drawing encoding to canvas image");
 				
 				var originalString = content.innerHTML;
@@ -57,12 +57,10 @@ var LocalChatDraw = (function() {
 				var drawingString = "";
 				var animationLink = false;
 				
-				if(parts.length === 2) {
+				if (parts.length === 2) {
 					drawingString = parts[1];
 					animationLink = parts[0].slice(1);
-				}
-				else
-				{
+				} else {
 					drawingString = originalString;
 				}
 				
@@ -72,20 +70,19 @@ var LocalChatDraw = (function() {
 				var date = new Date();
 				var controlContainer = document.createElement("chatdraw-controlcontainer");
 				
-				if(allowAnimation && animationLink && animationLink.match("^https?://kland.smilebasicsource.com")) {
+				if (allowAnimation && animationLink && animationLink.match("^https?://kland.smilebasicsource.com")) {
 					var playButton = document.createElement("a");
 					playButton.innerHTML = "►";
 					playButton.className = "chatdrawplay";
 					var animator = new AnimationPlayer(canvas, false);
 					animator.OnPlay = function(player) {
-						if(player.frames === false) {
+						if (player.frames === false) {
 							playButton.disabled = false;
 							playButton.innerHTML = "⌛"; 
-							RequestUtilities.XHRSimple(animationLink, function(response)
-							                           {
-								                           animator.FromStorageObject(JSON.parse(response));
-								                           animator.Play();
-							                           });
+							RequestUtilities.XHRSimple(animationLink, function(response) {
+								animator.FromStorageObject(JSON.parse(response));
+								animator.Play();
+							});
 							return false;
 						}
 						
@@ -95,44 +92,36 @@ var LocalChatDraw = (function() {
 					animator.OnStop = function(player) {
 						playButton.innerHTML = "►";
 					};
-					playButton.addEventListener("click", function()
-					                            {
-						                            if(animator.IsPlaying())
-							                            animator.Stop();
-						                            else
-						                            {
-							                            if(animator.GetRepeat())
-								                            animator.Play(animator._currentFrame);
-							                            else
-								                            animator.Play();
-						                            }
-					                            });
+					playButton.addEventListener("click", function() {
+						if (animator.IsPlaying())
+							animator.Stop();
+						else
+						{
+							if (animator.GetRepeat())
+								animator.Play(animator._currentFrame);
+							else
+								animator.Play();
+						}
+					});
 					var copyAnimation = document.createElement("a"); 
 					copyAnimation.innerHTML = "📋";
 					copyAnimation.setAttribute("title", "Copy whole animation");
-					copyAnimation.addEventListener("click", function()
-					                               {
-						                               UXUtilities.Confirm("Copying this animation will OVERWRITE " +
-						                                                   "your current animation. Make sure you save your work first! " +
-						                                                   "Are you sure you want to copy this animation?", function(confirmed)
-						                                                   {
-							                                                   if(!confirmed) return; 
-							                                                   RequestUtilities.XHRSimple(animationLink, function(response)
-								        {
-									        //Since we downloaded it anyway we might as well also
-									        //load up the animator.
-									        var storeObject = JSON.parse(response);
-									        animator.FromStorageObject(storeObject);
-									        loadAnimation(storeObject);
-									        saveInput.value = "";
-								        });
-						                                                   });
-					                               });
+					copyAnimation.addEventListener("click", function() {
+						UXUtilities.Confirm("Copying this animation will OVERWRITE your current animation. Make sure you save your work first! Are you sure you want to copy this animation?", function(confirmed) {
+							if (!confirmed) return; 
+							RequestUtilities.XHRSimple(animationLink, function(response) {
+								//Since we downloaded it anyway we might as well also
+								//load up the animator.
+								var storeObject = JSON.parse(response);
+								animator.FromStorageObject(storeObject);
+								loadAnimation(storeObject);
+								saveInput.value = "";
+							});
+						});
+					});
 					controlContainer.appendChild(copyAnimation);
 					controlContainer.appendChild(playButton);
-				}
-				else
-				{
+				} else {
 					var downloadLink = document.createElement("a");
 					downloadLink.href = canvas.toDataURL("image/png");
 					downloadLink.download = "chatDraw_" + Date.now() + ".png";
@@ -141,53 +130,49 @@ var LocalChatDraw = (function() {
 					var copyLink = document.createElement("a");
 					copyLink.innerHTML = "📋";
 					copyLink.className = "chatdrawcopy";
-					copyLink.addEventListener("click", function(ev)
-					                          {
-						                          copyDrawing(originalString);
-					                          });
-					if(allowAnimation) controlContainer.appendChild(copyLink);
+					copyLink.addEventListener("click", function(ev) {
+						copyDrawing(originalString);
+					});
+					if (allowAnimation) controlContainer.appendChild(copyLink);
 					controlContainer.appendChild(downloadLink);
 				}
 				content.appendChild(controlContainer);
 			}
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while converting drawing message to canvas: " + ex);
 		}
 	};
 	
 	var createToolButton = function(displayCharacters, toolNames) {
-		if(!TypeUtilities.IsArray(displayCharacters)) displayCharacters= [displayCharacters];
-		if(!TypeUtilities.IsArray(toolNames)) toolNames = [toolNames];
+		if (!TypeUtilities.IsArray(displayCharacters)) displayCharacters= [displayCharacters];
+		if (!TypeUtilities.IsArray(toolNames)) toolNames = [toolNames];
 		var nextTool = 0;
 		var tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool]); 
 		//makeUnsubmittableButton();
 		//tButton.innerHTML = displayCharacters[nextTool];
 		tButton.className = "toolButton";
-		tButton.addEventListener('click', function()
-		                         {
-			                         //First, deselect ALL other buttons;
-			                         var toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton");
-			                         for(var i = 0; i < toolButtons.length; i++)
-			                         {
-				                         if(toolButtons[i] != tButton) toolButtons[i].removeAttribute("data-selected");
-			                         }
-			                         
-			                         //Now figure out if we're just selecting this button or cycling
-			                         //through the available tools
-			                         if(tButton.getAttribute("data-selected"))
-				                         nextTool = (nextTool + 1) % toolNames.length;
-			                         
-			                         tButton.innerHTML = displayCharacters[nextTool];
-			                         tButton.setAttribute("data-selected", "true");
-			                         drawer.currentTool = toolNames[nextTool];
-		                         });
+		tButton.addEventListener('click', function() {
+			//First, deselect ALL other buttons;
+			var toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton");
+			for(var i = 0; i < toolButtons.length; i++)
+			{
+				if (toolButtons[i] != tButton) toolButtons[i].removeAttribute("data-selected");
+			}
+			
+			//Now figure out if we're just selecting this button or cycling
+			//through the available tools
+			if (tButton.getAttribute("data-selected"))
+				nextTool = (nextTool + 1) % toolNames.length;
+			
+			tButton.innerHTML = displayCharacters[nextTool];
+			tButton.setAttribute("data-selected", "true");
+			drawer.currentTool = toolNames[nextTool];
+		});
 		return tButton;
 	};
 	
 	var setupInterface2 = function() {
-		try
-		{
+		try {
 			var messagePane = document.querySelector("#sendpane");
 			
 			var drawArea = document.createElement("draw-area");
@@ -207,10 +192,9 @@ var LocalChatDraw = (function() {
 			sendButton.addEventListener("click", sendDrawing2);
 			positionButton.innerHTML = "◲";
 			positionButton.className = "position";
-			positionButton.addEventListener("click", function(e)
-			                                {
-				                                dockInterface(!drawArea.hasAttribute("data-docked"));
-			                                });
+			positionButton.addEventListener("click", function(e) {
+				dockInterface(!drawArea.hasAttribute("data-docked"));
+			});
 			
 			drawIframe.src = window.location.protocol + "//draw.smilebasicsource.com?nocache=1&nobg=1";
 			drawArea.id = drawAreaID;
@@ -225,35 +209,33 @@ var LocalChatDraw = (function() {
 			
 			//Make sure the interface is hidden, since we create it exposed.
 			toggleInterface({target : toggleButton}, false);
-			if(readStorage("chatDrawDocked")) dockInterface(true, drawArea);
+			if (readStorage("chatDrawDocked")) dockInterface(true, drawArea);
 			
 			//Now set up the overall document events.
 			document.querySelector("#sendpane textarea").addEventListener("keyup", onKeyUp);
-			window.addEventListener("message", function(e)
-			                        {
-				                        if(e.data.type === "uploadImage")
-				                        {
-					                        if(e.data.link.indexOf("http://") === 0)
-						                        sendMessage("/img " + e.data.link);
-					                        else
-						                        alert("Something went wrong: " + e.data.link);
-				                        }
-			                        });
-		}
-		catch(ex) {
+			window.addEventListener("message", function(e) {
+				if (e.data.type === "uploadImage")
+				{
+					if (e.data.link.indexOf("http://") === 0)
+						sendMessage("/img " + e.data.link);
+					else
+						alert("Something went wrong: " + e.data.link);
+				}
+			});
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while setting up drawing interface: " + ex);
 		}
 	};
 	
 	var selectNextRadio = function() {
 		var index = animateFrames.GetSelectedFrameIndex();
-		if(index < animateFrames.GetFrameCount() - 1)
+		if (index < animateFrames.GetFrameCount() - 1)
 			animateFrames.SelectFrameIndex(index + 1);
 	};
 	
 	var selectPreviousRadio = function() {
 		var index = animateFrames.GetSelectedFrameIndex();
-		if(index > 0) 
+		if (index > 0) 
 			animateFrames.SelectFrameIndex(index - 1);
 	};
 	
@@ -266,7 +248,7 @@ var LocalChatDraw = (function() {
 		
 		for(var i = 0; i < colors.length; i++) {
 			colorSet += rgbToFillStyle(colors[i]);
-			if(i !== colors.length - 1)
+			if (i !== colors.length - 1)
 				colorSet += "/";
 		}
 		
@@ -287,10 +269,10 @@ var LocalChatDraw = (function() {
 		var buttons = getColorButtons();
 		
 		for(var i = 0; i < palette.length; i++) {
-			if(i < buttons.length) {
+			if (i < buttons.length) {
 				buttons[i].style.color = palette[i].ToRGBString(); //colors[i];
 				
-				if(buttons[i].hasAttribute("data-selected"))
+				if (buttons[i].hasAttribute("data-selected"))
 					drawer.color = buttons[i].style.color;
 			}
 		}
@@ -308,19 +290,17 @@ var LocalChatDraw = (function() {
 	var getAnimations = function(callback, element) {
 		var formData = new FormData();
 		formData.append("list", "1");
-		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), 
-		               formData, element, function(json, statusElement)
-		               {
-			               genericSuccess(json, element);
-			               
-			               var result = [];
-			               
-			               for(var i = 0; i < json.result.length; i++)
-				               if(json.result[i].endsWith(animationTag))
-					               result.push(json.result[i].slice(0, -animationTag.length));
-			               
-			               callback(result);
-		               });
+		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, function(json, statusElement) {
+			genericSuccess(json, element);
+			
+			var result = [];
+			
+			for(var i = 0; i < json.result.length; i++)
+				if (json.result[i].endsWith(animationTag))
+					result.push(json.result[i].slice(0, -animationTag.length));
+			
+			callback(result);
+		});
 	};
 	
 	//Once you have a compliant v2 object, this is the actual load function.
@@ -374,12 +354,10 @@ var LocalChatDraw = (function() {
 			var totalFrames = animateFrames.GetFrameCount();
 			var i;
 			
-			if(lightboxCount > 0) {
+			if (lightboxCount > 0) {
 				for(i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
 					lightboxFrames.push(animateFrames.GetFrame(i));
-			}
-			else
-			{
+			} else {
 				for(i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
 					lightboxFrames.push(animateFrames.GetFrame(i));
 			}
@@ -405,44 +383,41 @@ var LocalChatDraw = (function() {
 		colorPicker.style.top = "-10000px";
 		colorPicker.style.width = "0";
 		colorPicker.style.height = "0";
-		colorPicker.addEventListener("change", function(event)
-		                             {
-			                             var frame = animateFrames.GetFrame(); //GetSelectedFrame();
-			                             var newColor = StyleUtilities.GetColor(event.target.value);
-			                             CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), 
-			                                                       StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0);
-			                             event.target.associatedButton.style.color = newColor.ToRGBString(); 
-			                             drawer.color = newColor.ToRGBString(); 
-			                             drawer.moveToolClearColor = rgbToFillStyle(getClearColor());
-			                             drawer.Redraw();
-			                             
-			                             //TODO: Fix this later! Buttons should only be proxies for the real
-			                             //colors stored in each frame! Don't set the palette based on the
-			                             //buttons, set the palette when the user changes the color and ping
-			                             //the palette back to the buttons (maybe with a call to "select" again)
-			                             frame.palette = ChatDrawUtilities.StringToPalette(getButtonColorString());
-			                             animateFrames.SetFrame(frame);
-		                             });
+		colorPicker.addEventListener("change", function(event) {
+			var frame = animateFrames.GetFrame(); //GetSelectedFrame();
+			var newColor = StyleUtilities.GetColor(event.target.value);
+			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), 
+			                          StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0);
+			event.target.associatedButton.style.color = newColor.ToRGBString(); 
+			drawer.color = newColor.ToRGBString(); 
+			drawer.moveToolClearColor = rgbToFillStyle(getClearColor());
+			drawer.Redraw();
+			
+			//TODO: Fix this later! Buttons should only be proxies for the real
+			//colors stored in each frame! Don't set the palette based on the
+			//buttons, set the palette when the user changes the color and ping
+			//the palette back to the buttons (maybe with a call to "select" again)
+			frame.palette = ChatDrawUtilities.StringToPalette(getButtonColorString());
+			animateFrames.SetFrame(frame);
+		});
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		clearButton.innerHTML = "❌️";
-		clearButton.addEventListener("click", function()
-		                             {
-			                             if(drawer.StrokeCount()) drawer.UpdateUndoBuffer();
-			                             CanvasUtilities.Clear(animateFrames.GetFrame().canvas, 
-			                                                   rgbToFillStyle(getClearColor()));
-			                             drawer.Redraw();
-		                             });
+		clearButton.addEventListener("click", function() {
+			if (drawer.StrokeCount()) drawer.UpdateUndoBuffer();
+			CanvasUtilities.Clear(animateFrames.GetFrame().canvas, 
+			                      rgbToFillStyle(getClearColor()));
+			drawer.Redraw();
+		});
 		drawArea.id = drawAreaID;
 		drawArea.setAttribute("tabindex", "-1");
-		drawArea.addEventListener("keydown", function(ev)
-		                          {
-			                          if(drawArea.dataset.hidden) return;
-			                          if(ev.keyCode === 40)
-				                          selectNextRadio();
-			                          if(ev.keyCode === 38)
-				                          selectPreviousRadio();
-		                          });
+		drawArea.addEventListener("keydown", function(ev) {
+			if (drawArea.dataset.hidden) return;
+			if (ev.keyCode === 40)
+				selectNextRadio();
+			if (ev.keyCode === 38)
+				selectPreviousRadio();
+		});
 		widthButton.innerHTML = String(defaultLineWidth - 1);
 		widthButton.setAttribute("data-width", String(defaultLineWidth - 1));
 		widthButton.addEventListener("click", widthToggle.callBind(widthButton));
@@ -478,7 +453,7 @@ var LocalChatDraw = (function() {
 			
 			buttonArea.appendChild(colorButton);
 			
-			if(i === 1)
+			if (i === 1)
 				colorButton.click();
 		}
 		
@@ -534,217 +509,167 @@ var LocalChatDraw = (function() {
 		frameSkip.setAttribute("title", "Frame skip (1=60fps)");
 		frameSkip.value = 3;
 		
-		lightboxButton.addEventListener("click", function(event)
-		                                {
-			                                var next = Number(lightboxButton.innerHTML) + 1;
-			                                if(next > 3) next = -3;
-			                                lightboxButton.innerHTML = String(next);
-			                                animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex());
-		                                });
+		lightboxButton.addEventListener("click", function(event) {
+			var next = Number(lightboxButton.innerHTML) + 1;
+			if (next > 3) next = -3;
+			lightboxButton.innerHTML = String(next);
+			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex());
+		});
 		
 		var saveAnimationWrapper = function(name) {
 			UXUtilities.Toast("Saving... please wait");
 			animationPlayer.frames = animateFrames.GetAllFrames();
 			var object = animationPlayer.ToStorageObject();
-			writePersistent(name + animationTag, object, function()
-			                {
-				                UXUtilities.Toast("Saved animation '" + name + "'");
-			                });
+			writePersistent(name + animationTag, object, function() {
+				UXUtilities.Toast("Saved animation '" + name + "'");
+			});
 		};
 		
 		var loadAnimationWrapper = function(name) {
-			readPersistent(name + animationTag, function(value)
-			               {
-				               //Perform the version 1 conversion... eugh
-				               if(!value.version || value.version < 2)
-				               {
-					               var loadCount = 0;
-					               value.times = value.frames;
-					               value.data = [];
-					               value.version = 2;
-					               
-					               console.log("Loading an older animation");
-					               
-					               for(var i = 0; i < value.times.length; i++)
-					               {
-						               /* jshint ignore:start */
-						               let index = i;
-						               readPersistent(name + animationTag + "_" + index, function(drawing)
-						                              {
-							                              value.data[index] = drawing;
-							                              loadCount++;
-							                              
-							                              if(loadCount === value.times.length)
-							                              {
-								                              loadAnimation(value);
-								                              UXUtilities.Toast("Loaded animation '" + name + "'");
-							                              }
-						                              });
-						               /* jshint ignore:end */
-					               }
-				               }
-				               else
-				               {
-					               loadAnimation(value);
-					               UXUtilities.Toast("Loaded animation '" + name + "'");
-				               }
-			               });
+			readPersistent(name + animationTag, function(value) {
+				//Perform the version 1 conversion... eugh
+				if (!value.version || value.version < 2) {
+					var loadCount = 0;
+					value.times = value.frames;
+					value.data = [];
+					value.version = 2;
+					
+					console.log("Loading an older animation");
+					
+					for(var i = 0; i < value.times.length; i++) {
+						/* jshint ignore:start */
+						let index = i;
+						readPersistent(name + animationTag + "_" + index, function(drawing) {
+							value.data[index] = drawing;
+							loadCount++;
+							
+							if (loadCount === value.times.length) {
+								loadAnimation(value);
+								UXUtilities.Toast("Loaded animation '" + name + "'");
+							}
+						});
+						/* jshint ignore:end */
+					}
+				} else {
+					loadAnimation(value);
+					UXUtilities.Toast("Loaded animation '" + name + "'");
+				}
+			});
 		};
 		
-		saveAnimationButton.addEventListener("click", function(event)
-		                                     {
-			                                     if(!saveInput.value)
-			                                     {
-				                                     UXUtilities.Toast("You must give the animation a name!");
-				                                     return;
-			                                     }
-			                                     
-			                                     getAnimations(function(anims)
-			                                                   {
-				                                                   if(ArrayUtilities.Contains(anims, saveInput.value))
-				                                                   {
-					                                                   UXUtilities.Confirm("There's already an animation named " +
-						 saveInput.value + ", are you sure you want to overwrite it?",
-						 function(confirmed)
-						 {
-							 if(confirmed) saveAnimationWrapper(saveInput.value);
-						 });
-				                                                   }
-				                                                   else
-				                                                   {
-					                                                   saveAnimationWrapper(saveInput.value);
-				                                                   }
-			                                                   });
-		                                     });
+		saveAnimationButton.addEventListener("click", function(event) {
+			if (!saveInput.value) {
+				UXUtilities.Toast("You must give the animation a name!");
+				return;
+			}
+			
+			getAnimations(function(anims) {
+				if (ArrayUtilities.Contains(anims, saveInput.value)) {
+					UXUtilities.Confirm("There's already an animation named " + saveInput.value + ", are you sure you want to overwrite it?", function(confirmed) {
+						if (confirmed) saveAnimationWrapper(saveInput.value);
+					});
+				} else {
+					saveAnimationWrapper(saveInput.value);
+				}
+			});
+		});
 		
-		listAnimations.addEventListener("click", function(event)
-		                                {
-			                                getAnimations(function(anims)
-			                                              {
-				                                              localModuleMessage("Your animations: \n" + anims.join("\n"));
-			                                              }, listAnimations);
-		                                });
+		listAnimations.addEventListener("click", function(event) {
+			getAnimations(function(anims) {
+				localModuleMessage("Your animations: \n" + anims.join("\n"));
+			}, listAnimations);
+		});
 		
-		loadAnimationButton.addEventListener("click", function(event)
-		                                     {
-			                                     if(!saveInput.value)
-			                                     {
-				                                     UXUtilities.Toast("You must give a name to load an animation!");
-				                                     return;
-			                                     }
-			                                     getAnimations(function(anims)
-			                                                   {
-				                                                   if(!ArrayUtilities.Contains(anims, saveInput.value))
-				                                                   {
-					                                                   UXUtilities.Toast("Couldn't find animation " + saveInput.value);
-					                                                   return;
-				                                                   }
-				                                                   UXUtilities.Confirm("You will lose any unsaved progress. Are you sure you want to load " +
-					 saveInput.value + "?", function(confirmed)
-					 {
-						 if(confirmed) loadAnimationWrapper(saveInput.value);
-					 });
-			                                                   });
-		                                     });
+		loadAnimationButton.addEventListener("click", function(event) {
+			if (!saveInput.value) {
+				UXUtilities.Toast("You must give a name to load an animation!");
+				return;
+			}
+			getAnimations(function(anims) {
+				if (!ArrayUtilities.Contains(anims, saveInput.value)) {
+					UXUtilities.Toast("Couldn't find animation " + saveInput.value);
+					return;
+				}
+				UXUtilities.Confirm("You will lose any unsaved progress. Are you sure you want to load " + saveInput.value + "?", function(confirmed) {
+					if (confirmed) loadAnimationWrapper(saveInput.value);
+				});
+			});
+		});
 		
-		newFrame.addEventListener("click", function(event)
-		                          {
-			                          animateFrames.InsertNewFrame(animateFrames.GetSelectedFrameIndex(), true);
-		                          });
+		newFrame.addEventListener("click", function(event) {
+			animateFrames.InsertNewFrame(animateFrames.GetSelectedFrameIndex(), true);
+		});
 		
-		repeatAnimation.addEventListener("click", function(event)
-		                                 {
-			                                 if(repeatAnimation.hasAttribute("data-repeat"))
-			                                 {
-				                                 repeatAnimation.removeAttribute("data-repeat");
-				                                 repeatAnimation.innerHTML = "→";
-			                                 }
-			                                 else
-			                                 {
-				                                 repeatAnimation.setAttribute("data-repeat", "true");
-				                                 repeatAnimation.innerHTML = "⟲";
-			                                 }
-		                                 });
+		repeatAnimation.addEventListener("click", function(event) {
+			if (repeatAnimation.hasAttribute("data-repeat")) {
+				repeatAnimation.removeAttribute("data-repeat");
+				repeatAnimation.innerHTML = "→";
+			} else {
+				repeatAnimation.setAttribute("data-repeat", "true");
+				repeatAnimation.innerHTML = "⟲";
+			}
+		});
 		
-		sendAnimation.addEventListener("click", function(event)
-		                               {
-			                               UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. " +
-			                                                   "Animation will use the currently selected frame as a title card. " +
-			                                                   "Are you sure you want to post your animation?", function(confirmed)
-			                                                   {
-				                                                   if(!confirmed) return;
-				                                                   UXUtilities.Toast("Uploading animation... please wait");
-				                                                   animationPlayer.frames = animateFrames.GetAllFrames();
-				                                                   var animation = animationPlayer.ToStorageObject();
-				                                                   var uploadData = new FormData();
-				                                                   uploadData.append("text", JSON.stringify(animation));
-				                                                   RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext",
-					        function(response)
-					        {
-						        if(response.startsWith("http"))
-						        {
-							        sendDrawing(response);
-						        }
-						        else
-						        {
-							        UXUtilities.Toast("The animation failed to upload! " + response);
-						        }
-					        }, uploadData);
-			                                                   });
-		                               });
+		sendAnimation.addEventListener("click", function(event) {
+			UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. Animation will use the currently selected frame as a title card. Are you sure you want to post your animation?", function(confirmed) {
+				if (!confirmed) return;
+				UXUtilities.Toast("Uploading animation... please wait");
+				animationPlayer.frames = animateFrames.GetAllFrames();
+				var animation = animationPlayer.ToStorageObject();
+				var uploadData = new FormData();
+				uploadData.append("text", JSON.stringify(animation));
+				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", function(response) {
+					if (response.startsWith("http")) {
+						sendDrawing(response);
+					} else {
+						UXUtilities.Toast("The animation failed to upload! " + response);
+					}
+				}, uploadData);
+			});
+		});
 		
-		exportAnimation.addEventListener("click", function()
-		                                 {
-			                                 UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. " +
-			                                                     "Frame timings may be slightly off due to gif timings, particularly lower frame times. " +
-			                                                     "Are you ready to export your animation?", function(confirmed)
-			                                                     {
-				                                                     if(!confirmed) return;
-				                                                     UXUtilities.Toast("Exporting animation... please wait");
-				                                                     animationPlayer.frames = animateFrames.GetAllFrames();
-				                                                     var animation = animationPlayer.ToStorageObject(true);
-				                                                     var uploadData = new FormData();
-				                                                     uploadData.append("animation", JSON.stringify(animation));
-				                                                     uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations");
-				                                                     RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage",
-					          function(response)
-					          {
-						          if(response.startsWith("http"))
-						          {
-							          window.open(response, "_blank");
-						          }
-						          else
-						          {
-							          console.log(response);
-							          UXUtilities.Toast("The animation failed to upload! " + response);
-						          }
-					          }, uploadData);
-			                                                     });
-		                                 });
+		exportAnimation.addEventListener("click", function() {
+			UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. Frame timings may be slightly off due to gif timings, particularly lower frame times. Are you ready to export your animation?", function(confirmed) {
+				if (!confirmed) return;
+				UXUtilities.Toast("Exporting animation... please wait");
+				animationPlayer.frames = animateFrames.GetAllFrames();
+				var animation = animationPlayer.ToStorageObject(true);
+				var uploadData = new FormData();
+				uploadData.append("animation", JSON.stringify(animation));
+				uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations");
+				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage", function(response) {
+					if (response.startsWith("http"))
+					{
+						window.open(response, "_blank");
+					}
+					else
+					{
+						console.log(response);
+						UXUtilities.Toast("The animation failed to upload! " + response);
+					}
+				}, uploadData);
+			});
+		});
 		
-		animationPlayer = new AnimationPlayer(canvas, false, 
-		                                      function(newValue) 
-		                                      { 
-			                                      if(newValue === undefined)
-			                                      {
-				                                      return repeatAnimation.hasAttribute("data-repeat"); 
-			                                      }
-			                                      else
-			                                      {
-				                                      if(newValue != repeatAnimation.hasAttribute("data-repeat"))
-					                                      repeatAnimation.click();
-			                                      }
-		                                      },
-		                                      function(newValue) 
-		                                      { 
-			                                      if(newValue === undefined)
-				                                      return frameSkip.value; 
-			                                      else
-				                                      frameSkip.value = newValue;
-		                                      });
+		animationPlayer = new AnimationPlayer(canvas, false, function(newValue) { 
+			if (newValue === undefined)
+			{
+				return repeatAnimation.hasAttribute("data-repeat"); 
+			}
+			else
+			{
+				if (newValue != repeatAnimation.hasAttribute("data-repeat"))
+					repeatAnimation.click();
+			}
+		}, function(newValue) { 
+			if (newValue === undefined)
+				return frameSkip.value; 
+			else
+				frameSkip.value = newValue;
+		});
 		
 		animationPlayer.OnPlay = function(player) {
-			if(!frameSkip.value) {
+			if (!frameSkip.value) {
 				UXUtilities.Toast("Invalid frametime value");
 				return false;
 			}
@@ -768,13 +693,12 @@ var LocalChatDraw = (function() {
 			lightbox.style.display = "";
 		};
 		
-		playPause.addEventListener("click", function(event)
-		                           {
-			                           if(animationPlayer.IsPlaying())
-				                           animationPlayer.Stop();
-			                           else
-				                           animationPlayer.Play(animateFrames.GetSelectedFrameIndex());
-		                           });
+		playPause.addEventListener("click", function(event) {
+			if (animationPlayer.IsPlaying())
+				animationPlayer.Stop();
+			else
+				animationPlayer.Play(animateFrames.GetSelectedFrameIndex());
+		});
 		
 		animateControls.appendChild(newFrame);
 		animateControls.appendChild(frameSkip);
@@ -792,7 +716,7 @@ var LocalChatDraw = (function() {
 		animateArea.appendChild(animateScroller);
 		animateArea.appendChild(animateSave);
 		
-		if(allowAnimation) drawArea.appendChild(animateArea);
+		if (allowAnimation) drawArea.appendChild(animateArea);
 		
 		messagePane.appendChild(drawArea);
 		
@@ -808,31 +732,28 @@ var LocalChatDraw = (function() {
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor());
 		
 		//Now set up the overall document events.
-		if(!skipChatSetup)
+		if (!skipChatSetup)
 			document.querySelector("#sendpane textarea").addEventListener("keyup", onKeyUp);
 	};
 	
 	var interfaceVisible = function() {
-		try
-		{
+		try {
 			return !document.getElementById(drawAreaID).dataset.hidden;
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while checking interface visibility: " + ex);
 		}
 	};
 	
 	var toggleInterface = function(event, allowResize) {
-		try
-		{
+		try {
 			var container = document.getElementById(drawAreaID);
 			
-			if(container.dataset.hidden)
+			if (container.dataset.hidden)
 				container.removeAttribute("data-hidden");
 			else
 				container.setAttribute("data-hidden", "true");
 			
-			if(drawIframe && !firstTimeRecentered && (allowResize !== false)) {
+			if (drawIframe && !firstTimeRecentered && (allowResize !== false)) {
 				console.debug("DOING A HIDDEN DISPLAY FORCE SIZE HACK");
 				drawIframe.contentWindow.postMessage({recenter:true}, "*");
 				drawIframe.contentWindow.postMessage({recenter:true}, "*");
@@ -840,37 +761,31 @@ var LocalChatDraw = (function() {
 				//just let it happen twice.
 				firstTimeRecentered = true;
 			}
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while toggling drawing interface: " + ex);
 		}
 	};
 	
 	var dockInterface = function(dock, drawArea) {
-		try
-		{
+		try {
 			drawArea = drawArea || document.getElementById(drawAreaID);
 			var positionButton = drawArea.querySelector("button.position");
-			if(dock) {
+			if (dock) {
 				drawArea.setAttribute("data-docked", "true");
 				positionButton.innerHTML = "◱";
 				writeStorage("chatDrawDocked", true); 
-			}
-			else
-			{
+			} else {
 				drawArea.removeAttribute("data-docked");
 				positionButton.innerHTML = "◲";
 				writeStorage("chatDrawDocked", false);
 			}
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while docking drawing interface: " + ex);
 		}
 	};
 	
 	var scaleInterface = function(event) {
-		try
-		{
+		try {
 			var container = document.getElementById(drawAreaID);
 			var rect = container.getBoundingClientRect();
 			
@@ -878,14 +793,13 @@ var LocalChatDraw = (function() {
 			var originalWidth = rect.width / scale;
 			
 			//Figure out the NEXT scale.
-			if(scale < maxScale && rect.right - originalWidth * (scale + 1) - 200 > 5)
+			if (scale < maxScale && rect.right - originalWidth * (scale + 1) - 200 > 5)
 				scale++;
 			else
 				scale = 1;
 			
 			container.dataset.scale = String(scale);
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while scaling drawing interface: " + ex);
 		}
 	};
@@ -905,28 +819,24 @@ var LocalChatDraw = (function() {
 		colorButton.dataset.selected = "true";
 		
 		//If this button was already selected, perform the color swap.
-		if(alreadySelected) {
+		if (alreadySelected) {
 			var colorPicker = document.getElementById(colorPickerID);
 			colorPicker.associatedButton = colorButton;
 			colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color));
 			colorPicker.focus();
 			colorPicker.click();
-		}
-		else
-		{
+		} else {
 			drawer.color = colorButton.style.color;
 		}
 	};
 	
 	//Send the current drawing to the chat.
 	var sendDrawing = function(animationLink) {
-		try
-		{
+		try {
 			var message = animateFrames.GetFrame().ToString();
-			if(animationLink) message = "(" + animationLink + ")" + message;
+			if (animationLink) message = "(" + animationLink + ")" + message;
 			sendMessage("/drawsubmit " + message, false);
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Error while sending drawing: " + ex);
 		}
 	};
@@ -956,7 +866,7 @@ var LocalChatDraw = (function() {
 		for(var i = 0; i < colors.length; i++) {
 			var full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2);
 			
-			if(full > max) {
+			if (full > max) {
 				max = full;
 				clearColor = i;
 			}
@@ -971,15 +881,13 @@ var LocalChatDraw = (function() {
 	};
 	
 	var onKeyUp = function(event) {
-		try
-		{
+		try {
 			var drawArea = document.getElementById(drawAreaID);
-			if(event.target.value.length > hideCharacters)
+			if (event.target.value.length > hideCharacters)
 				drawArea.style.visibility = "hidden";
 			else
 				drawArea.style.visibility = "visible";
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("Couldn't hide or unhide drawing toggle: " + ex);
 		}
 	};
@@ -1006,46 +914,35 @@ var LocalChatDraw = (function() {
 	window.addEventListener("load", onLoad);
 	
 	function onLoad(event) {
-		try
-		{
-			if(window.addMessageEvent) {
-				if(addBindEvent) {
-					addBindEvent(function(first, modules) 
-					             { 
-						             if(!first)
-						             {
-							             LogSystem.RootLogger.log("Not first bind; skipping chatdraw setup");
-							             return;
-						             }
-						             if(modules.indexOf("draw") >= 0)
-						             {
-							             LogSystem.RootLogger.log("Chat has drawing module; setting up the drawing interface");
-							             
-							             if(advancedChatDraw)
-								             LocalChatDraw.setupAdvancedInterface();
-							             else
-								             LocalChatDraw.setupInterface();
-						             }
-						             else
-						             {
-							             LogSystem.RootLogger.log("There's no drawing module, so we're not setting up the interface");
-						             }
-					             });
-				}
-				else
-				{
+		try {
+			if (window.addMessageEvent) {
+				if (addBindEvent) {
+					addBindEvent(function(first, modules) {
+						if (!first) {
+							LogSystem.RootLogger.log("Not first bind; skipping chatdraw setup");
+							return;
+						}
+						if (modules.indexOf("draw") >= 0) {
+							LogSystem.RootLogger.log("Chat has drawing module; setting up the drawing interface");
+							
+							if (advancedChatDraw)
+								LocalChatDraw.setupAdvancedInterface();
+							else
+								LocalChatDraw.setupInterface();
+						} else {
+							LogSystem.RootLogger.log("There's no drawing module, so we're not setting up the interface");
+						}
+					});
+				} else {
 					LogSystem.RootLogger.log("Chatdraw doesn't appear to be running in chat.");
 				}
 				
 				//Oh, we also need to intercept messages that are encoded as a drawing.
 				addMessageEvent(LocalChatDraw.checkMessageForDrawing);
-			}
-			else
-			{
+			} else {
 				LogSystem.RootLogger.log("ChatDraw isn't running in native chat. Will not perform native setup");
 			}
-		}
-		catch(ex) {
+		} catch(ex) {
 			LogSystem.RootLogger.log("An error occurred while loading chatdraw: " + ex);
 		}
 	}
@@ -1073,10 +970,9 @@ function fillStyleToRgb(fillStyle) {
 function hexToRGB(hex) {
 	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 	var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-	hex = hex.replace(shorthandRegex, function(m, r, g, b) 
-	                  {
-		                  return r + r + g + g + b + b;
-	                  });
+	hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+		return r + r + g + g + b + b;
+	});
 	
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result ? [
@@ -1106,7 +1002,7 @@ function AnimatorFrameSet(container) {
 }
 
 AnimatorFrameSet.prototype.FrameSelected = function(frameData) {
-	if(this.OnFrameSelected) this.OnFrameSelected(frameData);
+	if (this.OnFrameSelected) this.OnFrameSelected(frameData);
 };
 
 AnimatorFrameSet.prototype.ClearAllFrames = function() {
@@ -1122,7 +1018,7 @@ AnimatorFrameSet.prototype._GetIndexOfFrame = function(frame) {
 	var elements = this._GetAllFrameElements();
 	
 	for(var i = 0; i < elements.length; i++) {
-		if(elements[i].isSameNode(frame))
+		if (elements[i].isSameNode(frame))
 			return i;
 	}
 	
@@ -1156,10 +1052,10 @@ AnimatorFrameSet.prototype._FillFrameWithData = function(frameElement, frameData
 	var original = this._GetDataFromFrame(frameElement);
 	
 	//Fill canvas IF it's not exactly the same canvas
-	if(!original.canvas.isSameNode(frameData.canvas))
+	if (!original.canvas.isSameNode(frameData.canvas))
 		CanvasUtilities.CopyInto(original.canvas.getContext("2d"), frameData.canvas);
 	
-	if(frameData.time)
+	if (frameData.time)
 		original.timeElement.value = frameData.time;
 	else
 		original.timeElement.value = "";
@@ -1184,8 +1080,7 @@ AnimatorFrameSet.prototype.InsertNewFrame = function(index, selectNow) {
 	var canvas = ChatDrawUtilities.CreateCanvas();
 	var me = this;
 	
-	try { palette = this.GetFrame().palette; }
-	catch (ex) { palette = ChatDrawUtilities.BaseColors; }
+	try { palette = this.GetFrame().palette; } catch (ex) { palette = ChatDrawUtilities.BaseColors; }
 	
 	CanvasUtilities.Clear(canvas, ChatDrawUtilities.GetClearColor(palette).ToRGBString());
 	
@@ -1207,60 +1102,53 @@ AnimatorFrameSet.prototype.InsertNewFrame = function(index, selectNow) {
 	frameDelete.className = "alerthover";
 	frameDelete.title = "Delete frame (cannot be undone!)";
 	
-	frame.addEventListener("click", function(e)
-	                       {
-		                       me._SelectFrame(frame);
-	                       });
+	frame.addEventListener("click", function(e) {
+		me._SelectFrame(frame);
+	});
 	
-	frameCopy.addEventListener("click", function(event)
-	                           {
-		                           StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, 
-		                                                       me._GetDataFromFrame(frame).ToString());
-		                           UXUtilities.Toast("Copied frame to clipboard (chatdraw only!)");
-	                           });
+	frameCopy.addEventListener("click", function(event) {
+		StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, me._GetDataFromFrame(frame).ToString());
+		UXUtilities.Toast("Copied frame to clipboard (chatdraw only!)");
+	});
 	
-	framePaste.addEventListener("click", function(event)
-	                            {
-		                            var clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey);
-		                            var myData = me._GetDataFromFrame(frame);
-		                            
-		                            if(clipboard)
-		                            {
-			                            var newFrame = ChatDrawUtilities.ChatDrawToFrame(clipboard);
-			                            newFrame.time = myData.time;
-			                            me._FillFrameWithData(frame, newFrame);
-			                            
-			                            //Reselect frame just in case
-			                            if(me._IsSelected(frame)) me._SelectFrame(frame);
-		                            }
-		                            else
-		                            {
-			                            UXUtilities.Toast("No chatdraw on clipboard");
-		                            }
-	                            });
+	framePaste.addEventListener("click", function(event) {
+		var clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey);
+		var myData = me._GetDataFromFrame(frame);
+		
+		if (clipboard)
+		{
+			var newFrame = ChatDrawUtilities.ChatDrawToFrame(clipboard);
+			newFrame.time = myData.time;
+			me._FillFrameWithData(frame, newFrame);
+			
+			//Reselect frame just in case
+			if (me._IsSelected(frame)) me._SelectFrame(frame);
+		}
+		else
+		{
+			UXUtilities.Toast("No chatdraw on clipboard");
+		}
+	});
 	
-	frameDelete.addEventListener("click", function(event)
-	                             {
-		                             if(me.GetFrameCount() === 1)
-		                             {
-			                             UXUtilities.Toast("You can't delete the only frame!");
-			                             return;
-		                             }
-		                             
-		                             UXUtilities.Confirm("Are you sure you want to delete this frame?", function(c)
-		                                                 {
-			                                                 if(c)
-			                                                 {
-				                                                 var toSelect = frame.nextElementSibling || frame.previousElementSibling;
-				                                                 
-				                                                 //If you're deleting the selected frame, select the "next" frame
-				                                                 if(me._IsSelected(frame)) 
-					                                                 me._SelectFrame(toSelect);
-				                                                 
-				                                                 HTMLUtilities.RemoveSelf(frame);
-			                                                 }
-		                                                 });
-	                             });
+	frameDelete.addEventListener("click", function(event) {
+		if (me.GetFrameCount() === 1)
+		{
+			UXUtilities.Toast("You can't delete the only frame!");
+			return;
+		}
+		
+		UXUtilities.Confirm("Are you sure you want to delete this frame?", function(c) {
+			if (c) {
+				var toSelect = frame.nextElementSibling || frame.previousElementSibling;
+				
+				//If you're deleting the selected frame, select the "next" frame
+				if (me._IsSelected(frame)) 
+					me._SelectFrame(toSelect);
+				
+				HTMLUtilities.RemoveSelf(frame);
+			}
+		});
+	});
 	
 	frameControls.appendChild(frameTime);
 	frameControls.appendChild(frameCopy);
@@ -1273,30 +1161,30 @@ AnimatorFrameSet.prototype.InsertNewFrame = function(index, selectNow) {
 	
 	var frames = this._GetAllFrameElements();
 	
-	if(index >= frames.length)
+	if (index >= frames.length)
 		index = frames.length - 1;
 	
-	if(frames.length === 0 || index < 0)
+	if (frames.length === 0 || index < 0)
 		HTMLUtilities.InsertFirst(frame, this.container);
 	else
 		HTMLUtilities.InsertAfterSelf(frame, frames[index]);
 	
-	if(selectNow) this._SelectFrame(frame);
+	if (selectNow) this._SelectFrame(frame);
 	
 	return frameData;
 };
 
 AnimatorFrameSet.prototype.GetFrame = function(index) {
-	if(index === undefined) index = this.GetSelectedFrameIndex();
+	if (index === undefined) index = this.GetSelectedFrameIndex();
 	var frames = this._GetAllFrameElements();
 	return this._GetDataFromFrame(frames[index]);
 };
 
 AnimatorFrameSet.prototype.SetFrame = function(frame, index) {
-	if(index === undefined) index = this.GetSelectedFrameIndex();
+	if (index === undefined) index = this.GetSelectedFrameIndex();
 	var frames = this._GetAllFrameElements();
 	this._FillFrameWithData(frames[index], frame);
-	if(index === this.GetSelectedFrameIndex())
+	if (index === this.GetSelectedFrameIndex())
 		this.SelectFrameIndex(index);
 };
 
@@ -1304,7 +1192,7 @@ AnimatorFrameSet.prototype.GetSelectedFrameIndex = function() {
 	var allFrames = this._GetAllFrameElements();
 	
 	for(var i = 0; i < allFrames.length; i++) {
-		if(allFrames[i].hasAttribute(this.SelectedAttribute))
+		if (allFrames[i].hasAttribute(this.SelectedAttribute))
 			return i;
 	}
 	
@@ -1351,13 +1239,13 @@ function AnimationPlayer(canvas, frames, repeatFunction, defaultTimeFunction) {
 	this._hiddenDefaultTime = 3;
 	
 	this.GetRepeat = repeatFunction || function(value) { 
-		if(value === undefined) 
+		if (value === undefined) 
 			return me._hiddenRepeat; 
 		else
 			me._hiddenRepeat = value;      
 	};
 	this.GetDefaultTime = defaultTimeFunction || function(value) { 
-		if(value === undefined)
+		if (value === undefined)
 			return me._hiddenDefaultTime; 
 		else
 			me._hiddenDefaultTime = value;
@@ -1376,17 +1264,17 @@ AnimationPlayer.prototype.IsPlaying = function() {
 };
 
 AnimationPlayer.prototype._Animate = function() {
-	if(this._playing) {
+	if (this._playing) {
 		var skip = this.frames[this._currentFrame - 1] && this.frames[this._currentFrame - 1].time ? 
 			this.frames[this._currentFrame - 1].time : this.GetDefaultTime(); 
 		
-		if((this._frameCount % skip) === 0) {
+		if ((this._frameCount % skip) === 0) {
 			this._frameCount = 0;
 			
-			if(this._currentFrame >= this.frames.length && this.GetRepeat())
+			if (this._currentFrame >= this.frames.length && this.GetRepeat())
 				this._currentFrame = 0;
 			
-			if(this._currentFrame >= this.frames.length) {
+			if (this._currentFrame >= this.frames.length) {
 				this.Stop();
 				return;
 			}
@@ -1402,8 +1290,8 @@ AnimationPlayer.prototype._Animate = function() {
 };
 
 AnimationPlayer.prototype.Play = function(startFrame) {
-	if(this.OnPlay) {
-		if(this.OnPlay(this) === false) {
+	if (this.OnPlay) {
+		if (this.OnPlay(this) === false) {
 			console.debug("Play was cancelled by OnPlay");
 			return;
 		}
@@ -1412,18 +1300,18 @@ AnimationPlayer.prototype.Play = function(startFrame) {
 	this._playing = true;
 	this._frameCount = 0;
 	this._currentFrame = 0;
-	if(startFrame !== undefined) this._currentFrame = startFrame;
+	if (startFrame !== undefined) this._currentFrame = startFrame;
 	
 	this._Animate();
 };
 
 AnimationPlayer.prototype.Stop = function() {
 	this._playing = false;
-	if(this.OnStop) this.OnStop(this);
+	if (this.OnStop) this.OnStop(this);
 };
 
 AnimationPlayer.prototype.FromStorageObject = function(storeObject) {
-	if(storeObject.version !== 2) {
+	if (storeObject.version !== 2) {
 		throw "Storage object must be converted to the latest version!";
 	}
 	
@@ -1448,12 +1336,12 @@ AnimationPlayer.prototype.ToStorageObject = function(pngs) {
 	};
 	
 	for(var i = 0; i < this.frames.length; i++) {
-		if(this.frames[i].time)
+		if (this.frames[i].time)
 			baseData.times.push(this.frames[i].time); 
 		else
 			baseData.times.push(0);
 		
-		if(pngs)
+		if (pngs)
 			baseData.data.push(this.frames[i].canvas.toDataURL("image/png")); 
 		else
 			baseData.data.push(this.frames[i].ToString());
@@ -1464,233 +1352,232 @@ AnimationPlayer.prototype.ToStorageObject = function(pngs) {
 
 //AnimationPlayer.prototype.To
 
-var ChatDrawUtilities = 
-	{
-		DefaultWidth : 200,
-		DefaultHeight : 100,
-		ClipboardKey : "chatdrawClipboard",
-		ExportBucket : function() {
-			return "chatDrawAnimations";
-		},
+var ChatDrawUtilities = {
+	DefaultWidth : 200,
+	DefaultHeight : 100,
+	ClipboardKey : "chatdrawClipboard",
+	ExportBucket : function() {
+		return "chatDrawAnimations";
+	},
+	
+	BaseColors : [
+		new Color(255,255,255),
+		new Color(0, 0, 0),
+		new Color(255, 0, 0),
+		new Color(0, 0, 255)
+	],
+	LegacyColors : [
+		new Color(255,255,255),
+		new Color(0, 0, 0),
+		new Color(255, 0, 0),
+		new Color(0, 0, 255)
+	],
+	
+	PaletteToString : function(palette) {
+		var colorSet = "";
 		
-		BaseColors : [
-			new Color(255,255,255),
-			new Color(0, 0, 0),
-			new Color(255, 0, 0),
-			new Color(0, 0, 255)
-		],
-		LegacyColors : [
-			new Color(255,255,255),
-			new Color(0, 0, 0),
-			new Color(255, 0, 0),
-			new Color(0, 0, 255)
-		],
-		
-		PaletteToString : function(palette) {
-			var colorSet = "";
-			
-			for(var i = 0; i < palette.length; i++) {
-				colorSet += palette[i].ToRGBString(); 
-				if(i !== palette.length - 1) colorSet += "/";
-			}
-			
-			return colorSet;
-		},
-		StringToPalette : function(string) {
-			var colors = string.split("/");
-			var result = [];
-			
-			for(var i = 0; i < colors.length; i++)
-				result.push(StyleUtilities.GetColor(colors[i]));
-			
-			return result;
-		},
-		
-		GetClearColor : function(palette) {
-			var max = 0;
-			var clearColor = 0;
-			
-			for(var i = 0; i < palette.length; i++) {
-				var full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2);
-				
-				if(full > max) {
-					max = full;
-					clearColor = i;
-				}
-			}
-			
-			return palette[clearColor];
-		},
-		
-		CreateCanvas : function() {
-			var canvas = document.createElement("canvas");
-			canvas.width = ChatDrawUtilities.DefaultWidth;
-			canvas.height = ChatDrawUtilities.DefaultHeight;
-			canvas.getContext("2d").imageSmoothingEnabled = false;
-			return canvas;
-		},
-		
-		//First canvas is bottom
-		CreateLightbox : function(frames, destination, opacities) {
-			CanvasUtilities.Clear(destination);
-			
-			var context = destination.getContext("2d");
-			
-			for(var i = 0; i < frames.length; i++) {
-				//This might be expensive! Make sure the browser doesn't slow down
-				//from all these created canvases!
-				var copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas);
-				var clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette);
-				CanvasUtilities.SwapColor(copy.getContext("2d"), clearColor, 
-				                          new Color(clearColor.r, clearColor.g, clearColor.b, 0), 0);
-				//context.globalAlpha = MathUtilities.Lerp(minAlpha, maxAlpha, (i + 1) / frames.length); 
-				context.globalAlpha = opacities[i];
-				context.drawImage(copy,0,0);
-			}
-		},
-		
-		FrameToChatDraw : function (frame) {
-			var time = performance.now();
-			
-			var canvas = frame.canvas;
-			var palette = frame.palette;
-			
-			//Get that 2d context yo. Oh and also, the pixel data and whatever.
-			var context = canvas.getContext("2d");
-			var imageData = context.getImageData(0,0,canvas.width,canvas.height);
-			var pixelData = imageData.data;
-			var bitsPerPixel = Math.ceil(Math.log2(palette.length));
-			var pixelsPerByte = Math.floor(8 / bitsPerPixel);
-			var currentPalette = 0;
-			var currentByte = 0;
-			var baseData = "";
-			var i = 0, j = 0, k = 0;
-			
-			var paletteArray = [];
-			
-			for(i = 0; i < palette.length; i++)
-				paletteArray.push(palette[i].ToArray());
-			
-			//Go by 4 because RGBA. Data is encoded in row-major order.
-			for(i = 0; i < pixelData.length; i+=4) {
-				//Shift is how much to shift the current palette value. All this math
-				//and we still can't add up T_T
-				shift = ((i / 4) % pixelsPerByte) * bitsPerPixel;
-				
-				//Merge character into base data string.
-				if (i !== 0 && shift === 0) {
-					baseData += String.fromCharCode(currentByte);
-					currentByte = 0;
-				}
-				
-				//This is the palette representation of the current pixel.
-				currentPalette = 0;
-				
-				//Check pixel color against palette colors to get palette value.
-				for (j = 0; j < paletteArray.length; j++) {
-					if(paletteArray[j][0] === pixelData[i] &&
-					   paletteArray[j][1] === pixelData[i + 1] &&
-					   paletteArray[j][2] === pixelData[i + 2]) {
-						currentPalette = j;
-						break;
-					}
-				}
-				
-				//Add palette to current byte.
-				currentByte += currentPalette << shift;
-			}
-			
-			//ALWAYS add the last byte because no matter what, there WILL be extra
-			//data leftover, since the current byte is added at the start of the loop
-			baseData += String.fromCharCode(currentByte);
-			
-			//OY! Before you go, add all the palette data. Yeah that's right, we
-			//encode the full RGB color space in the palette data. So what?
-			for(i = 0; i < paletteArray.length; i++)
-				for(j = 0; j < 3; j++) //DO NOT INCLUDE THE ALPHA CHANNEL!
-					baseData += String.fromCharCode(paletteArray[i][j]);
-			
-			baseData += String.fromCharCode(paletteArray.length);
-			
-			var encodedString = LZString.compressToBase64(baseData);
-			
-			return encodedString;
-		},
-		
-		ChatDrawToFrame : function(string) {
-			//Legacy images need their original palette. The new images will have the
-			//palette encoded within them.
-			var width = ChatDrawUtilities.DefaultWidth;
-			var height = ChatDrawUtilities.DefaultHeight;
-			var palette = ChatDrawUtilities.LegacyColors; //ChatDrawUtilities.BaseColors; //legacyPalette.slice();
-			var realData = LZString.decompressFromBase64(string);
-			var i, j, k;
-			
-			//Fix up the palette data based on legacy support. If legacy is detected
-			//(ie we have less than or equal to the minimum amount of bytes necessary) 
-			//then use default palette. Otherwise, the number of bytes afterwards 
-			//determines how the data is encoded.
-			if(realData.length > Math.ceil((width * height)/ 4)) {
-				//The very last byte tells us how many palette colors there are. 
-				var paletteCount = realData.charCodeAt(realData.length - 1);
-				
-				palette = [];
-				
-				//Now read all the "apparent" palette bytes.
-				for(i = 0; i < paletteCount; i++) {
-					var color = [];
-					
-					//build color from 3 channels
-					for(j = 0; j < 3; j++)
-						color.push(realData.charCodeAt(realData.length - 1 - (paletteCount - i) * 3 + j));   
-					
-					palette.push(new Color(color[0], color[1], color[2]));
-				}
-			}
-			
-			var canvas = document.createElement("canvas");
-			canvas.width = width;
-			canvas.height = height;
-			
-			var context = canvas.getContext("2d");
-			
-			var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-			var pixelData = imageData.data;
-			var totalPixels = Math.floor(pixelData.length / 4);
-			
-			var currentByte;
-			var currentPalette;
-			var currentPixel = 0;
-			var bitsPerPixel = Math.ceil(Math.log2(palette.length));
-			var pixelsPerByte = Math.floor(8 / bitsPerPixel);
-			
-			byte_loop: //loop over all the bytes.
-			for (i = 0; i < realData.length; i++) {
-				currentByte = realData.charCodeAt(i);
-				
-				//Loop over the pixels within the bytes! Usually 4 for legacy
-				for (j = 0; j < pixelsPerByte; j++) {
-					//AND out the bits that we actually want.
-					currentPalette = currentByte & ((1 << bitsPerPixel) - 1); 
-					
-					//That times 4 is because pixels are 4 bytes and whatever.
-					pixelData[currentPixel * 4] =     palette[currentPalette].r; //[0];
-					pixelData[currentPixel * 4 + 1] = palette[currentPalette].g; //[1];
-					pixelData[currentPixel * 4 + 2] = palette[currentPalette].b; //[2];
-					pixelData[currentPixel * 4 + 3] = 255;
-					
-					//Shift over to get the next set of bits.
-					currentByte = currentByte >> bitsPerPixel;   
-					currentPixel++;
-					
-					//Stop entire execution when we reach the end of the pixels.
-					if(currentPixel >= totalPixels)
-						break byte_loop;
-				}
-			}
-			
-			// Draw the ImageData at the given (x,y) coordinates.
-			context.putImageData(imageData, 0, 0);
-			return new AnimatorFrame(canvas, palette, 0);
+		for(var i = 0; i < palette.length; i++) {
+			colorSet += palette[i].ToRGBString(); 
+			if (i !== palette.length - 1) colorSet += "/";
 		}
-	};
+		
+		return colorSet;
+	},
+	StringToPalette : function(string) {
+		var colors = string.split("/");
+		var result = [];
+		
+		for(var i = 0; i < colors.length; i++)
+			result.push(StyleUtilities.GetColor(colors[i]));
+		
+		return result;
+	},
+	
+	GetClearColor : function(palette) {
+		var max = 0;
+		var clearColor = 0;
+		
+		for(var i = 0; i < palette.length; i++) {
+			var full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2);
+			
+			if (full > max) {
+				max = full;
+				clearColor = i;
+			}
+		}
+		
+		return palette[clearColor];
+	},
+	
+	CreateCanvas : function() {
+		var canvas = document.createElement("canvas");
+		canvas.width = ChatDrawUtilities.DefaultWidth;
+		canvas.height = ChatDrawUtilities.DefaultHeight;
+		canvas.getContext("2d").imageSmoothingEnabled = false;
+		return canvas;
+	},
+	
+	//First canvas is bottom
+	CreateLightbox : function(frames, destination, opacities) {
+		CanvasUtilities.Clear(destination);
+		
+		var context = destination.getContext("2d");
+		
+		for(var i = 0; i < frames.length; i++) {
+			//This might be expensive! Make sure the browser doesn't slow down
+			//from all these created canvases!
+			var copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas);
+			var clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette);
+			CanvasUtilities.SwapColor(copy.getContext("2d"), clearColor, 
+			                          new Color(clearColor.r, clearColor.g, clearColor.b, 0), 0);
+			//context.globalAlpha = MathUtilities.Lerp(minAlpha, maxAlpha, (i + 1) / frames.length); 
+			context.globalAlpha = opacities[i];
+			context.drawImage(copy,0,0);
+		}
+	},
+	
+	FrameToChatDraw : function (frame) {
+		var time = performance.now();
+		
+		var canvas = frame.canvas;
+		var palette = frame.palette;
+		
+		//Get that 2d context yo. Oh and also, the pixel data and whatever.
+		var context = canvas.getContext("2d");
+		var imageData = context.getImageData(0,0,canvas.width,canvas.height);
+		var pixelData = imageData.data;
+		var bitsPerPixel = Math.ceil(Math.log2(palette.length));
+		var pixelsPerByte = Math.floor(8 / bitsPerPixel);
+		var currentPalette = 0;
+		var currentByte = 0;
+		var baseData = "";
+		var i = 0, j = 0, k = 0;
+		
+		var paletteArray = [];
+		
+		for(i = 0; i < palette.length; i++)
+			paletteArray.push(palette[i].ToArray());
+		
+		//Go by 4 because RGBA. Data is encoded in row-major order.
+		for(i = 0; i < pixelData.length; i+=4) {
+			//Shift is how much to shift the current palette value. All this math
+			//and we still can't add up T_T
+			shift = ((i / 4) % pixelsPerByte) * bitsPerPixel;
+			
+			//Merge character into base data string.
+			if (i !== 0 && shift === 0) {
+				baseData += String.fromCharCode(currentByte);
+				currentByte = 0;
+			}
+			
+			//This is the palette representation of the current pixel.
+			currentPalette = 0;
+			
+			//Check pixel color against palette colors to get palette value.
+			for (j = 0; j < paletteArray.length; j++) {
+				if (paletteArray[j][0] === pixelData[i] &&
+				    paletteArray[j][1] === pixelData[i + 1] &&
+				    paletteArray[j][2] === pixelData[i + 2]) {
+					currentPalette = j;
+					break;
+				}
+			}
+			
+			//Add palette to current byte.
+			currentByte += currentPalette << shift;
+		}
+		
+		//ALWAYS add the last byte because no matter what, there WILL be extra
+		//data leftover, since the current byte is added at the start of the loop
+		baseData += String.fromCharCode(currentByte);
+		
+		//OY! Before you go, add all the palette data. Yeah that's right, we
+		//encode the full RGB color space in the palette data. So what?
+		for(i = 0; i < paletteArray.length; i++)
+			for(j = 0; j < 3; j++) //DO NOT INCLUDE THE ALPHA CHANNEL!
+				baseData += String.fromCharCode(paletteArray[i][j]);
+		
+		baseData += String.fromCharCode(paletteArray.length);
+		
+		var encodedString = LZString.compressToBase64(baseData);
+		
+		return encodedString;
+	},
+	
+	ChatDrawToFrame : function(string) {
+		//Legacy images need their original palette. The new images will have the
+		//palette encoded within them.
+		var width = ChatDrawUtilities.DefaultWidth;
+		var height = ChatDrawUtilities.DefaultHeight;
+		var palette = ChatDrawUtilities.LegacyColors; //ChatDrawUtilities.BaseColors; //legacyPalette.slice();
+		var realData = LZString.decompressFromBase64(string);
+		var i, j, k;
+		
+		//Fix up the palette data based on legacy support. If legacy is detected
+		//(ie we have less than or equal to the minimum amount of bytes necessary) 
+		//then use default palette. Otherwise, the number of bytes afterwards 
+		//determines how the data is encoded.
+		if (realData.length > Math.ceil((width * height)/ 4)) {
+			//The very last byte tells us how many palette colors there are. 
+			var paletteCount = realData.charCodeAt(realData.length - 1);
+			
+			palette = [];
+			
+			//Now read all the "apparent" palette bytes.
+			for(i = 0; i < paletteCount; i++) {
+				var color = [];
+				
+				//build color from 3 channels
+				for(j = 0; j < 3; j++)
+					color.push(realData.charCodeAt(realData.length - 1 - (paletteCount - i) * 3 + j));   
+				
+				palette.push(new Color(color[0], color[1], color[2]));
+			}
+		}
+		
+		var canvas = document.createElement("canvas");
+		canvas.width = width;
+		canvas.height = height;
+		
+		var context = canvas.getContext("2d");
+		
+		var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+		var pixelData = imageData.data;
+		var totalPixels = Math.floor(pixelData.length / 4);
+		
+		var currentByte;
+		var currentPalette;
+		var currentPixel = 0;
+		var bitsPerPixel = Math.ceil(Math.log2(palette.length));
+		var pixelsPerByte = Math.floor(8 / bitsPerPixel);
+		
+		byte_loop: //loop over all the bytes.
+		for (i = 0; i < realData.length; i++) {
+			currentByte = realData.charCodeAt(i);
+			
+			//Loop over the pixels within the bytes! Usually 4 for legacy
+			for (j = 0; j < pixelsPerByte; j++) {
+				//AND out the bits that we actually want.
+				currentPalette = currentByte & ((1 << bitsPerPixel) - 1); 
+				
+				//That times 4 is because pixels are 4 bytes and whatever.
+				pixelData[currentPixel * 4] =     palette[currentPalette].r; //[0];
+				pixelData[currentPixel * 4 + 1] = palette[currentPalette].g; //[1];
+				pixelData[currentPixel * 4 + 2] = palette[currentPalette].b; //[2];
+				pixelData[currentPixel * 4 + 3] = 255;
+				
+				//Shift over to get the next set of bits.
+				currentByte = currentByte >> bitsPerPixel;   
+				currentPixel++;
+				
+				//Stop entire execution when we reach the end of the pixels.
+				if (currentPixel >= totalPixels)
+					break byte_loop;
+			}
+		}
+		
+		// Draw the ImageData at the given (x,y) coordinates.
+		context.putImageData(imageData, 0, 0);
+		return new AnimatorFrame(canvas, palette, 0);
+	}
+};

@@ -31,12 +31,12 @@ if (!String.prototype.trim)
 if (!Array.prototype.indexOf) {
 	//Taken directly from ECMA-262 or whatever.
 	Array.prototype.indexOf = function(value, fromIndex) {
-		if(this === null) throw new TypeError('"this" is null or not defined');
+		if (this === null) throw new TypeError('"this" is null or not defined');
 		var o = Object(this);
 		var len = o.length >>> 0;
-		if(len === 0) return -1;
+		if (len === 0) return -1;
 		var n = fromIndex | 0;
-		if(n >= len) return -1;
+		if (n >= len) return -1;
 		var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
 		while (k < len) if (k in o && o[k] === searchElement) return k;
 		return -1;
@@ -51,8 +51,7 @@ if (!String.prototype.padStart) {
 		padString = String(padString || ' ');
 		if (this.length > targetLength) {
 			return String(this);
-		}
-		else 
+		} else 
 		{
 			targetLength = targetLength-this.length;
 			if (targetLength > padString.length) {
@@ -78,23 +77,22 @@ window.requestAnimationFrame = (function() {
 		if (item.hasOwnProperty('prepend')) {
 			return;
 		}
-		Object.defineProperty(item, 'prepend', 
-		                      {
-			                      configurable: true,
-			                      enumerable: true,
-			                      writable: true,
-			                      value: function prepend() {
-				                      var argArr = Array.prototype.slice.call(arguments),
-				                      docFrag = document.createDocumentFragment();
-				                      
-				                      argArr.forEach(function (argItem) {
-					                      var isNode = argItem instanceof Node;
-					                      docFrag.appendChild(isNode ? argItem : document.createTextNode(String(argItem)));
-				                      });
-				                      
-				                      this.insertBefore(docFrag, this.firstChild);
-			                      }
-		                      });
+		Object.defineProperty(item, 'prepend', {
+			configurable: true,
+			enumerable: true,
+			writable: true,
+			value: function prepend() {
+				var argArr = Array.prototype.slice.call(arguments),
+				docFrag = document.createDocumentFragment();
+				
+				argArr.forEach(function (argItem) {
+					var isNode = argItem instanceof Node;
+					docFrag.appendChild(isNode ? argItem : document.createTextNode(String(argItem)));
+				});
+				
+				this.insertBefore(docFrag, this.firstChild);
+			}
+		});
 	});
 })([Element.prototype, Document.prototype, DocumentFragment.prototype]);
 
@@ -123,152 +121,146 @@ Function.prototype.callBind = function() {
 // --- TypeUtilities ---
 // Functions for working with or detecting types.
 
-var TypeUtilities =
-	{
-		IsFunction: function(x) {
-			return x && Object.prototype.toString.call(x) == '[object Function]';
-		},
-		IsArray: function(x) {
-			return x && x.constructor === Array;
-		},
-		IsString: function(x) {
-			return x && x.constructor === String;
-		}
-	};
+var TypeUtilities = {
+	IsFunction: function(x) {
+		return 'function'===typeof x
+	},
+	IsArray: function(x) {
+		return Array.isArray(x)
+	},
+	IsString: function(x) {
+		return 'string'===typeof x
+	}
+};
 
 // --- HTMLUtilities ---
 // Encode or decode HTML entitities / generate unique IDs for elements / etc.
 
-var HTMLUtilities = 
-	{
-		_nextID : 0,
-		UnescapeHTML : function(string) {
-			var elem = document.createElement("textarea");
-			elem.innerHTML = string;
-			return elem.value;
-		},
-		EscapeHTML : function(html) {
-			var text = document.createTextNode(html);
-			var div = document.createElement('div');
-			div.appendChild(text);
-			return div.innerHTML;
-		},
-		RemoveSelf : function(element) {
-			element.parentNode.removeChild(element);
-		},
-		InsertBeforeSelf : function(newElement, element) {
-			element.parentNode.insertBefore(newElement, element);
-		},
-		InsertAfterSelf : function(newElement, element) {
-			element.parentNode.insertBefore(newElement, element.nextSibling);
-		},
-		InsertFirst : function(newElement, parent) {
-			parent.insertBefore(newElement, parent.firstElementChild);
-		},
-		Replace : function(oldElement, newElement) {
-			HTMLUtilities.InsertBeforeSelf(newElement, oldElement);
-			HTMLUtilities.RemoveSelf(oldElement);
-		},
-		MoveToEnd : function(element) {
-			element.parentNode.appendChild(element);
-		},
-		GetUniqueID : function(base) {
-			return "genID_" + this._nextID++ + (base ? "_" + base : "");
-		},
-		NodeListToArray : function(nodeList) {
-			var tempArray = [];
+var HTMLUtilities = {
+	_nextID : 0,
+	UnescapeHTML : function(string) {
+		var elem = document.createElement("textarea");
+		elem.innerHTML = string;
+		return elem.value;
+	},
+	EscapeHTML : function(html) {
+		var text = document.createTextNode(html);
+		var div = document.createElement('div');
+		div.appendChild(text);
+		return div.innerHTML;
+	},
+	RemoveSelf : function(element) {
+		element.parentNode.removeChild(element);
+	},
+	InsertBeforeSelf : function(newElement, element) {
+		element.parentNode.insertBefore(newElement, element);
+	},
+	InsertAfterSelf : function(newElement, element) {
+		element.parentNode.insertBefore(newElement, element.nextSibling);
+	},
+	InsertFirst : function(newElement, parent) {
+		parent.insertBefore(newElement, parent.firstElementChild);
+	},
+	Replace : function(oldElement, newElement) {
+		HTMLUtilities.InsertBeforeSelf(newElement, oldElement);
+		HTMLUtilities.RemoveSelf(oldElement);
+	},
+	MoveToEnd : function(element) {
+		element.parentNode.appendChild(element);
+	},
+	GetUniqueID : function(base) {
+		return "genID_" + this._nextID++ + (base ? "_" + base : "");
+	},
+	NodeListToArray : function(nodeList) {
+		var tempArray = [];
+		
+		for(var i = 0; i < nodeList.length; i++)
+			tempArray.push(nodeList[i]);
+		
+		return tempArray;
+	},
+	FindParentFromAction : function(element, action) {
+		var nextElement = element;
+		
+		while(!action(nextElement)) {
+			if (nextElement.tagName.toLowerCase() === "body")
+				return false;
 			
-			for(var i = 0; i < nodeList.length; i++)
-				tempArray.push(nodeList[i]);
-			
-			return tempArray;
-		},
-		FindParentFromAction : function(element, action) {
-			var nextElement = element;
-			
-			while(!action(nextElement)) {
-				if(nextElement.tagName.toLowerCase() === "body")
-					return false;
-				
-				nextElement = nextElement.parentNode;
-			}
-			
-			return nextElement;
-		},
-		FindParentWithClass : function(element, className) {
-			var regex = new RegExp("\\b" + className + "\\b");
-			
-			return HTMLUtilities.FindParentFromAction(element,
-			                                          function(nextElement) {
-				                                          return regex.test(nextElement.className);
-			                                          }); 
-		},
-		FindParentWithTag : function(element, tagName) {
-			return HTMLUtilities.FindParentFromAction(element,
-			                                          function(nextElement) {
-				                                          return nextElement.tagName.toLowerCase() === tagName.toLowerCase();
-			                                          }); 
-		},
-		SimulateRadioSelect : function(selected, parent, selectedAttribute, selectedValue) {
-			selectedAttribute = selectedAttribute || "data-selected";
-			selectedValue = selectedValue || "true";
-			var fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]");
-			for(var i = 0; i < fakeRadios.length; i++)
-				fakeRadios[i].removeAttribute(selectedAttribute);
-			selected.setAttribute(selectedAttribute, selectedValue);
-		},
-		CreateUnsubmittableButton : function(text) {
-			var button = document.createElement('button');
-			button.setAttribute("type", "button");
-			if(text) button.innerHTML = text;
-			return button;
-		},
-		CreateContainer : function(className, id) {
-			var container = document.createElement("div");
-			container.className = className;
-			if(id) container.id = id;
-			container.dataset.createdon = new Date().getTime();
-			return container;
-		},
-		CreateSelect : function(options, name) {
-			var select = document.createElement("select");
-			if(name) select.setAttribute("name", name);
-			for(var i = 0; i < options.length; i++) {
-				var option = document.createElement("option");
-				if(options[i].value && options[i].text) {
-					option.innerHTML = options[i].text;
-					option.setAttribute("value", options[i].value);
-				}
-				else
-				{
-					option.innerHTML = options[i];
-				}
-				select.appendChild(option);
-			}
-			return select;
-		},
-		SwapElements : function (obj1, obj2) {
-			// save the location of obj2
-			var parent2 = obj2.parentNode;
-			var next2 = obj2.nextSibling;
-			// special case for obj1 is the next sibling of obj2
-			if (next2 === obj1) {
-				// just put obj1 before obj2
-				parent2.insertBefore(obj1, obj2);
+			nextElement = nextElement.parentNode;
+		}
+		
+		return nextElement;
+	},
+	FindParentWithClass : function(element, className) {
+		var regex = new RegExp("\\b" + className + "\\b");
+		
+		return HTMLUtilities.FindParentFromAction(element, function(nextElement) {
+			return regex.test(nextElement.className);
+		}); 
+	},
+	FindParentWithTag : function(element, tagName) {
+		return HTMLUtilities.FindParentFromAction(element, function(nextElement) {
+			return nextElement.tagName.toLowerCase() === tagName.toLowerCase();
+		});
+	},
+	SimulateRadioSelect : function(selected, parent, selectedAttribute, selectedValue) {
+		selectedAttribute = selectedAttribute || "data-selected";
+		selectedValue = selectedValue || "true";
+		var fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]");
+		for(var i = 0; i < fakeRadios.length; i++)
+			fakeRadios[i].removeAttribute(selectedAttribute);
+		selected.setAttribute(selectedAttribute, selectedValue);
+	},
+	CreateUnsubmittableButton : function(text) {
+		var button = document.createElement('button');
+		button.setAttribute("type", "button");
+		if (text) button.innerHTML = text;
+		return button;
+	},
+	CreateContainer : function(className, id) {
+		var container = document.createElement("div");
+		container.className = className;
+		if (id) container.id = id;
+		container.dataset.createdon = new Date().getTime();
+		return container;
+	},
+	CreateSelect : function(options, name) {
+		var select = document.createElement("select");
+		if (name) select.setAttribute("name", name);
+		for(var i = 0; i < options.length; i++) {
+			var option = document.createElement("option");
+			if (options[i].value && options[i].text) {
+				option.innerHTML = options[i].text;
+				option.setAttribute("value", options[i].value);
 			} else {
-				// insert obj2 right before obj1
-				obj1.parentNode.insertBefore(obj2, obj1);
-				// now insert obj1 where obj2 was
-				if (next2) {
-					// if there was an element after obj2, then insert obj1 right before that
-					parent2.insertBefore(obj1, next2);
-				} else {
-					// otherwise, just append as last child
-					parent2.appendChild(obj1);
-				}
+				option.innerHTML = options[i];
+			}
+			select.appendChild(option);
+		}
+		return select;
+	},
+	SwapElements : function (obj1, obj2) {
+		// save the location of obj2
+		var parent2 = obj2.parentNode;
+		var next2 = obj2.nextSibling;
+		// special case for obj1 is the next sibling of obj2
+		if (next2 === obj1) {
+			// just put obj1 before obj2
+			parent2.insertBefore(obj1, obj2);
+		} else {
+			// insert obj2 right before obj1
+			obj1.parentNode.insertBefore(obj2, obj1);
+			// now insert obj1 where obj2 was
+			if (next2) {
+				// if there was an element after obj2, then insert obj1 right before that
+				parent2.insertBefore(obj1, next2);
+			} else {
+				// otherwise, just append as last child
+				parent2.appendChild(obj1);
 			}
 		}
-	};
+	}
+};
 
 //Allows the generation of a simulated radio using any type of element. More
 //robust than the HTMLUtilities function; allows selection of radios based on
@@ -287,13 +279,12 @@ RadioSimulator.prototype.SelectRadio = function(button) {
 	console.debug("Selecting radio: ");
 	console.debug(button);
 	
-	if(TypeUtilities.IsString(button)) {
+	if (TypeUtilities.IsString(button)) {
 		button = this.container.querySelector('[' + this.attribute + '="' + button + '"]');
-	}
-	else if(this.clickCycle && button.hasAttribute(this.selectedAttribute)) {
+	} else if (this.clickCycle && button.hasAttribute(this.selectedAttribute)) {
 		var radios = this.container.querySelectorAll("[" + this.attribute + "]");
 		for(var i = 0; i < radios.length; i++) {
-			if(radios[i] === button) {
+			if (radios[i] === button) {
 				button = radios[(i + 1) % radios.length];
 				break;
 			}
@@ -302,15 +293,15 @@ RadioSimulator.prototype.SelectRadio = function(button) {
 	
 	var value = button.getAttribute(this.attribute);
 	
-	if(!value) {
+	if (!value) {
 		console.log("Could not select radio using this button! There is no " + this.attribute + " attribute!");
 		return;
 	}
 	
-	if(this.callback)
+	if (this.callback)
 		this.callback(value, button);
 	
-	if(!this.container) {
+	if (!this.container) {
 		console.log("There is no container for this RadioSimulator!");
 		return;
 	}
@@ -347,34 +338,30 @@ Toaster.StyleID = HTMLUtilities.GetUniqueID("toastStyle");
 Toaster.TrySetDefaultStyles = function() {
 	var style = StyleUtilities.TrySingleStyle(Toaster.StyleID);
 	
-	if(style) {
+	if (style) {
 		console.log("Setting up Toast default styles for the first time");
-		style.AppendClasses(Toaster.ContainerClass, 
-		                    ["position:absolute","bottom:1em","left:50%","transform:translate(-50%,0)",
-		                     "z-index:2000000000","pointer-events: none"]);
-		style.Append("." + Toaster.ContainerClass + "[data-fullscreen]",
-		             ["position:fixed"]);
-		style.AppendClasses(Toaster.ToastClass,
-		                    ["max-width: 70vw","font-family:monospace","font-size:0.8rem",
-		                     "padding:0.5em 0.7em","background-color:#EEE","border-radius:0.5em",
-		                     "color:#333","opacity:1.0","transition: opacity 1s", "display: block",
-		                     "margin-bottom:0.1em","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)",
-		                     "overflow: hidden","text-overflow: ellipsis","text-align: center"]);
-		style.Append("." + Toaster.ToastClass + "[data-fadingout]",
-		             ["opacity:0"]);
-		style.Append("." + Toaster.ToastClass + "[data-initialize]",
-		             ["opacity:0"]);
-		style.Append("." + Toaster.ToastClass + "[data-fadingin]",
-		             ["transition:opacity 0.2s"]);
+		style.AppendClasses(Toaster.ContainerClass, [
+			"position:absolute","bottom:1em","left:50%","transform:translate(-50%,0)",
+			"z-index:2000000000","pointer-events: none"]);
+		style.Append("." + Toaster.ContainerClass + "[data-fullscreen]", ["position:fixed"]);
+		style.AppendClasses(Toaster.ToastClass, [
+			"max-width: 70vw","font-family:monospace","font-size:0.8rem",
+			"padding:0.5em 0.7em","background-color:#EEE","border-radius:0.5em",
+			"color:#333","opacity:1.0","transition: opacity 1s", "display: block",
+			"margin-bottom:0.1em","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)",
+			"overflow: hidden","text-overflow: ellipsis","text-align: center"]);
+		style.Append("." + Toaster.ToastClass + "[data-fadingout]", ["opacity:0"]);
+		style.Append("." + Toaster.ToastClass + "[data-initialize]", ["opacity:0"]);
+		style.Append("." + Toaster.ToastClass + "[data-fadingin]", ["transition:opacity 0.2s"]);
 	}
 };
 
 Toaster.prototype.Attach = function(toasterParent) {
 	Toaster.TrySetDefaultStyles();
-	if(this.container) throw "Toaster already attached: " + this.container.id;
+	if (this.container)
+		throw "Toaster already attached: " + this.container.id;
 	
-	this.container = HTMLUtilities.CreateContainer(Toaster.ContainerClass,
-	                                               HTMLUtilities.GetUniqueID("toastContainer"));
+	this.container = HTMLUtilities.CreateContainer(Toaster.ContainerClass, HTMLUtilities.GetUniqueID("toastContainer"));
 	
 	toasterParent.appendChild(this.container);
 };
@@ -385,14 +372,14 @@ Toaster.prototype.AttachFullscreen = function(toasterParent) {
 };
 
 Toaster.prototype.Detach = function() {
-	if(!this.container) throw "Toaster not attached yet!";
+	if (!this.container) throw "Toaster not attached yet!";
 	
 	HTMLUtilities.RemoveSelf(this.container);
 	this.container = false;
 };
 
 Toaster.prototype.Toast = function(text, duration) {
-	if(!this.container) throw "Toaster not attached yet!";
+	if (!this.container) throw "Toaster not attached yet!";
 	
 	duration = duration || MathUtilities.MinMax(text.length * 50, this.minDuration, this.maxDuration); 
 	
@@ -424,7 +411,7 @@ Fader.StyleID = HTMLUtilities.GetUniqueID("faderStyle");
 Fader.TrySetDefaultStyles = function() {
 	var style = StyleUtilities.TrySingleStyle(Fader.StyleID);
 	
-	if(style) {
+	if (style) {
 		console.log("Setting up Fader default styles for the first time");
 		style.AppendClasses(Fader.FaderClass, 
 		                    ["position:absolute","top:0","left:0","width:100%","height:100%",
@@ -444,7 +431,7 @@ Fader.CreateFadeElement = function() {
 
 Fader.prototype.Attach = function(faderParent) {
 	Fader.TrySetDefaultStyles();
-	if(this.element) throw "Tried to attach fader but already attached: " + this.element.id;
+	if (this.element) throw "Tried to attach fader but already attached: " + this.element.id;
 	this.element = Fader.CreateFadeElement(); 
 	faderParent.appendChild(this.element);
 };
@@ -455,13 +442,13 @@ Fader.prototype.AttachFullscreen = function(faderParent) {
 };
 
 Fader.prototype.Detach = function() {
-	if(!this.element) throw "Not attached yet";
+	if (!this.element) throw "Not attached yet";
 	HTMLUtilities.RemoveSelf(this.element);
 	this.element = false;
 };
 
 Fader.prototype.Fade = function(fadeDuration, color, cover) {
-	if(cover)
+	if (cover)
 		this.element.style.pointerEvents = "auto";
 	else
 		this.element.style.pointerEvents = "none";
@@ -492,7 +479,7 @@ DialogBox.StyleID = HTMLUtilities.GetUniqueID("dialogStyle");
 DialogBox.TrySetDefaultStyles = function() {
 	var style = StyleUtilities.TrySingleStyle(DialogBox.StyleID);
 	
-	if(style) {
+	if (style) {
 		console.log("Setting up DialogBox default styles for the first time");
 		style.AppendClasses(DialogBox.ContainerClass, 
 		                    ["position:absolute","top:50%","left:50%","transform:translate(-50%,-50%)",
@@ -521,7 +508,7 @@ DialogBox.TrySetDefaultStyles = function() {
 
 DialogBox.prototype.Attach = function(dialogParent) {
 	DialogBox.TrySetDefaultStyles();
-	if(this.container) throw "DialogBox already attached: " + this.container.id;
+	if (this.container) throw "DialogBox already attached: " + this.container.id;
 	
 	this.container = HTMLUtilities.CreateContainer(DialogBox.ContainerClass,
 	                                               HTMLUtilities.GetUniqueID("dialogContainer"));
@@ -538,7 +525,7 @@ DialogBox.prototype.AttachFullscreen = function(dialogParent) {
 };
 
 DialogBox.prototype.Detach = function() {
-	if(!this.container) throw "DialogBox not attached yet!";
+	if (!this.container) throw "DialogBox not attached yet!";
 	
 	this.fader.Detach();
 	HTMLUtilities.RemoveSelf(this.container);
@@ -559,7 +546,7 @@ DialogBox.prototype.Show = function(text, buttons) {
 	
 	for(i = 0; i < buttons.length; i++) {
 		var btext = buttons[i];
-		if(buttons[i].text) btext = buttons[i].text;
+		if (buttons[i].text) btext = buttons[i].text;
 		var callback = buttons[i].callback;
 		var newButton = HTMLUtilities.CreateUnsubmittableButton(btext);
 		
@@ -567,10 +554,10 @@ DialogBox.prototype.Show = function(text, buttons) {
 		newButton.addEventListener("click", function(callback) {
 			HTMLUtilities.RemoveSelf(dialog);
 			
-			if(me.container.childNodes.length === 0)
+			if (me.container.childNodes.length === 0)
 				me.fader.Fade(me.fadeOutTime, "rgba(0,0,0,0)", false);
 			
-			if(callback)
+			if (callback)
 				callback();
 		}.callBind(callback));
 		/* jshint ignore: end */
@@ -613,7 +600,7 @@ var UXUtilities =
 		},
 		Alert : function(message, callback, okMessage) {
 			UXUtilities._DefaultDialog.Show(message, [
-				{ text: okMessage || "OK", callback: function() { if(callback) callback(); }}
+				{ text: okMessage || "OK", callback: function() { if (callback) callback(); }}
 			]);
 		}
 	};
@@ -631,7 +618,7 @@ var StorageUtilities =
 			for(var i = 0; i < cookieStrings.length; i++) {
 				var matches = /([^=]+)=(.*)/.exec(cookieStrings[i]);
 				
-				if(matches && matches.length >= 3)
+				if (matches && matches.length >= 3)
 					cookies[matches[1].trim()] = matches[2].trim();
 			}
 			
@@ -653,7 +640,7 @@ var StorageUtilities =
 		ReadSafeCookie : function(name) {
 			var raw = StorageUtilities.ReadRawCookie(name);
 			
-			if(raw)
+			if (raw)
 				return JSON.parse(Base64.decode(raw));
 			
 			return null;
@@ -668,8 +655,7 @@ var StorageUtilities =
 			try
 			{
 				return JSON.parse(localStorage.getItem(name));
-			}
-			catch(error) {
+			} catch(error) {
 				//console.log("Failed to retrieve " + name + " from local storage");
 				return undefined;
 			}
@@ -683,7 +669,7 @@ var URLUtilities =
 	{
 		GetQueryString : function(url) {
 			var queryPart = url.match(/(\?[^#]*)/);
-			if(!queryPart) return "";
+			if (!queryPart) return "";
 			return queryPart[1];
 		},
 		//Taken from Tarik on StackOverflow:
@@ -702,7 +688,7 @@ var URLUtilities =
 			return null;
 		},
 		AddQueryVariable : function(variable, value, url) {
-			if(URLUtilities.GetQueryString(url)) 
+			if (URLUtilities.GetQueryString(url)) 
 				url += "&"; 
 			else
 				url += "?";
@@ -716,16 +702,16 @@ var _loglevel = 0;
 console.debug = function() {};
 console.trace = function() {};
 
-if(URLUtilities.GetQueryVariable("trace"))
+if (URLUtilities.GetQueryVariable("trace"))
 	_loglevel = 100;
-else if(URLUtilities.GetQueryVariable("debug"))
+else if (URLUtilities.GetQueryVariable("debug"))
 	_loglevel = 50;
 
-if(_loglevel >= 50) {
+if (_loglevel >= 50) {
 	console.log("Debug mode is activated.");
 	console.debug = console.log;
 }
-if(_loglevel >= 100) {
+if (_loglevel >= 100) {
 	console.log("Trace mode is activated.");
 	console.trace = console.log;
 }
@@ -738,14 +724,14 @@ var RequestUtilities =
 		XHRSimple : function(page, callback, data, extraHeaders) {
 			var xhr = new XMLHttpRequest();
 			
-			if(data)
+			if (data)
 				xhr.open("POST", page);
 			else
 				xhr.open("GET", page);
 			
-			if(extraHeaders) {
+			if (extraHeaders) {
 				for(var key in extraHeaders) {
-					if(extraHeaders.hasOwnProperty(key))
+					if (extraHeaders.hasOwnProperty(key))
 						xhr.setRequestHeader(key, extraHeaders[key]);
 				}
 			}
@@ -755,14 +741,13 @@ var RequestUtilities =
 				try
 				{
 					callback(event.target.response);
-				}
-				catch(e) {
+				} catch(e) {
 					console.log("Oops, XHR callback didn't work. Dumping exception");
 					console.log(e);
 				}
 			});
 			
-			if(data)
+			if (data)
 				xhr.send(data);
 			else
 				xhr.send();
@@ -782,7 +767,7 @@ function Color(r,g,b,a) {
 	this.g = g;
 	this.b = b;
 	this.a = a; //This should be a decimal a ranging from 0 to 1
-	if(this.a === undefined) this.a = 1;
+	if (this.a === undefined) this.a = 1;
 }
 
 Color.prototype.ToArray = function(expandedAlpha) {
@@ -792,7 +777,7 @@ Color.prototype.ToArray = function(expandedAlpha) {
 Color.prototype.ToRGBString = function() {
 	var pre = "rgb";
 	var vars = this.r + "," + this.g + "," + this.b;
-	if(this.a !== 1) {
+	if (this.a !== 1) {
 		pre += "a";
 		vars += "," + this.a;
 	}
@@ -804,7 +789,7 @@ Color.prototype.ToHexString = function(includeAlpha) {
 		this.g.toString(16).padStart(2, "0") + 
 		this.b.toString(16).padStart(2, "0");
 	
-	if(includeAlpha)
+	if (includeAlpha)
 		string += (255 * this.a).toString(16).padStart(2, "0");
 	
 	return string;
@@ -856,10 +841,10 @@ var StyleUtilities =
 			mStyle.nextInsert = 0;
 			mStyle.Append = function(selectors, rules) {
 				var i, finalSelectors = [];
-				if(!TypeUtilities.IsArray(selectors)) selectors = [ selectors ];
-				if(!TypeUtilities.IsArray(rules)) rules = [ rules ];
+				if (!TypeUtilities.IsArray(selectors)) selectors = [ selectors ];
+				if (!TypeUtilities.IsArray(rules)) rules = [ rules ];
 				for(i = 0; i < selectors.length; i++) {
-					if(!TypeUtilities.IsArray(selectors[i])) selectors[i] = [ selectors[i] ];
+					if (!TypeUtilities.IsArray(selectors[i])) selectors[i] = [ selectors[i] ];
 					finalSelectors.push(selectors[i].join(" "));
 				}
 				mStyle.sheet.insertRule(
@@ -867,24 +852,24 @@ var StyleUtilities =
 			};
 			mStyle.AppendClasses = function(classnames, rules) {
 				var i, j;
-				if(!TypeUtilities.IsArray(classnames)) classnames = [ classnames ];
+				if (!TypeUtilities.IsArray(classnames)) classnames = [ classnames ];
 				for(i = 0; i < classnames.length; i++) {
-					if(!TypeUtilities.IsArray(classnames[i])) classnames[i] = [ classnames[i] ];
+					if (!TypeUtilities.IsArray(classnames[i])) classnames[i] = [ classnames[i] ];
 					for(j = 0; j < classnames[i].length; j++)
 						classnames[i][j] = "." + classnames[i][j];
 				}
 				mStyle.Append(classnames, rules);
 			};
-			if(id) mStyle.id = id;
+			if (id) mStyle.id = id;
 			return mStyle;
 		},
 		InsertStylesAtTop : function(styles) {
-			if(!TypeUtilities.IsArray(styles)) styles = [ styles ];
+			if (!TypeUtilities.IsArray(styles)) styles = [ styles ];
 			for(var i = styles.length - 1; i >= 0; i--)
 				document.head.insertBefore(styles[i], document.head.firstChild);
 		},
 		TrySingleStyle : function(id) {
-			if(document.getElementById(id))
+			if (document.getElementById(id))
 				return false;
 			
 			var s = StyleUtilities.CreateStyleElement(id);
@@ -936,18 +921,16 @@ var CanvasUtilities =
 		//Set scaling of canvas. Alternatively, set the scaling of the given element
 		//(canvas will remain unaffected)
 		SetScaling : function(canvas, scale, element) {
-			if(!TypeUtilities.IsArray(scale)) scale = [scale, scale];
+			if (!TypeUtilities.IsArray(scale)) scale = [scale, scale];
 			var oldWidth = canvas.style.width;
 			var oldHeight = canvas.style.height;
 			canvas.style.width = canvas.width + "px";
 			canvas.style.height = canvas.height + "px";
 			var rect = StyleUtilities.GetTrueRect(canvas);
-			if(element) {
+			if (element) {
 				canvas.style.width = oldWidth || "";
 				canvas.style.height = oldHeight || "";
-			}
-			else
-			{
+			} else {
 				element = canvas;
 			}
 			element.style.width = (rect.width * scale[0]) + "px";
@@ -957,12 +940,12 @@ var CanvasUtilities =
 			//Width and height are cropping, not scaling. X and Y are the place to
 			//start the copy within the original canvas 
 			x = x || 0; y = y || 0;
-			if(width === undefined) width = canvas.width;
-			if(height === undefined) height = canvas.height;
+			if (width === undefined) width = canvas.width;
+			if (height === undefined) height = canvas.height;
 			var newCanvas = document.createElement("canvas");
 			newCanvas.width = width;
 			newCanvas.height = height;
-			if(copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y);
+			if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y);
 			return newCanvas;
 		},
 		CopyInto : function(context, canvas, x, y) {
@@ -986,13 +969,11 @@ var CanvasUtilities =
 			var context = canvas.getContext("2d");
 			var oldStyle = context.fillStyle;
 			var oldAlpha = context.globalAlpha;
-			if(color) {
+			if (color) {
 				context.globalAlpha = 1;
 				context.fillStyle = color; 
 				context.fillRect(0, 0, canvas.width, canvas.height);
-			}
-			else
-			{
+			} else {
 				context.clearRect(0, 0, canvas.width, canvas.height);
 			}
 			context.fillStyle = oldStyle;
@@ -1001,7 +982,7 @@ var CanvasUtilities =
 		DrawSolidCenteredRectangle : function(ctx, cx, cy, width, height, clear) {
 			cx = Math.round(cx - width / 2);
 			cy = Math.round(cy - height / 2);
-			if(clear)
+			if (clear)
 				ctx.clearRect(cx, cy, Math.round(width), Math.round(height));
 			else
 				ctx.fillRect(cx, cy, Math.round(width), Math.round(height));
@@ -1020,7 +1001,7 @@ var CanvasUtilities =
 			
 			for(y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
 				for(x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
-					if(x*x*rs2+y*y*rs1 <= rss) {
+					if (x*x*rs2+y*y*rs1 <= rss) {
 						ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1); 
 						break;
 					}
@@ -1063,7 +1044,7 @@ var CanvasUtilities =
 		DrawLineRaw : function(ctx, sx, sy, tx, ty, width, clear, func) {
 			var dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
 			var ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
-			if(dist === 0) dist=0.001;
+			if (dist === 0) dist=0.001;
 			for(var i=0;i<dist;i+=0.5) {
 				func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear);
 			}
@@ -1092,14 +1073,12 @@ var CanvasUtilities =
 			CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear); 
 		},
 		DrawNormalSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			if(clear) {
+			if (clear) {
 				return CanvasUtilities.PerformNormalEraser(ctx, function() {
 					return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 					                                   CanvasUtilities._DrawNormalSquareLineFunc);
 				});
-			}
-			else
-			{
+			} else {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 				                                   CanvasUtilities._DrawNormalSquareLineFunc);
 			}
@@ -1109,14 +1088,12 @@ var CanvasUtilities =
 			CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear); 
 		},
 		DrawNormalRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			if(clear) {
+			if (clear) {
 				return CanvasUtilities.PerformNormalEraser(ctx, function() {
 					return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 					                                   CanvasUtilities._DrawNormalRoundLineFunc);
 				});
-			}
-			else
-			{
+			} else {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 				                                   CanvasUtilities._DrawNormalRoundLineFunc);
 			}
@@ -1136,7 +1113,7 @@ var CanvasUtilities =
 			var finalBox = [ Infinity, Infinity, -Infinity, -Infinity];
 			
 			for(var i = 0; i < boxes.length; i++) {
-				if(!boxes[i] || boxes[i].length < 4) return false;
+				if (!boxes[i] || boxes[i].length < 4) return false;
 				finalBox[0] = Math.min(boxes[0], finalBox[0]);
 				finalBox[1] = Math.min(boxes[1], finalBox[1]);
 				finalBox[2] = Math.max(boxes[0] + boxes[2], finalBox[2]);
@@ -1160,7 +1137,7 @@ var CanvasUtilities =
 		//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
 		//falls outside the canvas.
 		ImageDataCoordinate : function(context, x, y) {
-			if(x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height) return -1;
+			if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height) return -1;
 			return 4 * (x + y * context.canvas.width);
 		},
 		GenericFlood : function(context, x, y, floodFunction) {
@@ -1171,7 +1148,7 @@ var CanvasUtilities =
 			var queueX = [], queueY = []; 
 			var west, east, row, column;
 			var enqueue = function(qx, qy) { queueX.push(qx); queueY.push(qy); };
-			if(floodFunction(context, x, y, data)) enqueue(x, y);
+			if (floodFunction(context, x, y, data)) enqueue(x, y);
 			while(queueX.length) {
 				column = queueX.shift();
 				row = queueY.shift();
@@ -1182,9 +1159,9 @@ var CanvasUtilities =
 				//Move from west to east EXCLUSIVE and fill the queue with matching
 				//north and south nodes.
 				for(column = west + 1; column < east; column++) {
-					if(row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
+					if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
 						enqueue(column, row + 1);
-					if(row - 1 >= 0 && floodFunction(context, column, row - 1, data))
+					if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
 						enqueue(column, row - 1);
 				}
 			}
@@ -1197,17 +1174,15 @@ var CanvasUtilities =
 			var originalColor = CanvasUtilities.GetColor(context, sx, sy);
 			var ocolorArray = originalColor.ToArray(true);
 			var colorArray = color.ToArray(true);
-			if(color.MaxDifference(originalColor) <= threshold) return; 
+			if (color.MaxDifference(originalColor) <= threshold) return; 
 			var floodFunction = function(c, x, y, d) {
 				var i = CanvasUtilities.ImageDataCoordinate(c, x, y);
 				var currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255);
-				if(originalColor.MaxDifference(currentColor) <= threshold) {
+				if (originalColor.MaxDifference(currentColor) <= threshold) {
 					for(var j = 0; j < 4; j++)
 						d[i + j] = colorArray[j];
 					return true;
-				}
-				else
-				{
+				} else {
 					return false;
 				}
 			};
@@ -1223,7 +1198,7 @@ var CanvasUtilities =
 			for(i = 0; i < data.length; i+=4) {
 				var cCol = CanvasUtilities.GetColorFromData(data, i);
 				
-				if(cCol.MaxDifference(original) <= threshold) {
+				if (cCol.MaxDifference(original) <= threshold) {
 					for(j = 0; j < 4; j++)
 						data[i+j] = newArray[j];
 				}
@@ -1252,7 +1227,7 @@ var CanvasUtilities =
 			var image = new Image();
 			image.addEventListener("load", function(e) {
 				canvas.getContext("2d").drawImage(image, x, y);
-				if(callback) callback(canvas, image);
+				if (callback) callback(canvas, image);
 			});
 			image.src = string;
 		}
@@ -1273,9 +1248,9 @@ var EventUtilities =
 		ScheduleWaitingTask: function(signal, perform, interval) {
 			interval = interval || 100;
 			var s = signal();
-			if(s === EventUtilities.SignalCodes.Cancel)
+			if (s === EventUtilities.SignalCodes.Cancel)
 				return;
-			else if(s === EventUtilities.SignalCodes.Run)
+			else if (s === EventUtilities.SignalCodes.Run)
 				perform();
 			else
 				window.setTimeout(function() { EventUtilities.ScheduleWaitingTask(signal, perform, interval);}, interval);
@@ -1289,31 +1264,31 @@ var EventUtilities =
 var ScreenUtilities = 
 	{
 		LaunchIntoFullscreen : function(element) {
-			if(element.requestFullscreen)
+			if (element.requestFullscreen)
 				element.requestFullscreen();
-			else if(element.mozRequestFullScreen)
+			else if (element.mozRequestFullScreen)
 				element.mozRequestFullScreen();
-			else if(element.webkitRequestFullscreen)
+			else if (element.webkitRequestFullscreen)
 				element.webkitRequestFullscreen();
-			else if(element.msRequestFullscreen)
+			else if (element.msRequestFullscreen)
 				element.msRequestFullscreen();
 			
 			//Keep the UXUtilities INSIDE the fullscreen thingy.
 			element.appendChild(UXUtilities.UtilitiesContainer);
 		},
 		ExitFullscreen : function() {
-			if(document.exitFullscreen)
+			if (document.exitFullscreen)
 				document.exitFullscreen();
-			else if(document.mozCancelFullScreen)
+			else if (document.mozCancelFullScreen)
 				document.mozCancelFullScreen();
-			else if(document.webkitExitFullscreen)
+			else if (document.webkitExitFullscreen)
 				document.webkitExitFullscreen();
 			
 			//Replace the utilities back into the body.
 			document.body.appendChild(UXUtilities.UtilitiesContainer);
 		},
 		IsFullscreen : function() {
-			if(document.fullscreenElement || document.mozFullScreenElement ||
+			if (document.fullscreenElement || document.mozFullScreenElement ||
 			   document.webkitFullscreenElement)
 				return true;
 			
@@ -1333,7 +1308,7 @@ var MathUtilities =
 			return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2];
 		},
 		MinMax : function(value, min, max) {
-			if(min > max) {
+			if (min > max) {
 				var temp = min;
 				min = max;
 				max = temp;
@@ -1346,7 +1321,7 @@ var MathUtilities =
 		IntRandom : function(max, min) {
 			min = min || 0; //getOrDefault(min, 0);
 			
-			if(min > max) {
+			if (min > max) {
 				var temp = min;
 				min = max;
 				max = temp;
@@ -1382,45 +1357,37 @@ var MathUtilities =
 			},
 			SetRGB : function(f, arr) {
 				//Duplicate code but fewer branches
-				if(f < 0.5) {
+				if (f < 0.5) {
 					arr[0] = 1 - 2 * f;
 					arr[2] = 0;
-				}
-				else
-				{
+				} else {
 					arr[0] = 0;
 					arr[2] = 2 * f - 1;
 				}
 				arr[1] = 1 - Math.abs(f * 2 - 1);
 			},
 			SetHue : function(f, arr) {
-				if(f < 1 / 6) {
+				if (f < 1 / 6) {
 					arr[0] = 1;
 					arr[1] = f * 6;
 					arr[2] = 0;
-				}
-				else if(f < 2 / 6) {
+				} else if (f < 2 / 6) {
 					arr[0] = 1 - (f - 1 / 6) * 6;
 					arr[1] = 1;
 					arr[2] = 0;
-				}
-				else if(f < 0.5) {
+				} else if (f < 0.5) {
 					arr[0] = 0;
 					arr[1] = 1;
 					arr[2] = (f - 2 / 6) * 6;
-				}
-				else if(f < 4 / 6) {
+				} else if (f < 4 / 6) {
 					arr[0] = 0;
 					arr[1] = 1 - (f - 0.5) * 6;
 					arr[2] = 1;
-				}
-				else if(f < 5 / 6) {
+				} else if (f < 5 / 6) {
 					arr[0] = (f - 4 / 6) * 6;
 					arr[1] = 0;
 					arr[2] = 1;
-				}
-				else
-				{
+				} else {
 					arr[0] = 1;
 					arr[1] = 0;
 					arr[2] = 1 - (f - 5 / 6) * 6;
@@ -1437,7 +1404,7 @@ var DateUtilities =
 		LocaleDateString : function(separator, date) {
 			date = date || new Date();
 			
-			if(separator) 
+			if (separator) 
 				return date.toLocaleDateString().replace(/\//g, separator);
 			else
 				return date.toLocaleDateString();
@@ -1454,13 +1421,13 @@ var ArrayUtilities =
 		Where : function(array, check) {
 			var result = [];
 			for(var i = 0; i < array.length; i++)
-				if(check(array[i], i))
+				if (check(array[i], i))
 					result.push(array[i]);
 			return result;
 		},
 		Any : function(array, check) {
 			for(var i = 0; i < array.length; i++)
-				if(check(array[i], i))
+				if (check(array[i], i))
 					return true;
 			
 			return false;
@@ -1502,14 +1469,14 @@ UndoBuffer.prototype.Add = function(currentState) {
 };
 
 UndoBuffer.prototype.Undo = function(currentState) {
-	if(this.UndoCount() <= 0) return;
+	if (this.UndoCount() <= 0) return;
 	this.redoBuffer.push(currentState);
 	this._ShiftVirtualIndex(-1);
 	return this.undoBuffer.pop();
 };
 
 UndoBuffer.prototype.Redo = function(currentState) {
-	if(this.RedoCount() <= 0) return;
+	if (this.RedoCount() <= 0) return;
 	this.undoBuffer.push(currentState);
 	this._ShiftVirtualIndex(1);
 	return this.redoBuffer.pop();
@@ -1545,26 +1512,21 @@ CodeTester.prototype.Test = function(test, expectedValue) {
 		var testResult = eval(test);
 		var success = false;
 		
-		if(expectedValue !== undefined) {
+		if (expectedValue !== undefined) {
 			testCode.innerHTML += " === " + expectedValue;   
 			success = testResult === eval(expectedValue);
-		}
-		else
-		{
+		} else {
 			success = testResult;
 		}
 		/* jshint ignore : end */
 		
-		if(success) {
+		if (success) {
 			result.innerHTML = "[OK]";
 			result.className += " success";
-		}
-		else
-		{
+		} else {
 			throw "returned " + testResult;
 		}
-	}
-	catch(ex) {
+	} catch(ex) {
 		result.innerHTML = "[FAIL]";
 		result.className += " failure";
 		extra.innerHTML = "(" + ex + ")";
@@ -1586,19 +1548,17 @@ CodeTester.prototype.RunAll = function(fillElement, tests, stopOnFailure) {
 	for(var i = 0; i < tests.length; i++) {
 		var resultElement;
 		
-		if(tests[i].indexOf("/") === 0) {
+		if (tests[i].indexOf("/") === 0) {
 			resultElement = this.Test(tests[i].slice(1), tests[i + 1]);
 			i++;
-		}
-		else
-		{
+		} else {
 			resultElement = this.Test(tests[i]);
 		}
 		
 		fillElement.appendChild(resultElement);
-		if(resultElement.querySelector(".failure")) {
+		if (resultElement.querySelector(".failure")) {
 			failures++;
-			if(stopOnFailure) return;
+			if (stopOnFailure) return;
 		}
 	}
 	
@@ -1619,19 +1579,18 @@ function ConsoleEmulator() {
 	var me = this;
 	
 	this.keyPress = function(e) {
-		if(!e.key || e.key.length > 1) return;
+		if (!e.key || e.key.length > 1) return;
 		
 		me.inputBuffer.textContent += e.key;
-		if(me.OnReadChar) me.OnReadChar(e.key);
+		if (me.OnReadChar) me.OnReadChar(e.key);
 		me.FixFloatingObjects();
 	};
 	this.keyDown = function(e) {
-		if(e.keyCode === 8 && me.inputBuffer.textContent.length > 0) {
+		if (e.keyCode === 8 && me.inputBuffer.textContent.length > 0) {
 			me.inputBuffer.textContent = me.inputBuffer.textContent.substring(0, 
 			                                                                  me.inputBuffer.textContent.length - 1);
-		}
-		else if(e.keyCode === 13 && me.inputBuffer.textContent.length > 0) {
-			if(me.OnRead) me.OnRead(me.inputBuffer.textContent);
+		} else if (e.keyCode === 13 && me.inputBuffer.textContent.length > 0) {
+			if (me.OnRead) me.OnRead(me.inputBuffer.textContent);
 			me.WriteLine(me.inputBuffer.textContent);
 			me.inputBuffer.textContent = "";
 		}
@@ -1643,7 +1602,7 @@ ConsoleEmulator.CursorClassName = "cursor";
 ConsoleEmulator.StyleID = HTMLUtilities.GetUniqueID("consoleEmulatorStyle");
 
 ConsoleEmulator.prototype.TrySetDefaultStyles = function() {
-	if(document.getElementById(ConsoleEmulator.StyleID))
+	if (document.getElementById(ConsoleEmulator.StyleID))
 		return;
 	
 	console.log("Setting up ConsoleEmulator default styles for the first time");
@@ -1674,7 +1633,7 @@ ConsoleEmulator.prototype.FixFloatingObjects = function() {
 ConsoleEmulator.prototype.Write = function(output, color) {
 	var outputWrapper = document.createElement("span");
 	outputWrapper.innerHTML = output;
-	if(color) outputWrapper.className = color;
+	if (color) outputWrapper.className = color;
 	this.rawConsole.appendChild(outputWrapper);
 	this.FixFloatingObjects();
 };
