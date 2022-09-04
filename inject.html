@@ -1,0 +1,37 @@
+<script>
+	var LogSystem = {RootLogger: console}
+	Node.prototype.hasOwnProperty = x=>true
+	function addMessageEvent(callback) {}
+	
+	var advancedChatDraw = false	
+	function addBindEvent(callback) {
+		delete RequestUtilities.XHRSimple
+		let sendpane = document.createElement('div')
+		sendpane.id = 'sendpane'
+		sendpane.append(document.createElement('textarea'))
+		document.body.append(sendpane)
+		callback(true, ['draw'])
+		ChatDrawUtilities.FrameToChatDraw = ({canvas, palette})=>{
+			return canvas.toDataURL('image/png', "-moz-parse-options:transparency:no")
+		}
+	}
+	async function sendMessage(text) {
+		let url = text.replace("/drawsubmit ", "")
+		let blob = await (await fetch(url)).blob()
+		blob.name = 'chatdraw'
+		FileUploader.got_file(blob)
+	}
+</script>
+<style>
+	#sendpane, #sendpane * { contain: none; }
+	#sendpane input { font-size: 1em; }
+	#sendpane canvas, #sendpane animate-area { box-sizing: content-box; }
+	#sendpane > textarea { display: none; }
+	#sendpane > #chatdraw { bottom: 0; right: 0; z-index: 1000; }
+	#sendpane > #chatdraw button-area button { padding: 0; }
+	.randomousUtilitiesContainer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; contain: none; }
+</style>
+<link rel=stylesheet href=https://old.smilebasicsource.com/styles/themeloader?file=*styles*themes*smile*chatdraw.css crossorigin>
+<script src=https://old.smilebasicsource.com/scripts/randomous.js crossorigin></script>
+<script src=https://old.smilebasicsource.com/scripts/randomousCanvas.js crossorigin></script>
+<script src=https://old.smilebasicsource.com/scripts/chatdraw.js crossorigin></script>
