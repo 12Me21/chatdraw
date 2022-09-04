@@ -251,16 +251,16 @@ CanvasPerformer.prototype.Perform = function(e, cursorData, canvas)
 {
    var context = canvas.getContext("2d");
    var clientRect = canvas.getBoundingClientRect();
-   var clientStyle = window.getComputedStyle(canvas);
+   //var clientStyle = window.getComputedStyle(canvas);
    var scalingX = canvas.clientWidth / canvas.width;
    var scalingY = canvas.clientHeight / canvas.height;
 
    //Do NOTHING if the canvas is non-existent
-   if(scalingX <= 0 || scalingY <= 0) return;
+   if (scalingX <= 0 || scalingY <= 0) return;
 
    cursorData = this.GetModifiedCursorData(cursorData, e);
-   cursorData.x = (cursorData.x - (clientRect.left + parseFloat(clientStyle.borderLeftWidth))) / scalingX;
-   cursorData.y = (cursorData.y - (clientRect.top + parseFloat(clientStyle.borderTopWidth))) / scalingY;
+   cursorData.x = (cursorData.x - (clientRect.left)) / scalingX;
+	cursorData.y = (cursorData.y - (clientRect.top)) / scalingY;
 
    //console.log(scalingX + ", " + scalingY + ", " + cursorData.x + ", " + cursorData.y);
    cursorData.targetElement = canvas;
@@ -848,7 +848,7 @@ function CanvasDrawer()
          //Replace this with some generic cursor drawing thing that takes both
          //strings AND functions to draw the cursor.
          if(!me.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
-            me._canvas.style.cursor = me.defaultCursor;
+	         ;//me._canvas.style.cursor = me.defaultCursor;
 
          if(data.action & CursorActions.Start) 
          {
@@ -1214,7 +1214,7 @@ CanvasDrawer.prototype.Attach = function(mainCanvas, layers, undoCount, useToolO
 
    //mainCanvas.setAttribute("tabindex", "-1");
    CanvasPerformer.prototype.Attach.apply(this, [mainCanvas]);
-   this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
+   //this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
    this._doFrame();
 };
 
