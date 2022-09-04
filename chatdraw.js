@@ -1,3 +1,5 @@
+'use strict'
+
 //Carlos Sanchez - 2016
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 

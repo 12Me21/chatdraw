@@ -1,3 +1,5 @@
+'use strict'
+
 // Carlos Sanchez - 2017
 // randomouscrap98@aol.com
 // An enormous library full of garbage

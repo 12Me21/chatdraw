@@ -1,3 +1,5 @@
+'use strict'
+
 // Carlos Sanchez - 2017
 // randomouscrap98@aol.com
 // An enormous library full of canvas garbage
@@ -21,12 +23,12 @@ function CursorActionData(action, x, y, zoomDelta)
    this.modifiers = 0;
 }
 
-CursorActions = 
+const CursorActions = 
 {
    Start : 1, End : 2, Drag : 4, Zoom : 8, Pan : 16, Interrupt : 32
 };
 
-CursorModifiers = 
+const CursorModifiers = 
 {
    Ctrl : 1, Alt : 2
 };
@@ -1179,7 +1181,7 @@ CanvasDrawer.prototype.ResetUndoBuffer = function(size, canvasBlueprint)
    size = size || (this.undoBuffer.staticBuffer.length - 1);
    this.undoBuffer = new UndoBuffer(size, size + 1);
    this.undoBuffer.staticBuffer = [];
-   for(i = 0; i < size + 1; i++)
+   for (let i = 0; i < size + 1; i++)
    {
       var layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint), -1);
       this.undoBuffer.staticBuffer.push(layer);
