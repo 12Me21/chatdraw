@@ -7,11 +7,11 @@
 //Make sure there's at least SOMETHING there. It won't log, but it won't throw
 //errors either (I think).
 if (!window.LogSystem)
-	window.LogSystem = {RootLogger: {log: function(message, level){
+	window.LogSystem = {RootLogger: {log: (message, level)=>{
 		console.log(message)
 	}}}
 
-let LocalChatDraw = (function() {
+let LocalChatDraw = (()=>{
 	
 	//The chatdraw canvas's expected width and height
 	let chatDrawCanvasWidth = 200
@@ -35,16 +35,16 @@ let LocalChatDraw = (function() {
 	let animationTag = "_chdran"
 	let allowAnimation = true
 	
-	let copyDrawing = function(string) {
+	let copyDrawing = (string)=>{
 		StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, string)
 		UXUtilities.Toast("Copied drawing (chatdraw only!)")
 	}
 	
-	let getClipboardDrawing = function() {
+	let getClipboardDrawing = ()=>{
 		return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
 	}
 	
-	let checkMessageForDrawing = function(messageElement) {
+	let checkMessageForDrawing = (messageElement)=>{
 		try {
 			var content = messageElement.querySelector('[data-encoding="draw"]')
 			
@@ -74,11 +74,11 @@ let LocalChatDraw = (function() {
 					playButton.textContent = "►"
 					playButton.className = "chatdrawplay"
 					var animator = new AnimationPlayer(canvas, false)
-					animator.OnPlay = function(player) {
+					animator.OnPlay = (player)=>{
 						if (player.frames === false) {
 							playButton.disabled = false
 							playButton.textContent = "⌛"
-							RequestUtilities.XHRSimple(animationLink, function(response) {
+							RequestUtilities.XHRSimple(animationLink, (response)=>{
 								animator.FromStorageObject(JSON.parse(response))
 								animator.Play()
 							})
@@ -88,10 +88,10 @@ let LocalChatDraw = (function() {
 						playButton.disabled = false
 						playButton.textContent = "◼"
 					}
-					animator.OnStop = function(player) {
+					animator.OnStop = (player)=>{
 						playButton.textContent = "►"
 					}
-					playButton.addEventListener("click", function() {
+					playButton.addEventListener("click", ()=>{
 						if (animator.IsPlaying())
 							animator.Stop()
 						else {
@@ -104,10 +104,10 @@ let LocalChatDraw = (function() {
 					var copyAnimation = document.createElement("a")
 					copyAnimation.textContent = "📋"
 					copyAnimation.title = "Copy whole animation"
-					copyAnimation.addEventListener("click", function() {
-						UXUtilities.Confirm("Copying this animation will OVERWRITE your current animation. Make sure you save your work first! Are you sure you want to copy this animation?", function(confirmed) {
+					copyAnimation.addEventListener("click", ()=>{
+						UXUtilities.Confirm("Copying this animation will OVERWRITE your current animation. Make sure you save your work first! Are you sure you want to copy this animation?", (confirmed)=>{
 							if (!confirmed) return
-							RequestUtilities.XHRSimple(animationLink, function(response) {
+							RequestUtilities.XHRSimple(animationLink, (response)=>{
 								//Since we downloaded it anyway we might as well also
 								//load up the animator.
 								var storeObject = JSON.parse(response)
@@ -128,7 +128,7 @@ let LocalChatDraw = (function() {
 					var copyLink = document.createElement("a")
 					copyLink.textContent = "📋"
 					copyLink.className = "chatdrawcopy"
-					copyLink.addEventListener("click", function(ev) {
+					copyLink.addEventListener("click", ev=>{
 						copyDrawing(originalString)
 					})
 					if (allowAnimation) controlContainer.appendChild(copyLink)
@@ -141,7 +141,7 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let createToolButton = function(displayCharacters, toolNames) {
+	let createToolButton = (displayCharacters, toolNames)=>{
 		if (!Array.isArray(displayCharacters))
 			displayCharacters= [displayCharacters]
 		if (!Array.isArray(toolNames))
@@ -151,7 +151,7 @@ let LocalChatDraw = (function() {
 		//makeUnsubmittableButton()
 		//tButton.textContent = displayCharacters[nextTool]
 		tButton.className = "toolButton"
-		tButton.addEventListener('click', function() {
+		tButton.addEventListener('click', ev=>{
 			//First, deselect ALL other buttons
 			let toolButtons = drawArea.querySelectorAll("button.toolButton")
 			for (let i = 0; i < toolButtons.length; i++) {
@@ -171,23 +171,23 @@ let LocalChatDraw = (function() {
 		return tButton
 	}
 	
-	let selectNextRadio = function() {
+	let selectNextRadio = ()=>{
 		let index = animateFrames.GetSelectedFrameIndex()
 		if (index < animateFrames.GetFrameCount() - 1)
 			animateFrames.SelectFrameIndex(index + 1)
 	}
 	
-	let selectPreviousRadio = function() {
+	let selectPreviousRadio = ()=>{
 		let index = animateFrames.GetSelectedFrameIndex()
 		if (index > 0) 
 			animateFrames.SelectFrameIndex(index - 1)
 	}
 	
-	let getButtonColorString = function() {
+	let getButtonColorString = ()=>{
 		return getColorString(getButtonColors())
 	}
 	
-	let getColorString = function(colors) {
+	let getColorString = (colors)=>{
 		let colorSet = ""
 		
 		for (let i = 0; i < colors.length; i++) {
@@ -199,7 +199,7 @@ let LocalChatDraw = (function() {
 		return colorSet
 	}
 	
-	let parseColorString = function(string) {
+	let parseColorString = (string)=>{
 		let colors = string.split("/")
 		let result = []
 		
@@ -209,7 +209,7 @@ let LocalChatDraw = (function() {
 		return result
 	}
 	
-	let setButtonColors = function(palette) {
+	let setButtonColors = (palette)=>{
 		let buttons = getColorButtons()
 		
 		for (let i = 0; i < palette.length; i++) {
@@ -224,17 +224,17 @@ let LocalChatDraw = (function() {
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
 	}
 	
-	let widthToggle = function (widthButton) {
+	let widthToggle = (widthButton)=>{
 		let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
 		widthButton.textContent = width
 		widthButton.dataset.width = width
 		drawer.lineWidth = width
 	}
 	
-	let getAnimations = function(callback, element) {
+	let getAnimations = (callback, element)=>{
 		let formData = new FormData()
 		formData.append("list", "1")
-		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, function(json, statusElement) {
+		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, (json, statusElement)=>{
 			genericSuccess(json, element)
 			
 			let result = []
@@ -248,7 +248,7 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Once you have a compliant v2 object, this is the actual load function.
-	let loadAnimation = function(storeObject) {
+	let loadAnimation = (storeObject)=>{
 		animationPlayer.FromStorageObject(storeObject)
 		animateFrames.ClearAllFrames()
 		
@@ -260,7 +260,7 @@ let LocalChatDraw = (function() {
 		animateFrames.SelectFrameIndex(0)
 	}
 	
-	let setupInterface = function(interfaceContainer) {
+	let setupInterface = (interfaceContainer)=>{
 		let messagePane = interfaceContainer
 		let i
 		
@@ -286,7 +286,7 @@ let LocalChatDraw = (function() {
 		
 		let frameContainer = document.createElement("animate-frames")
 		animateFrames = new AnimatorFrameSet(frameContainer)
-		animateFrames.OnFrameSelected = function(data) {
+		animateFrames.OnFrameSelected = (data)=>{
 			setButtonColors(data.palette)
 			drawer.buffers[0].canvas = data.canvas
 			drawer.ClearUndoBuffer()
@@ -314,7 +314,7 @@ let LocalChatDraw = (function() {
 		
 		drawer = new CanvasDrawer()
 		drawer.Attach(canvas, [firstFrame.canvas], 5)
-		drawer.OnUndoStateChange = function() {
+		drawer.OnUndoStateChange = ()=>{
 			undoButton.disabled = !drawer.CanUndo()
 			redoButton.disabled = !drawer.CanRedo()
 		}
@@ -326,7 +326,7 @@ let LocalChatDraw = (function() {
 		colorPicker.style.top = "-10000px"
 		colorPicker.style.width = "0"
 		colorPicker.style.height = "0"
-		colorPicker.addEventListener("change", function(event) {
+		colorPicker.addEventListener("change", (event)=>{
 			let frame = animateFrames.GetFrame(); //GetSelectedFrame()
 			let newColor = StyleUtilities.GetColor(event.target.value)
 			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
@@ -345,14 +345,14 @@ let LocalChatDraw = (function() {
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		clearButton.textContent = "❌️"
-		clearButton.addEventListener("click", function() {
+		clearButton.addEventListener("click", ev=>{
 			if (drawer.StrokeCount()) drawer.UpdateUndoBuffer()
 			CanvasUtilities.Clear(animateFrames.GetFrame().canvas, 
 			                      rgbToFillStyle(getClearColor()))
 			drawer.Redraw()
 		})
 		drawArea.setAttribute("tabindex", "-1")
-		drawArea.addEventListener("keydown", function(ev) {
+		drawArea.addEventListener("keydown", ev=>{
 			if (drawArea.dataset.hidden) return
 			if (ev.keyCode === 40)
 				selectNextRadio()
@@ -364,15 +364,15 @@ let LocalChatDraw = (function() {
 		widthButton.addEventListener("click", widthToggle.callBind(widthButton))
 		sendButton.textContent = "➥"
 		sendButton.dataset.button = "sendDrawing"
-		sendButton.addEventListener("click", function() {sendDrawing();})
+		sendButton.addEventListener("click", ev=>{sendDrawing();})
 		toggleButton.textContent = "✎"
 		toggleButton.addEventListener("click", toggleInterface)
 		cSizeButton.textContent = "◲"
 		cSizeButton.addEventListener("click", scaleInterface)
 		undoButton.textContent = "↶"
-		undoButton.addEventListener("click", function() { drawer.Undo(); })
+		undoButton.addEventListener("click", ev=>{ drawer.Undo(); })
 		redoButton.textContent = "↷"
-		redoButton.addEventListener("click", function() { drawer.Redo(); })
+		redoButton.addEventListener("click", ev=>{ drawer.Redo(); })
 		drawer.DoUndoStateChange()
 		
 		//These are the only elements that will be displayed if the drawing area
@@ -450,24 +450,24 @@ let LocalChatDraw = (function() {
 		frameSkip.title = "Frame skip (1=60fps)"
 		frameSkip.value = 3
 		
-		lightboxButton.addEventListener("click", function(event) {
+		lightboxButton.addEventListener("click", event=>{
 			let next = Number(lightboxButton.textContent) + 1
 			if (next > 3) next = -3
 			lightboxButton.textContent = String(next)
 			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex())
 		})
 		
-		let saveAnimationWrapper = function(name) {
+		let saveAnimationWrapper = (name)=>{
 			UXUtilities.Toast("Saving... please wait")
 			animationPlayer.frames = animateFrames.GetAllFrames()
 			let object = animationPlayer.ToStorageObject()
-			writePersistent(name + animationTag, object, function() {
+			writePersistent(name + animationTag, object, ()=>{
 				UXUtilities.Toast("Saved animation '" + name + "'")
 			})
 		}
 		
-		let loadAnimationWrapper = function(name) {
-			readPersistent(name + animationTag, function(value) {
+		let loadAnimationWrapper = (name)=>{
+			readPersistent(name + animationTag, (value)=>{
 				//Perform the version 1 conversion... eugh
 				if (!value.version || value.version < 2) {
 					let loadCount = 0
@@ -480,7 +480,7 @@ let LocalChatDraw = (function() {
 					for (let i = 0; i < value.times.length; i++) {
 						/* jshint ignore:start */
 						let index = i
-						readPersistent(name + animationTag + "_" + index, function(drawing) {
+						readPersistent(name + animationTag + "_" + index, (drawing)=>{
 							value.data[index] = drawing
 							loadCount++
 							
@@ -498,15 +498,15 @@ let LocalChatDraw = (function() {
 			})
 		}
 		
-		saveAnimationButton.addEventListener("click", function(event) {
+		saveAnimationButton.addEventListener("click", (event)=>{
 			if (!saveInput.value) {
 				UXUtilities.Toast("You must give the animation a name!")
 				return
 			}
 			
-			getAnimations(function(anims) {
+			getAnimations((anims)=>{
 				if (anims.includes(saveInput.value)) {
-					UXUtilities.Confirm("There's already an animation named " + saveInput.value + ", are you sure you want to overwrite it?", function(confirmed) {
+					UXUtilities.Confirm("There's already an animation named " + saveInput.value + ", are you sure you want to overwrite it?", (confirmed)=>{
 						if (confirmed) saveAnimationWrapper(saveInput.value)
 					})
 				} else {
@@ -515,33 +515,33 @@ let LocalChatDraw = (function() {
 			})
 		})
 		
-		listAnimations.addEventListener("click", function(event) {
-			getAnimations(function(anims) {
+		listAnimations.addEventListener("click", event=>{
+			getAnimations((anims)=>{
 				localModuleMessage("Your animations: \n" + anims.join("\n"))
 			}, listAnimations)
 		})
 		
-		loadAnimationButton.addEventListener("click", function(event) {
+		loadAnimationButton.addEventListener("click", event=>{
 			if (!saveInput.value) {
 				UXUtilities.Toast("You must give a name to load an animation!")
 				return
 			}
-			getAnimations(function(anims) {
+			getAnimations((anims)=>{
 				if (!anims.includes(saveInput.value)) {
 					UXUtilities.Toast("Couldn't find animation " + saveInput.value)
 					return
 				}
-				UXUtilities.Confirm("You will lose any unsaved progress. Are you sure you want to load " + saveInput.value + "?", function(confirmed) {
+				UXUtilities.Confirm("You will lose any unsaved progress. Are you sure you want to load " + saveInput.value + "?", (confirmed)=>{
 					if (confirmed) loadAnimationWrapper(saveInput.value)
 				})
 			})
 		})
 		
-		newFrame.addEventListener("click", function(event) {
+		newFrame.addEventListener("click", event=>{
 			animateFrames.InsertNewFrame(animateFrames.GetSelectedFrameIndex(), true)
 		})
 		
-		repeatAnimation.addEventListener("click", function(event) {
+		repeatAnimation.addEventListener("click", event=>{
 			if (repeatAnimation.hasAttribute("data-repeat")) {
 				delete repeatAnimation.dataset.repeat
 				repeatAnimation.textContent = "→"
@@ -551,8 +551,8 @@ let LocalChatDraw = (function() {
 			}
 		})
 		
-		sendAnimation.addEventListener("click", function(event) {
-			UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. Animation will use the currently selected frame as a title card. Are you sure you want to post your animation?", function(confirmed) {
+		sendAnimation.addEventListener("click", event=>{
+			UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. Animation will use the currently selected frame as a title card. Are you sure you want to post your animation?", (confirmed)=>{
 				if (!confirmed)
 					return
 				UXUtilities.Toast("Uploading animation... please wait")
@@ -560,7 +560,7 @@ let LocalChatDraw = (function() {
 				let animation = animationPlayer.ToStorageObject()
 				let uploadData = new FormData()
 				uploadData.append("text", JSON.stringify(animation))
-				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", function(response) {
+				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", (response)=>{
 					if (response.startsWith("http")) {
 						sendDrawing(response)
 					} else {
@@ -570,8 +570,8 @@ let LocalChatDraw = (function() {
 			})
 		})
 		
-		exportAnimation.addEventListener("click", function() {
-			UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. Frame timings may be slightly off due to gif timings, particularly lower frame times. Are you ready to export your animation?", function(confirmed) {
+		exportAnimation.addEventListener("click", ev=>{
+			UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. Frame timings may be slightly off due to gif timings, particularly lower frame times. Are you ready to export your animation?", (confirmed)=>{
 				if (!confirmed)
 					return
 				UXUtilities.Toast("Exporting animation... please wait")
@@ -580,7 +580,7 @@ let LocalChatDraw = (function() {
 				let uploadData = new FormData()
 				uploadData.append("animation", JSON.stringify(animation))
 				uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations")
-				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage", function(response) {
+				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage", (response)=>{
 					if (response.startsWith("http")) {
 						window.open(response, "_blank")
 					} else {
@@ -591,24 +591,21 @@ let LocalChatDraw = (function() {
 			})
 		})
 		
-		animationPlayer = new AnimationPlayer(canvas, false, function(newValue) { 
-			if (newValue === undefined)
-			{
+		animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{ 
+			if (newValue === undefined) {
 				return repeatAnimation.hasAttribute("data-repeat")
-			}
-			else
-			{
+			} else {
 				if (newValue != repeatAnimation.hasAttribute("data-repeat"))
 					repeatAnimation.click()
 			}
-		}, function(newValue) { 
+		}, (newValue)=>{ 
 			if (newValue === undefined)
 				return frameSkip.value
 			else
 				frameSkip.value = newValue
 		})
 		
-		animationPlayer.OnPlay = function(player) {
+		animationPlayer.OnPlay = (player)=>{
 			if (!frameSkip.value) {
 				UXUtilities.Toast("Invalid frametime value")
 				return false
@@ -617,14 +614,14 @@ let LocalChatDraw = (function() {
 			player.frames = animateFrames.GetAllFrames()
 			
 			player.disabledAction = drawer.OnAction
-			drawer.OnAction = function() {}
+			drawer.OnAction = ()=>{}
 			newFrame.disabled = true
 			buttonArea.disabled = true
 			playPause.textContent = "■"
 			lightbox.style.display = "none"
 		}
 		
-		animationPlayer.OnStop = function(player) {
+		animationPlayer.OnStop = (player)=>{
 			playPause.textContent = "►"
 			drawer.OnAction = player.disabledAction
 			newFrame.disabled = false
@@ -633,7 +630,7 @@ let LocalChatDraw = (function() {
 			lightbox.style.display = ""
 		}
 		
-		playPause.addEventListener("click", function(event) {
+		playPause.addEventListener("click", event=>{
 			if (animationPlayer.IsPlaying())
 				animationPlayer.Stop()
 			else
@@ -672,7 +669,7 @@ let LocalChatDraw = (function() {
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
 	}
 	
-	let interfaceVisible = function() {
+	let interfaceVisible = ()=>{
 		try {
 			return !drawArea.dataset.hidden
 		} catch(ex) {
@@ -680,7 +677,7 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let toggleInterface = function(event, allowResize) {
+	let toggleInterface = (event, allowResize)=>{
 		try {
 			if (drawArea.dataset.hidden)
 				delete drawArea.dataset.hidden
@@ -700,7 +697,7 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let dockInterface = function(dock, drawArea2) {
+	let dockInterface = (dock, drawArea2)=>{
 		try {
 			drawArea2 = drawArea2 || drawArea
 			let positionButton = drawArea2.querySelector("button.position")
@@ -718,7 +715,7 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let scaleInterface = function(event) {
+	let scaleInterface = (event)=>{
 		try {
 			let rect = drawArea.getBoundingClientRect()
 			
@@ -739,7 +736,7 @@ let LocalChatDraw = (function() {
 	
 	//The function that is called when the given colorButton is selected. The
 	//canvas is also given so that colors may be swapped if necessary
-	let colorButtonSelect = function(colorButton, canvas) {
+	let colorButtonSelect = (colorButton, canvas)=>{
 		let alreadySelected = colorButton.dataset.selected
 		let buttons = getColorButtons()
 		
@@ -763,7 +760,7 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Send the current drawing to the chat.
-	let sendDrawing = function(animationLink) {
+	let sendDrawing = (animationLink)=>{
 		try {
 			let message = animateFrames.GetFrame().ToString()
 			if (animationLink) message = "(" + animationLink + ")" + message
@@ -773,12 +770,12 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	let sendDrawing2 = function() {
+	let sendDrawing2 = ()=>{
 		drawIframe.contentWindow.postMessage({uploadImage:true}, "*")
 	}
 	
 	//Get the colors from the drawing area buttons
-	let getButtonColors = function() {
+	let getButtonColors = ()=>{
 		let colors = []
 		let buttons = getColorButtons()
 		
@@ -790,7 +787,7 @@ let LocalChatDraw = (function() {
 	
 	//Get the color that is best suited to be a clearing color (the color that
 	//is closest to either white or black, whichever comes first)
-	let getClearColor = function() {
+	let getClearColor = ()=>{
 		let colors = getButtonColors()
 		let max = 0
 		let clearColor = 0
@@ -808,7 +805,7 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Get the buttons representing the color switching
-	let getColorButtons = function() {
+	let getColorButtons = ()=>{
 		return drawArea.querySelectorAll("button-area button." + colorButtonClass)
 	}
 	
@@ -820,9 +817,9 @@ let LocalChatDraw = (function() {
 		"drawingWidth": chatDrawCanvasWidth,
 		"drawingHeight": chatDrawCanvasHeight,
 		"createToolButton": createToolButton,
-		"getDrawer": function() { return drawer; },
-		"getAnimateFrames": function() { return animateFrames; },
-		"getAnimationPlayer": function() { return animationPlayer; },
+		"getDrawer": ()=>drawer,
+		"getAnimateFrames": ()=>animateFrames,
+		"getAnimationPlayer": ()=>animationPlayer,
 		"loadAnimation": loadAnimation
 	}
 	
@@ -837,22 +834,22 @@ let legacyPalette = [
 ]
 
 //Convert a 3 channel palette color into a fill style
-function rgbToFillStyle(channels) {
+let rgbToFillStyle=(channels)=>{
 	return "rgb(" + channels[0] + "," + channels[1] + "," + channels[2] + ")"
 }
 
 //Convert back from the rgba fill style to an array
-function fillStyleToRgb(fillStyle) {
+let fillStyleToRgb=(fillStyle)=>{
 	let regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
 	let result = regex.exec(fillStyle)
 	return result ? [ Number(result[1]), Number(result[2]), Number(result[3]) ] : null
 }
 
 //Convert a hex color into RGB values
-function hexToRGB(hex) {
+let hexToRGB=(hex)=>{
 	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 	let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
-	hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+	hex = hex.replace(shorthandRegex, (m, r, g, b)=>{
 		return r + r + g + g + b + b
 	})
 	
@@ -864,7 +861,7 @@ function hexToRGB(hex) {
 	] : null
 }
 
-function rgbToHex(channels) {
+let rgbToHex=(channels)=>{
 	return "#" + ((1 << 24) + (channels[0] << 16) + (channels[1] << 8) + channels[2]).toString(16).slice(1)
 }
 
@@ -985,16 +982,16 @@ class AnimatorFrameSet {
 		frameDelete.className = "alerthover"
 		frameDelete.title = "Delete frame (cannot be undone!)"
 		
-		frame.addEventListener("click", function(e) {
+		frame.addEventListener("click", e=>{
 			me._SelectFrame(frame)
 		})
 		
-		frameCopy.addEventListener("click", function(event) {
+		frameCopy.addEventListener("click", event=>{
 			StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, me._GetDataFromFrame(frame).ToString())
 			UXUtilities.Toast("Copied frame to clipboard (chatdraw only!)")
 		})
 		
-		framePaste.addEventListener("click", function(event) {
+		framePaste.addEventListener("click", event=>{
 			let clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
 			let myData = me._GetDataFromFrame(frame)
 			
@@ -1010,13 +1007,13 @@ class AnimatorFrameSet {
 			}
 		})
 		
-		frameDelete.addEventListener("click", function(event) {
+		frameDelete.addEventListener("click", event=>{
 			if (me.GetFrameCount() === 1) {
 				UXUtilities.Toast("You can't delete the only frame!")
 				return
 			}
 			
-			UXUtilities.Confirm("Are you sure you want to delete this frame?", function(c) {
+			UXUtilities.Confirm("Are you sure you want to delete this frame?", (c)=>{
 				if (c) {
 					let toSelect = frame.nextElementSibling || frame.previousElementSibling
 					
@@ -1113,26 +1110,24 @@ class AnimatorFrame {
 
 class AnimationPlayer {
 	constructor(canvas, frames, repeatFunction, defaultTimeFunction) {
-		let me = this
-		
 		this.canvas = canvas
 		this.frames = frames
 		
 		this._hiddenRepeat = true
 		this._hiddenDefaultTime = 3
 		
-		this.GetRepeat = repeatFunction || function(value) { 
+		this.GetRepeat = repeatFunction || ((value)=>{ 
 			if (value === undefined) 
-				return me._hiddenRepeat
+				return this._hiddenRepeat
 			else
-				me._hiddenRepeat = value;      
-		}
-		this.GetDefaultTime = defaultTimeFunction || function(value) { 
+				this._hiddenRepeat = value;      
+		})
+		this.GetDefaultTime = defaultTimeFunction || ((value)=>{
 			if (value === undefined)
-				return me._hiddenDefaultTime
+				return this._hiddenDefaultTime
 			else
-				me._hiddenDefaultTime = value
-		}
+				this._hiddenDefaultTime = value
+		})
 		
 		this._playing = false
 		this._frameCount = 0
@@ -1240,7 +1235,7 @@ let ChatDrawUtilities = {
 	DefaultWidth: 200,
 	DefaultHeight: 100,
 	ClipboardKey: "chatdrawClipboard",
-	ExportBucket: function() {
+	ExportBucket: ()=>{
 		return "chatDrawAnimations"
 	},
 	
@@ -1257,7 +1252,7 @@ let ChatDrawUtilities = {
 		new Color(0, 0, 255)
 	],
 	
-	PaletteToString: function(palette) {
+	PaletteToString: (palette)=>{
 		let colorSet = ""
 		
 		for (let i = 0; i < palette.length; i++) {
@@ -1267,7 +1262,7 @@ let ChatDrawUtilities = {
 		
 		return colorSet
 	},
-	StringToPalette: function(string) {
+	StringToPalette: (string)=>{
 		let colors = string.split("/")
 		let result = []
 		
@@ -1277,7 +1272,7 @@ let ChatDrawUtilities = {
 		return result
 	},
 	
-	GetClearColor: function(palette) {
+	GetClearColor: (palette)=>{
 		let max = 0
 		let clearColor = 0
 		
@@ -1293,7 +1288,7 @@ let ChatDrawUtilities = {
 		return palette[clearColor]
 	},
 	
-	CreateCanvas: function() {
+	CreateCanvas: ()=>{
 		let canvas = document.createElement("canvas")
 		canvas.width = ChatDrawUtilities.DefaultWidth
 		canvas.height = ChatDrawUtilities.DefaultHeight
@@ -1302,7 +1297,7 @@ let ChatDrawUtilities = {
 	},
 	
 	//First canvas is bottom
-	CreateLightbox: function(frames, destination, opacities) {
+	CreateLightbox: (frames, destination, opacities)=>{
 		CanvasUtilities.Clear(destination)
 		
 		let context = destination.getContext("2d")
@@ -1320,7 +1315,7 @@ let ChatDrawUtilities = {
 		}
 	},
 	
-	FrameToChatDraw: function (frame) {
+	FrameToChatDraw: (frame)=>{
 		let time = performance.now()
 		
 		let canvas = frame.canvas
@@ -1388,7 +1383,7 @@ let ChatDrawUtilities = {
 		return encodedString
 	},
 	
-	ChatDrawToFrame: function(string) {
+	ChatDrawToFrame: (string)=>{
 		//Legacy images need their original palette. The new images will have the
 		//palette encoded within them.
 		let width = ChatDrawUtilities.DefaultWidth
