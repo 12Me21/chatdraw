@@ -36,282 +36,283 @@ const CursorModifiers = {
 // Allows simple actions using unified touch and mouse on a canvas. Useful for
 // drawing applications
 
-function CanvasPerformer() {
-	this.DragButton = 1
-	this.PanButton = 2
-	this.DragTouches = 1
-	this.ZoomTouches = 2
-	this.PanTouches = 2
-	this.WheelZoom = 0.5
-	this.OnAction = false
-	
-	this._canvas = false
-	this._oldStyle = {}
-	
-	var me = this
-	var lastMAction = 0
-	var lastTAction = 0
-	var startZDistance = 0
-	var lastZDistance = 0
-	var lastTPosition = [-1,-1]
-	
-	//Event for "mouse down". Creates a generic "cursor" action
-	this._evMD = function(e) {
-		console.trace("CanvasPerformer mouse down")
-		var action = CursorActions.Start
-		var buttons = e.buttons || EventUtilities.MouseButtonToButtons(e.button)
+class CanvasPerformer {
+	constructor() {
+		this.DragButton = 1
+		this.PanButton = 2
+		this.DragTouches = 1
+		this.ZoomTouches = 2
+		this.PanTouches = 2
+		this.WheelZoom = 0.5
+		this.OnAction = false
 		
-		lastMAction = me.ButtonsToAction(buttons)
-		me.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), me._canvas)
-	}
-	//Event for "mouse up". Creates a generic "cursor" action
-	this._evMU = function(e) {
-		console.trace("CanvasPerformer mouse up")
-		me.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), me._canvas); 
-		lastMAction = 0
-	}
-	//Event for the "wheel". Creates a generic "cursor" action
-	this._evMW = function(e) {
-		me.Perform(e, new CursorActionData(CursorActions.Start | CursorActions.End | CursorActions.Zoom, 
-		                                   e.clientX, e.clientY, -Math.sign(e.deltaY) * me.WheelZoom), me._canvas)
-	}
-	//Event for both "touch start" and "touch end". Creates a generic "cursor" action
-	//Event for "touch start". Creates a generic "cursor" action
-	this._evTC = function(e) {
-		console.trace("CanvasPerformer touch start/end event [" + e.touches.length + "]")
-		if (me.ZoomTouches !== 2) throw "Zoom must use 2 fingers!"; 
+		this._canvas = false
+		this._oldStyle = {}
 		
-		var extraAction = 0
-		var nextAction = me.TouchesToAction(e.touches.length)
+		var me = this
+		var lastMAction = 0
+		var lastTAction = 0
+		var startZDistance = 0
+		var lastZDistance = 0
+		var lastTPosition = [-1,-1]
 		
-		//If we enter evTC and there is a lastTAction, that means that last
-		//action has ended. Either we went from 1 touch to 0 or maybe 2 touches
-		//to 1 touch. Either way, that specific action has ended (2 touches is a
-		//zoom, 1 touch is a drag, etc.).
-		if (lastTAction) {
-			if (nextAction) extraAction |= CursorActions.Interrupt
-			me.Perform(e, new CursorActionData(CursorActions.End | lastTAction | extraAction, 
-			                                   lastTPosition[0], lastTPosition[1]), me._canvas)
+		//Event for "mouse down". Creates a generic "cursor" action
+		this._evMD = function(e) {
+			console.trace("CanvasPerformer mouse down")
+			var action = CursorActions.Start
+			var buttons = e.buttons || EventUtilities.MouseButtonToButtons(e.button)
+			
+			lastMAction = me.ButtonsToAction(buttons)
+			me.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), me._canvas)
 		}
-		
-		//Move to the "next" action.
-		lastTAction = nextAction
-		
-		//if the user is ACTUALLY performing something (and this isn't just a 0
-		//touch event), THEN we're starting something here.
-		if (lastTAction) {
-			if (lastTAction & CursorActions.Zoom) {
-				startZDistance = me.PinchDistance(e.touches)
-				lastZDistance = 0
+		//Event for "mouse up". Creates a generic "cursor" action
+		this._evMU = function(e) {
+			console.trace("CanvasPerformer mouse up")
+			me.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), me._canvas); 
+			lastMAction = 0
+		}
+		//Event for the "wheel". Creates a generic "cursor" action
+		this._evMW = function(e) {
+			me.Perform(e, new CursorActionData(CursorActions.Start | CursorActions.End | CursorActions.Zoom, 
+			                                   e.clientX, e.clientY, -Math.sign(e.deltaY) * me.WheelZoom), me._canvas)
+		}
+		//Event for both "touch start" and "touch end". Creates a generic "cursor" action
+		//Event for "touch start". Creates a generic "cursor" action
+		this._evTC = function(e) {
+			console.trace("CanvasPerformer touch start/end event [" + e.touches.length + "]")
+			if (me.ZoomTouches !== 2) throw "Zoom must use 2 fingers!"; 
+			
+			var extraAction = 0
+			var nextAction = me.TouchesToAction(e.touches.length)
+			
+			//If we enter evTC and there is a lastTAction, that means that last
+			//action has ended. Either we went from 1 touch to 0 or maybe 2 touches
+			//to 1 touch. Either way, that specific action has ended (2 touches is a
+			//zoom, 1 touch is a drag, etc.).
+			if (lastTAction) {
+				if (nextAction) extraAction |= CursorActions.Interrupt
+				me.Perform(e, new CursorActionData(CursorActions.End | lastTAction | extraAction, 
+				                                   lastTPosition[0], lastTPosition[1]), me._canvas)
 			}
-			lastTPosition = me.TouchesToXY(lastTAction, e.touches)
-			me.Perform(e, new CursorActionData(CursorActions.Start | lastTAction | extraAction, 
-			                                   lastTPosition[0], lastTPosition[1]), me._canvas)
+			
+			//Move to the "next" action.
+			lastTAction = nextAction
+			
+			//if the user is ACTUALLY performing something (and this isn't just a 0
+			//touch event), THEN we're starting something here.
+			if (lastTAction) {
+				if (lastTAction & CursorActions.Zoom) {
+					startZDistance = me.PinchDistance(e.touches)
+					lastZDistance = 0
+				}
+				lastTPosition = me.TouchesToXY(lastTAction, e.touches)
+				me.Perform(e, new CursorActionData(CursorActions.Start | lastTAction | extraAction, 
+				                                   lastTPosition[0], lastTPosition[1]), me._canvas)
+			}
 		}
+		//Event for "mouse move". Creates a generic "cursor" action.
+		this._evMM = function(e) {
+			me.Perform(e, new CursorActionData(me.ButtonsToAction(e.buttons), e.clientX, e.clientY), me._canvas)
+		}
+		//Event for "touch move". Creates a generic "cursor" action.
+		this._evTM = function(e) {
+			var action = me.TouchesToAction(e.touches.length)
+			lastTPosition = me.TouchesToXY(action, e.touches)
+			
+			if (action & CursorActions.Zoom) {
+				var startZoomDiff = me.PinchZoom(me.PinchDistance(e.touches), startZDistance)
+				me.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1],
+				                                   startZoomDiff - lastZDistance), me._canvas)
+				lastZDistance = startZoomDiff
+			} else {
+				me.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1]), me._canvas)
+			}
+		}
+		this._evPrevent = function(e) { e.preventDefault(); }
 	}
-	//Event for "mouse move". Creates a generic "cursor" action.
-	this._evMM = function(e) {
-		me.Perform(e, new CursorActionData(me.ButtonsToAction(e.buttons), e.clientX, e.clientY), me._canvas)
+	
+	GetModifiedCursorData(data, e) {
+		if (!e) return data
+		if (e.ctrlKey) data.modifiers |= CursorModifiers.Ctrl
+		return data
 	}
-	//Event for "touch move". Creates a generic "cursor" action.
-	this._evTM = function(e) {
-		var action = me.TouchesToAction(e.touches.length)
-		lastTPosition = me.TouchesToXY(action, e.touches)
+	
+	//Convert the "buttons" field of a mouse event to the appropriate action
+	ButtonsToAction(buttons) {
+		if (buttons & this.DragButton)
+			return CursorActions.Drag
+		else if (buttons & this.PanButton)
+			return CursorActions.Pan
+	}
+	
+	//Convert the touch count to an appropriate action
+	TouchesToAction(touches) {
+		var action = 0
 		
+		if (touches === this.DragTouches)
+			action = action | CursorActions.Drag
+		if (touches === this.ZoomTouches)
+			action = action | CursorActions.Zoom
+		if (touches == this.PanTouches)
+			action = action | CursorActions.Pan
+		
+		return action
+	}
+	
+	//Convert a touch array into a certain XY position based on the given action.
+	TouchesToXY(action, touchArray) {
 		if (action & CursorActions.Zoom) {
-			var startZoomDiff = me.PinchZoom(me.PinchDistance(e.touches), startZDistance)
-			me.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1],
-			                                   startZoomDiff - lastZDistance), me._canvas)
-			lastZDistance = startZoomDiff
-		} else {
-			me.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1]), me._canvas)
+			return MathUtilities.Midpoint(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
 		}
+		
+		return [touchArray[0].clientX, touchArray[0].clientY]
 	}
-	this._evPrevent = function(e) { e.preventDefault(); }
-}
 
-CanvasPerformer.prototype.GetModifiedCursorData = function(data, e) {
-	if (!e) return data
-	if (e.ctrlKey) data.modifiers |= CursorModifiers.Ctrl
-	return data
-}
-
-//Convert the "buttons" field of a mouse event to the appropriate action
-CanvasPerformer.prototype.ButtonsToAction = function(buttons) {
-	if (buttons & this.DragButton)
-		return CursorActions.Drag
-	else if (buttons & this.PanButton)
-		return CursorActions.Pan
-}
-
-//Convert the touch count to an appropriate action
-CanvasPerformer.prototype.TouchesToAction = function(touches) {
-	var action = 0
-	
-	if (touches === this.DragTouches)
-		action = action | CursorActions.Drag
-	if (touches === this.ZoomTouches)
-		action = action | CursorActions.Zoom
-	if (touches == this.PanTouches)
-		action = action | CursorActions.Pan
-	
-	return action
-}
-
-//Convert a touch array into a certain XY position based on the given action.
-CanvasPerformer.prototype.TouchesToXY = function(action, touchArray) {
-	if (action & CursorActions.Zoom) {
-		return MathUtilities.Midpoint(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
+	//Figure out the distance of a pinch based on the given touches.
+	PinchDistance(touchArray) {
+		return MathUtilities.Distance(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
 	}
 	
-	return [touchArray[0].clientX, touchArray[0].clientY]
-}
-
-//Figure out the distance of a pinch based on the given touches.
-CanvasPerformer.prototype.PinchDistance = function(touchArray) {
-	return MathUtilities.Distance(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
-}
-
-//Figure out the zoom difference (from the original) for a pinch. This is NOT
-//the delta zoom between actions, just the delta zoom since the start of the
-//pinch (or whatever is passed for oDistance)
-CanvasPerformer.prototype.PinchZoom = function(distance, oDistance) {
-	return Math.log2(distance / oDistance)
-}
-
-//System uses this function to determine if touches should be captured. Users
-//can override this function to give their own rules for captured touches.
-//Capturing a touch prevents scrolling.
-CanvasPerformer.prototype.ShouldCapture = function(data) {
-	return data.onTarget; //this._canvas && (this._canvas === document.activeElement);   
-}
-
-CanvasPerformer.prototype.Attach = function(canvas) {
-	if (this._canvas)
-		throw "This CanvasPerformer is already attached to a canvas!"
-	
-	this._canvas = canvas
-	this._oldStyle = canvas.style.touchAction
-	
-	canvas.style.touchAction = "none"
-	document.addEventListener("mousedown", this._evMD)
-	document.addEventListener("touchstart", this._evTC)
-	canvas.addEventListener("touchstart", this._evPrevent); //Stops initial tuochmove distance cutoff
-	canvas.addEventListener("wheel", this._evMW)
-	canvas.addEventListener("contextmenu", this._evPrevent)
-	document.addEventListener("mouseup", this._evMU); 
-	document.addEventListener("touchend", this._evTC)
-	document.addEventListener("touchcancel", this._evTC)
-	document.addEventListener("mousemove", this._evMM)
-	document.addEventListener("touchmove", this._evTM)
-}
-
-CanvasPerformer.prototype.Detach = function() {
-	if (!this._canvas)
-		throw "This CanvasPerformer is is not attached to a canvas!"
-	
-	document.removeEventListener("mousedown", this._evMD)
-	document.removeEventListener("touchstart", this._evTC)
-	canvas.removeEventListener("wheel", this._evMW)
-	canvas.removeEventListener("touchstart", this._evPrevent)
-	canvas.removeEventListener("contextmenu", this._evPrevent)
-	document.removeEventListener("mouseup", this._evMU); 
-	document.removeEventListener("touchend", this._evTC)
-	document.removeEventListener("touchcancel", this._evTC)
-	document.removeEventListener("mousemove", this._evMM)
-	document.removeEventListener("touchmove", this._evTM)
-	
-	this._canvas.style.touchAction = this._oldStyle
-	this._canvas = false
-}
-
-CanvasPerformer.prototype.Perform = function(e, cursorData, canvas) {
-	var context = canvas.getContext("2d")
-	var clientRect = canvas.getBoundingClientRect()
-	//var clientStyle = window.getComputedStyle(canvas)
-	var scalingX = canvas.clientWidth / canvas.width
-	var scalingY = canvas.clientHeight / canvas.height
-	
-	//Do NOTHING if the canvas is non-existent
-	if (scalingX <= 0 || scalingY <= 0) return
-	
-	cursorData = this.GetModifiedCursorData(cursorData, e)
-	cursorData.x = (cursorData.x - (clientRect.left)) / scalingX
-	cursorData.y = (cursorData.y - (clientRect.top)) / scalingY
-	
-	//console.log(scalingX + ", " + scalingY + ", " + cursorData.x + ", " + cursorData.y)
-	cursorData.targetElement = canvas
-	cursorData.onTarget = (e.target === canvas)
-	//console.log("onTarget: " + cursorData.onTarget)
-	//cursorData.onTarget = (cursorData.x >= 0 && cursorData.y >= 0 &&
-	//   cursorData.x < canvas.width && cursorData.y < canvas.height)
-	cursorData.time = Date.now()
-	
-	if (e && this.ShouldCapture(cursorData)) {
-		e.preventDefault()
-		//e.preventDefault()
-		//e.stopPropagation()
-		//console.log("STOP PROP: " + cursorData.Action)
-		//canvas.focus()
-		//if (cursorData.action & CursorActions.End) 
-		//{
-		//   document.body.focus()
-		//   //canvas.parentNode.focus()
-		//   console.log("FUCUSING")
-		//}
+	//Figure out the zoom difference (from the original) for a pinch. This is NOT
+	//the delta zoom between actions, just the delta zoom since the start of the
+	//pinch (or whatever is passed for oDistance)
+	PinchZoom(distance, oDistance) {
+		return Math.log2(distance / oDistance)
 	}
 	
-	if (this.OnAction) this.OnAction(cursorData, context)
+	//System uses this function to determine if touches should be captured. Users
+	//can override this function to give their own rules for captured touches.
+	//Capturing a touch prevents scrolling.
+	ShouldCapture(data) {
+		return data.onTarget; //this._canvas && (this._canvas === document.activeElement);   
+	}
+	
+	Attach(canvas) {
+		if (this._canvas)
+			throw "This CanvasPerformer is already attached to a canvas!"
+		
+		this._canvas = canvas
+		this._oldStyle = canvas.style.touchAction
+		
+		canvas.style.touchAction = "none"
+		document.addEventListener("mousedown", this._evMD)
+		document.addEventListener("touchstart", this._evTC)
+		canvas.addEventListener("touchstart", this._evPrevent); //Stops initial tuochmove distance cutoff
+		canvas.addEventListener("wheel", this._evMW)
+		canvas.addEventListener("contextmenu", this._evPrevent)
+		document.addEventListener("mouseup", this._evMU); 
+		document.addEventListener("touchend", this._evTC)
+		document.addEventListener("touchcancel", this._evTC)
+		document.addEventListener("mousemove", this._evMM)
+		document.addEventListener("touchmove", this._evTM)
+	}
+	
+	Detach() {
+		if (!this._canvas)
+			throw "This CanvasPerformer is is not attached to a canvas!"
+		
+		document.removeEventListener("mousedown", this._evMD)
+		document.removeEventListener("touchstart", this._evTC)
+		canvas.removeEventListener("wheel", this._evMW)
+		canvas.removeEventListener("touchstart", this._evPrevent)
+		canvas.removeEventListener("contextmenu", this._evPrevent)
+		document.removeEventListener("mouseup", this._evMU); 
+		document.removeEventListener("touchend", this._evTC)
+		document.removeEventListener("touchcancel", this._evTC)
+		document.removeEventListener("mousemove", this._evMM)
+		document.removeEventListener("touchmove", this._evTM)
+		
+		this._canvas.style.touchAction = this._oldStyle
+		this._canvas = false
+	}
+	
+	Perform(e, cursorData, canvas) {
+		var context = canvas.getContext("2d")
+		var clientRect = canvas.getBoundingClientRect()
+		//var clientStyle = window.getComputedStyle(canvas)
+		var scalingX = canvas.clientWidth / canvas.width
+		var scalingY = canvas.clientHeight / canvas.height
+		
+		//Do NOTHING if the canvas is non-existent
+		if (scalingX <= 0 || scalingY <= 0) return
+		
+		cursorData = this.GetModifiedCursorData(cursorData, e)
+		cursorData.x = (cursorData.x - (clientRect.left)) / scalingX
+		cursorData.y = (cursorData.y - (clientRect.top)) / scalingY
+		
+		//console.log(scalingX + ", " + scalingY + ", " + cursorData.x + ", " + cursorData.y)
+		cursorData.targetElement = canvas
+		cursorData.onTarget = (e.target === canvas)
+		//console.log("onTarget: " + cursorData.onTarget)
+		//cursorData.onTarget = (cursorData.x >= 0 && cursorData.y >= 0 &&
+		//   cursorData.x < canvas.width && cursorData.y < canvas.height)
+		cursorData.time = Date.now()
+		
+		if (e && this.ShouldCapture(cursorData)) {
+			e.preventDefault()
+			//e.preventDefault()
+			//e.stopPropagation()
+			//console.log("STOP PROP: " + cursorData.Action)
+			//canvas.focus()
+			//if (cursorData.action & CursorActions.End) 
+			//{
+			//   document.body.focus()
+			//   //canvas.parentNode.focus()
+			//   console.log("FUCUSING")
+			//}
+		}
+		
+		if (this.OnAction) this.OnAction(cursorData, context)
+	}
 }
 
 // --- CanvasZoomer ---
 // An extension to CanvasPerformer that tracks zoom. Position is also tracked,
 // but panning is not implemented.
 
-function CanvasZoomer() {
-	CanvasPerformer.call(this)
-	
-	this.x = 0;          //You SHOULD be able to set these whenever you want.
-	this.y = 0
-	this.zoom = 0;       //Zoom works on powers. Negative is zoom out, positive is zoom in
-	this.minZoom = -5;   //Lowest value for zoom. You may need to adapt this to your image
-	this.maxZoom = 5;    //Highest zoom. Set to 0 for no zoom in ability.
-	
-	this.Width = function() { return 1;};      //Inheritors or users will need to set these
-	this.Height = function() { return 1;}
-}
-
-CanvasZoomer.prototype = Object.create(CanvasPerformer.prototype); 
-
-CanvasZoomer.prototype.Scale = function() {
-	return Math.pow(2, this.zoom)
-}
-
-//Get the size of the image for the current zoom.
-CanvasZoomer.prototype.ZoomDimensions = function() {
-	return [ this.Width() * this.Scale(), this.Height() * this.Scale() ]
-}
-
-//Perform a zoom for the given zoom amount (if possible)
-CanvasZoomer.prototype.DoZoom = function(zoomAmount, cx, cy) {
-	var newZoom = this.zoom + zoomAmount
-	
-	if (newZoom >= this.minZoom && newZoom <= this.maxZoom) {
-		var oldDim = this.ZoomDimensions()
-		this.zoom = newZoom
-		var newDim = this.ZoomDimensions()
-		this.x = (newDim[0] / oldDim[0]) * (this.x - cx) + cx
-		this.y = (newDim[1] / oldDim[1]) * (this.y - cy) + cy
+class CanvasZoomer extends CanvasPerformer {
+	constructor() {
+		super()
+		this.x = 0;          //You SHOULD be able to set these whenever you want.
+		this.y = 0
+		this.zoom = 0;       //Zoom works on powers. Negative is zoom out, positive is zoom in
+		this.minZoom = -5;   //Lowest value for zoom. You may need to adapt this to your image
+		this.maxZoom = 5;    //Highest zoom. Set to 0 for no zoom in ability.
+		
+		this.Width = function() { return 1;};      //Inheritors or users will need to set these
+		this.Height = function() { return 1;}
 	}
-}
-
-//Fix cursor data so the X and Y position is relative to the actual thing and
-//not the given canvas. The 'actual thing' being the thing at this.x, this.y
-CanvasZoomer.prototype.GetFixedCursorData = function(data) {
-	data.x = (data.x - this.x) / this.Scale()
-	data.y = (data.y - this.y) / this.Scale()
-	data.onImage = data.x >= 0 && data.y >= 0 && data.x < this.Width() && data.y < this.Height()
-	return data
+	
+	Scale() {
+		return Math.pow(2, this.zoom)
+	}
+	
+	//Get the size of the image for the current zoom.
+	ZoomDimensions() {
+		return [ this.Width() * this.Scale(), this.Height() * this.Scale() ]
+	}
+	
+	//Perform a zoom for the given zoom amount (if possible)
+	DoZoom(zoomAmount, cx, cy) {
+		var newZoom = this.zoom + zoomAmount
+		
+		if (newZoom >= this.minZoom && newZoom <= this.maxZoom) {
+			var oldDim = this.ZoomDimensions()
+			this.zoom = newZoom
+			var newDim = this.ZoomDimensions()
+			this.x = (newDim[0] / oldDim[0]) * (this.x - cx) + cx
+			this.y = (newDim[1] / oldDim[1]) * (this.y - cy) + cy
+		}
+	}
+	
+	//Fix cursor data so the X and Y position is relative to the actual thing and
+	//not the given canvas. The 'actual thing' being the thing at this.x, this.y
+	GetFixedCursorData(data) {
+		data.x = (data.x - this.x) / this.Scale()
+		data.y = (data.y - this.y) / this.Scale()
+		data.onImage = data.x >= 0 && data.y >= 0 && data.x < this.Width() && data.y < this.Height()
+		return data
+	}
 }
 
 // --- CanvasImageViewer ---
@@ -701,138 +702,137 @@ function CanvasDrawerLayer(canvas, id) {
 	this.id = id || 0
 }
 
-function CanvasDrawer() {
-	CanvasPerformer.call(this)
-	
-	this.buffers = []
-	this.frameActions = []
-	this.undoBuffer = false
-	this.tools = 
-		{
-			"freehand" : new CanvasDrawerTool(CanvasDrawer.FreehandTool),
-			"eraser" : new CanvasDrawerTool(CanvasDrawer.EraserTool),
-			"slow" : new CanvasDrawerTool(CanvasDrawer.SlowTool),
-			"spray" : new CanvasDrawerTool(CanvasDrawer.SprayTool),
-			"line" : new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
-			"square" : new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
-			"clear" : new CanvasDrawerTool(CanvasDrawer.ClearTool),
-			"fill" : new CanvasDrawerTool(CanvasDrawer.FillTool),
-			"dropper" : new CanvasDrawerTool(CanvasDrawer.DropperTool),
-			"mover" : new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
-		}
-	
-	this.constants = {
-		"endInterrupt" : CursorActions.End | CursorActions.Interrupt
-	}
-	
-	this.tools.slow.stationaryReportInterval = 1
-	this.tools.spray.stationaryReportInterval = 1
-	this.tools.slow.frameLock = 1
-	this.tools.spray.frameLock = 1
-	this.tools.dropper.updateUndoBuffer = 0
-	this.tools.mover.interrupt = CanvasDrawer.MoveInterrupt
-	
-	this.overlay = false; //overlay is set with Attach. This false means nothing.
-	this.onlyInnerStrokes = true
-	this.defaultCursor = "crosshair"
-	this.currentLayer = 0
-	this.currentTool = "freehand"
-	this.color = "rgb(0,0,0)"
-	this.opacity = 1
-	this.lineWidth = 2
-	//this.cursorColor = "rgb(128,128,128)"
-	this.lineShape = "hardcircle"
-	
-	this.lastAction = false
-	this.ignoreCurrentStroke = false
-	
-	//All private stuff that's only used for our internal functions.
-	var me = this
-	var strokeCount = 0
-	var frameCount = 0
-	
-	this.StrokeCount = function() { return strokeCount; }
-	this.FrameCount = function() { return frameCount; }
-	
-	this.OnUndoStateChange = false
-	this.OnLayerChange = false
-	this.OnColorChange = false
-	this.OnAction = function(data, context) {
-		if (me.CheckToolValidity("tool") && (data.action & CursorActions.Drag)) {
-			data.color = me.color
-			data.lineWidth = me.lineWidth
-			data.lineShape = me.lineShape
-			data.opacity = me.opacity
-			
-			if (me.lineShape === "hardcircle")
-				data.lineFunction = CanvasUtilities.DrawSolidRoundLine
-			else if (me.lineShape === "hardsquare")
-				data.lineFunction = CanvasUtilities.DrawSolidSquareLine
-			else if (me.lineShape === "normalsquare")
-				data.lineFunction = CanvasUtilities.DrawNormalSquareLine
-			else
-				data.lineFunction = CanvasUtilities.DrawNormalRoundLine; 
-			
-			//Replace this with some generic cursor drawing thing that takes both
-			//strings AND functions to draw the cursor.
-			if (!me.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
-				;//me._canvas.style.cursor = me.defaultCursor
-			
-			if (data.action & CursorActions.Start) {
-				data.oldX = data.x; 
-				data.oldY = data.y; 
-				data.startX = data.x
-				data.startY = data.y
-				strokeCount++
-			} else {
-				data.oldX = me.lastAction.x
-				data.oldY = me.lastAction.y
-				data.startX = me.lastAction.startX
-				data.startY = me.lastAction.startY
+class CanvasDrawer extends CanvasPerformer {
+	constructor() {
+		super()
+		
+		this.buffers = []
+		this.frameActions = []
+		this.undoBuffer = false
+		this.tools = 
+			{
+				"freehand" : new CanvasDrawerTool(CanvasDrawer.FreehandTool),
+				"eraser" : new CanvasDrawerTool(CanvasDrawer.EraserTool),
+				"slow" : new CanvasDrawerTool(CanvasDrawer.SlowTool),
+				"spray" : new CanvasDrawerTool(CanvasDrawer.SprayTool),
+				"line" : new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
+				"square" : new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
+				"clear" : new CanvasDrawerTool(CanvasDrawer.ClearTool),
+				"fill" : new CanvasDrawerTool(CanvasDrawer.FillTool),
+				"dropper" : new CanvasDrawerTool(CanvasDrawer.DropperTool),
+				"mover" : new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
 			}
-			
-			if (me.CheckToolValidity("frameLock"))
-				me.frameActions.push({"data" : data, "context": context})
-			else
-				me.PerformDrawAction(data, context)
+		
+		this.constants = {
+			"endInterrupt" : CursorActions.End | CursorActions.Interrupt
 		}
-	}
-	this._doFrame = function() {
-		frameCount++
 		
-		//Oh look, we were detached. How nice.
-		if (!me._canvas) return
+		this.tools.slow.stationaryReportInterval = 1
+		this.tools.spray.stationaryReportInterval = 1
+		this.tools.slow.frameLock = 1
+		this.tools.spray.frameLock = 1
+		this.tools.dropper.updateUndoBuffer = 0
+		this.tools.mover.interrupt = CanvasDrawer.MoveInterrupt
 		
-		//I don't care what the tool wants or what the settings are, all I care
-		//about is whether or not there are actions for me to perform. Maybe some
-		//other thing added actions; I shouldn't ignore those.
-		if (me.frameActions.length) {
-			for(var i = 0; i < me.frameActions.length; i++) {
-				if (me.frameActions[i].data.action & (CursorActions.Start |
-				                                     CursorActions.End) || i === me.frameActions.length - 1) {
-					me.PerformDrawAction(me.frameActions[i].data,
-					                     me.frameActions[i].context)
+		this.overlay = false; //overlay is set with Attach. This false means nothing.
+		this.onlyInnerStrokes = true
+		this.defaultCursor = "crosshair"
+		this.currentLayer = 0
+		this.currentTool = "freehand"
+		this.color = "rgb(0,0,0)"
+		this.opacity = 1
+		this.lineWidth = 2
+		//this.cursorColor = "rgb(128,128,128)"
+		this.lineShape = "hardcircle"
+		
+		this.lastAction = false
+		this.ignoreCurrentStroke = false
+		
+		//All private stuff that's only used for our internal functions.
+		var me = this
+		var strokeCount = 0
+		var frameCount = 0
+		
+		this.StrokeCount = function() { return strokeCount; }
+		this.FrameCount = function() { return frameCount; }
+		
+		this.OnUndoStateChange = false
+		this.OnLayerChange = false
+		this.OnColorChange = false
+		this.OnAction = function(data, context) {
+			if (me.CheckToolValidity("tool") && (data.action & CursorActions.Drag)) {
+				data.color = me.color
+				data.lineWidth = me.lineWidth
+				data.lineShape = me.lineShape
+				data.opacity = me.opacity
+				
+				if (me.lineShape === "hardcircle")
+					data.lineFunction = CanvasUtilities.DrawSolidRoundLine
+				else if (me.lineShape === "hardsquare")
+					data.lineFunction = CanvasUtilities.DrawSolidSquareLine
+				else if (me.lineShape === "normalsquare")
+					data.lineFunction = CanvasUtilities.DrawNormalSquareLine
+				else
+					data.lineFunction = CanvasUtilities.DrawNormalRoundLine; 
+				
+				//Replace this with some generic cursor drawing thing that takes both
+				//strings AND functions to draw the cursor.
+				if (!me.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
+					;//me._canvas.style.cursor = me.defaultCursor
+				
+				if (data.action & CursorActions.Start) {
+					data.oldX = data.x; 
+					data.oldY = data.y; 
+					data.startX = data.x
+					data.startY = data.y
+					strokeCount++
+				} else {
+					data.oldX = me.lastAction.x
+					data.oldY = me.lastAction.y
+					data.startX = me.lastAction.startX
+					data.startY = me.lastAction.startY
 				}
+				
+				if (me.CheckToolValidity("frameLock"))
+					me.frameActions.push({"data" : data, "context": context})
+				else
+					me.PerformDrawAction(data, context)
+			}
+		}
+		this._doFrame = function() {
+			frameCount++
+			
+			//Oh look, we were detached. How nice.
+			if (!me._canvas) return
+			
+			//I don't care what the tool wants or what the settings are, all I care
+			//about is whether or not there are actions for me to perform. Maybe some
+			//other thing added actions; I shouldn't ignore those.
+			if (me.frameActions.length) {
+				for(var i = 0; i < me.frameActions.length; i++) {
+					if (me.frameActions[i].data.action & (CursorActions.Start |
+					                                      CursorActions.End) || i === me.frameActions.length - 1) {
+						me.PerformDrawAction(me.frameActions[i].data,
+						                     me.frameActions[i].context)
+					}
+				}
+				
+				me.frameActions = []
+			}
+			//Only reperform the last action if there was no action this frame, both
+			//the tool and the reportInterval are valid, there even WAS a lastAction
+			//which had Drag but not Start/End, and it's far enough away from the
+			//last stationary report.
+			else if (me.CheckToolValidity("stationaryReportInterval") && me.CheckToolValidity("tool") && 
+			         me.lastAction && (me.lastAction.action & CursorActions.Drag) && 
+			         !(me.lastAction.action & (CursorActions.End)) && (frameCount % me.tools[me.currentTool].stationaryReportInterval) === 0) {
+				me.PerformDrawAction(me.lastAction, me.GetCurrentCanvas().getContext("2d"))
 			}
 			
-			me.frameActions = []
+			requestAnimationFrame(me._doFrame)
 		}
-		//Only reperform the last action if there was no action this frame, both
-		//the tool and the reportInterval are valid, there even WAS a lastAction
-		//which had Drag but not Start/End, and it's far enough away from the
-		//last stationary report.
-		else if (me.CheckToolValidity("stationaryReportInterval") && me.CheckToolValidity("tool") && 
-		         me.lastAction && (me.lastAction.action & CursorActions.Drag) && 
-		         !(me.lastAction.action & (CursorActions.End)) && (frameCount % me.tools[me.currentTool].stationaryReportInterval) === 0) {
-			me.PerformDrawAction(me.lastAction, me.GetCurrentCanvas().getContext("2d"))
-		}
-		
-		requestAnimationFrame(me._doFrame)
 	}
 }
-
-//Inherit from CanvasPerformer
-CanvasDrawer.prototype = Object.create(CanvasPerformer.prototype); 
 
 CanvasDrawer.prototype.Buffered = function() { return this.buffers.length > 0; }
 
