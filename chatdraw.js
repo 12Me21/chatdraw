@@ -20,6 +20,7 @@ let LocalChatDraw = (()=>{
 	let colorButtonClass = "colorChange"
 	let colorPicker = null
 	let drawArea = null
+	let $root = document.createElement('chat-draw')
 	let hideCharacters = 20
 	let maxLineWidth = 7
 	let maxScale = 5
@@ -318,6 +319,8 @@ let LocalChatDraw = (()=>{
 			undoButton.disabled = !drawer.CanUndo()
 			redoButton.disabled = !drawer.CanRedo()
 		}
+		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
+		drawer.onlyInnerStrokes = false
 		
 		//Set up the color picker
 		colorPicker.type = 'color'
@@ -653,9 +656,19 @@ let LocalChatDraw = (()=>{
 		animateArea.appendChild(animateScroller)
 		animateArea.appendChild(animateSave)
 		
-		if (allowAnimation) drawArea.appendChild(animateArea)
+		$root.attachShadow({mode: 'open'})
+		let shadow = $root.shadowRoot
 		
-		messagePane.appendChild(drawArea)
+		let style = document.createElement('link')
+		style.rel = 'stylesheet'
+		style.href = 'chatdraw.css'
+		shadow.append(style)
+		
+		shadow.append(drawArea)
+		if (allowAnimation)
+			shadow.append(animateArea)
+		
+		messagePane.append($root)
 		
 		//Make sure the interface is hidden, since we create it exposed.
 		animateFrames.SelectFrameIndex(0)
@@ -663,15 +676,15 @@ let LocalChatDraw = (()=>{
 		freehandButton.click()
 		toggleInterface({target: toggleButton})
 		
-		let scale = Math.floor((drawArea.getBoundingClientRect().right - 200) / 200)
-		drawArea.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
+		let scale = Math.floor((document.body.getBoundingClientRect().right - 200) / 200)
+		$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
 	}
 	
 	let interfaceVisible = ()=>{
 		try {
-			return !drawArea.dataset.hidden
+			return !$root.dataset.hidden
 		} catch(ex) {
 			LogSystem.RootLogger.log("Error while checking interface visibility: " + ex)
 		}
@@ -679,10 +692,10 @@ let LocalChatDraw = (()=>{
 	
 	let toggleInterface = (event, allowResize)=>{
 		try {
-			if (drawArea.dataset.hidden)
-				delete drawArea.dataset.hidden
+			if ($root.dataset.hidden)
+				delete $root.dataset.hidden
 			else
-				drawArea.dataset.hidden = true
+				$root.dataset.hidden = true
 			
 			if (drawIframe && !firstTimeRecentered && (allowResize !== false)) {
 				console.debug("DOING A HIDDEN DISPLAY FORCE SIZE HACK")
@@ -697,38 +710,20 @@ let LocalChatDraw = (()=>{
 		}
 	}
 	
-	let dockInterface = (dock, drawArea2)=>{
-		try {
-			drawArea2 = drawArea2 || drawArea
-			let positionButton = drawArea2.querySelector("button.position")
-			if (dock) {
-				drawArea2.dataset.docked = true
-				positionButton.textContent = "◱"
-				writeStorage("chatDrawDocked", true)
-			} else {
-				delete drawArea2.dataset.docked
-				positionButton.textContent = "◲"
-				writeStorage("chatDrawDocked", false)
-			}
-		} catch(ex) {
-			LogSystem.RootLogger.log("Error while docking drawing interface: " + ex)
-		}
-	}
-	
 	let scaleInterface = (event)=>{
 		try {
-			let rect = drawArea.getBoundingClientRect()
+			let rect = $root.getBoundingClientRect()
 			
-			let scale = +drawArea.style.getPropertyValue('--scale') || 1
+			let scale = +$root.style.getPropertyValue('--scale') || 1
 			let originalWidth = rect.width / scale
 			
 			//Figure out the NEXT scale.
-			if (scale < maxScale && rect.right - originalWidth * (scale + 1) - 200 > 5)
+			if (scale < maxScale && document.body.getBoundingClientRect().right - (originalWidth) * (scale + 1) - 200 > 5)
 				scale++
 			else
 				scale = 1
 			
-			drawArea.style.setProperty('--scale', scale)
+			$root.style.setProperty('--scale', scale)
 		} catch(ex) {
 			LogSystem.RootLogger.log("Error while scaling drawing interface: " + ex)
 		}

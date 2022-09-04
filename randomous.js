@@ -42,7 +42,7 @@ Function.prototype.callBind = function() {
 
 let HTMLUtilities = {
 	_nextID: 0,
-	MoveToEnd(element)=>{
+	MoveToEnd(element) {
 		element.parentNode.appendChild(element)
 	},
 	GetUniqueID(base) {
@@ -810,11 +810,13 @@ let CanvasUtilities = {
 	},
 	DrawNormalSquareLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, ()=>{
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
+			return CanvasUtilities.PerformNormalEraser(ctx, function() {
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+				                                   CanvasUtilities._DrawNormalSquareLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+			                                   CanvasUtilities._DrawNormalSquareLineFunc)
 		}
 	},
 	//How to draw a single point on the NormalRound line
@@ -823,11 +825,13 @@ let CanvasUtilities = {
 	},
 	DrawNormalRoundLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, ()=>{
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
+			return CanvasUtilities.PerformNormalEraser(ctx, function() {
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+				                                   CanvasUtilities._DrawNormalRoundLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+			                                   CanvasUtilities._DrawNormalRoundLineFunc)
 		}
 	},
 	DrawHollowRectangle(ctx, x, y, x2, y2, width) {
@@ -913,7 +917,7 @@ let CanvasUtilities = {
 		let colorArray = color.ToArray(true)
 		if (color.MaxDifference(originalColor) <= threshold)
 			return
-		let floodFunction = (c, x, y, d)=>{
+		let floodFunction = function(c, x, y, d) {
 			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
 			if (originalColor.MaxDifference(currentColor) <= threshold) {
@@ -950,7 +954,7 @@ let CanvasUtilities = {
 	FromString(string) {
 		let canvas = document.createElement("canvas")
 		let image = new Image()
-		image.addEventListener("load", (e)=>{
+		image.addEventListener("load", function(e) {
 			canvas.width = image.width
 			canvas.height = image.height
 			canvas.getContext("2d").drawImage(image, 0, 0)
@@ -963,7 +967,7 @@ let CanvasUtilities = {
 		x = x || 0
 		y = y || 0
 		let image = new Image()
-		image.addEventListener("load", (e)=>{
+		image.addEventListener("load", function(e) {
 			canvas.getContext("2d").drawImage(image, x, y)
 			if (callback) callback(canvas, image)
 		})
@@ -990,7 +994,7 @@ let EventUtilities = {
 		else if (s === EventUtilities.SignalCodes.Run)
 			perform()
 		else
-			window.setTimeout(()=>{
+			window.setTimeout(function() {
 				EventUtilities.ScheduleWaitingTask(signal, perform, interval)
 			}, interval)
 	}
@@ -1000,13 +1004,13 @@ let EventUtilities = {
 // Functions which provide extra math functionality.
 
 let MathUtilities = {
-	Distance(x1, y1, x2, y2) {
+	Distance: function(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
-	Midpoint(x1, y1, x2, y2) {
+	Midpoint: function(x1, y1, x2, y2) {
 		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
 	},
-	MinMax(value, min, max) {
+	MinMax: function(value, min, max) {
 		if (min > max) {
 			let temp = min
 			min = max
@@ -1014,10 +1018,10 @@ let MathUtilities = {
 		}
 		return  Math.max(Math.min(value, max), min)
 	},
-	SlopeAngle(x,y) { 
+	SlopeAngle: function(x,y) { 
 		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
 	},
-	IntRandom(max, min) {
+	IntRandom: function(max, min) {
 		min = min || 0; //getOrDefault(min, 0)
 		
 		if (min > max) {
@@ -1028,32 +1032,32 @@ let MathUtilities = {
 		
 		return Math.floor((Math.random() * (max - min)) + min)
 	},
-	LinearInterpolate(y1, y2, mu) {
+	LinearInterpolate: function(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},
-	CosInterpolate (y1, y2, mu) {
+	CosInterpolate: function (y1, y2, mu) {
 		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
 	},
-	NewGuid() {
-		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, (c)=>{
+	NewGuid: function() {
+		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
 			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 		})
 	},
-	GetSquare(x, y, x2, y2) {
+	GetSquare: function(x, y, x2, y2) {
 		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
 	},
-	IsPointInSquare(point, square) {
+	IsPointInSquare: function(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
 			point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
 	Color: {
-		SetGray(f, arr) {
+		SetGray: function(f, arr) {
 			arr[0] = f
 			arr[1] = f
 			arr[2] = f
 		},
-		SetRGB(f, arr) {
+		SetRGB: function(f, arr) {
 			//Duplicate code but fewer branches
 			if (f < 0.5) {
 				arr[0] = 1 - 2 * f
@@ -1064,7 +1068,7 @@ let MathUtilities = {
 			}
 			arr[1] = 1 - Math.abs(f * 2 - 1)
 		},
-		SetHue(f, arr) {
+		SetHue: function(f, arr) {
 			if (f < 1 / 6) {
 				arr[0] = 1
 				arr[1] = f * 6

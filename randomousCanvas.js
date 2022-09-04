@@ -9,6 +9,8 @@
 // Auxiliary object for describing generic cursor actions and data. Useful for
 // unified mouse/touch systems (like CanvasPerformer)
 
+console.trace = ()=>{}
+
 class CursorActionData {
 	constructor(action, x, y, zoomDelta) {
 		this.action = action
@@ -235,11 +237,13 @@ class CanvasPerformer {
 		if (scalingX <= 0 || scalingY <= 0) return
 		
 		cursorData = this.GetModifiedCursorData(cursorData, e)
-		cursorData.x = (cursorData.x - (clientRect.left)) / scalingX
-		cursorData.y = (cursorData.y - (clientRect.top)) / scalingY
+		// assumes 1px border
+		cursorData.x = (cursorData.x - (clientRect.left + 1)) / scalingX
+		cursorData.y = (cursorData.y - (clientRect.top + 1)) / scalingY
 		
 		//console.log(scalingX + ", " + scalingY + ", " + cursorData.x + ", " + cursorData.y)
 		cursorData.targetElement = canvas
+		
 		cursorData.onTarget = (e.target === canvas)
 		//console.log("onTarget: " + cursorData.onTarget)
 		//cursorData.onTarget = (cursorData.x >= 0 && cursorData.y >= 0 &&
@@ -295,22 +299,21 @@ class CanvasDrawer extends CanvasPerformer {
 		this.buffers = []
 		this.frameActions = []
 		this.undoBuffer = false
-		this.tools = 
-			{
-				"freehand": new CanvasDrawerTool(CanvasDrawer.FreehandTool),
-				"eraser": new CanvasDrawerTool(CanvasDrawer.EraserTool),
-				"slow": new CanvasDrawerTool(CanvasDrawer.SlowTool),
-				"spray": new CanvasDrawerTool(CanvasDrawer.SprayTool),
-				"line": new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
-				"square": new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
-				"clear": new CanvasDrawerTool(CanvasDrawer.ClearTool),
-				"fill": new CanvasDrawerTool(CanvasDrawer.FillTool),
-				"dropper": new CanvasDrawerTool(CanvasDrawer.DropperTool),
-				"mover": new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
-			}
+		this.tools = {
+			freehand: new CanvasDrawerTool(CanvasDrawer.FreehandTool),
+			eraser: new CanvasDrawerTool(CanvasDrawer.EraserTool),
+			slow: new CanvasDrawerTool(CanvasDrawer.SlowTool),
+			spray: new CanvasDrawerTool(CanvasDrawer.SprayTool),
+			line: new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
+			square: new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
+			clear: new CanvasDrawerTool(CanvasDrawer.ClearTool),
+			fill: new CanvasDrawerTool(CanvasDrawer.FillTool),
+			dropper: new CanvasDrawerTool(CanvasDrawer.DropperTool),
+			mover: new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
+		}
 		
 		this.constants = {
-			"endInterrupt": CursorActions.End | CursorActions.Interrupt
+			endInterrupt: CursorActions.End | CursorActions.Interrupt
 		}
 		
 		this.tools.slow.stationaryReportInterval = 1
@@ -335,36 +338,35 @@ class CanvasDrawer extends CanvasPerformer {
 		this.ignoreCurrentStroke = false
 		
 		//All private stuff that's only used for our internal functions.
-		let me = this
 		let strokeCount = 0
 		let frameCount = 0
 		
-		this.StrokeCount = function() { return strokeCount; }
-		this.FrameCount = function() { return frameCount; }
+		this.StrokeCount = ()=>strokeCount
+		this.FrameCount = ()=>frameCount
 		
 		this.OnUndoStateChange = false
 		this.OnLayerChange = false
 		this.OnColorChange = false
-		this.OnAction = function(data, context) {
-			if (me.CheckToolValidity("tool") && (data.action & CursorActions.Drag)) {
-				data.color = me.color
-				data.lineWidth = me.lineWidth
-				data.lineShape = me.lineShape
-				data.opacity = me.opacity
+		this.OnAction = (data, context)=>{
+			if (this.CheckToolValidity("tool") && (data.action & CursorActions.Drag)) {
+				data.color = this.color
+				data.lineWidth = this.lineWidth
+				data.lineShape = this.lineShape
+				data.opacity = this.opacity
 				
-				if (me.lineShape === "hardcircle")
+				if (this.lineShape === "hardcircle")
 					data.lineFunction = CanvasUtilities.DrawSolidRoundLine
-				else if (me.lineShape === "hardsquare")
+				else if (this.lineShape === "hardsquare")
 					data.lineFunction = CanvasUtilities.DrawSolidSquareLine
-				else if (me.lineShape === "normalsquare")
+				else if (this.lineShape === "normalsquare")
 					data.lineFunction = CanvasUtilities.DrawNormalSquareLine
 				else
 					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
 				
 				//Replace this with some generic cursor drawing thing that takes both
 				//strings AND functions to draw the cursor.
-				if (!me.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
-					;//me._canvas.style.cursor = me.defaultCursor
+				if (!this.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
+					;//this._canvas.style.cursor = this.defaultCursor
 				
 				if (data.action & CursorActions.Start) {
 					data.oldX = data.x
@@ -373,46 +375,46 @@ class CanvasDrawer extends CanvasPerformer {
 					data.startY = data.y
 					strokeCount++
 				} else {
-					data.oldX = me.lastAction.x
-					data.oldY = me.lastAction.y
-					data.startX = me.lastAction.startX
-					data.startY = me.lastAction.startY
+					data.oldX = this.lastAction.x
+					data.oldY = this.lastAction.y
+					data.startX = this.lastAction.startX
+					data.startY = this.lastAction.startY
 				}
 				
-				if (me.CheckToolValidity("frameLock"))
-					me.frameActions.push({"data": data, "context": context})
+				if (this.CheckToolValidity("frameLock"))
+					this.frameActions.push({"data": data, "context": context})
 				else
-					me.PerformDrawAction(data, context)
+					this.PerformDrawAction(data, context)
 			}
 		}
-		this._doFrame = function() {
+		this._doFrame = ()=>{
 			frameCount++
 			
 			//Oh look, we were detached. How nice.
-			if (!me._canvas)
+			if (!this._canvas)
 				return
 			
 			//I don't care what the tool wants or what the settings are, all I care
 			//about is whether or not there are actions for me to perform. Maybe some
 			//other thing added actions; I shouldn't ignore those.
-			if (me.frameActions.length) {
-				for (let i = 0; i < me.frameActions.length; i++) {
-					if (me.frameActions[i].data.action & (CursorActions.Start | CursorActions.End) || i === me.frameActions.length - 1) {
-						me.PerformDrawAction(me.frameActions[i].data, me.frameActions[i].context)
+			if (this.frameActions.length) {
+				for (let i = 0; i < this.frameActions.length; i++) {
+					if (this.frameActions[i].data.action & (CursorActions.Start | CursorActions.End) || i === this.frameActions.length - 1) {
+						this.PerformDrawAction(this.frameActions[i].data, this.frameActions[i].context)
 					}
 				}
 				
-				me.frameActions = []
+				this.frameActions = []
 			}
 			//Only reperform the last action if there was no action this frame, both
 			//the tool and the reportInterval are valid, there even WAS a lastAction
 			//which had Drag but not Start/End, and it's far enough away from the
 			//last stationary report.
-			else if (me.CheckToolValidity("stationaryReportInterval") && me.CheckToolValidity("tool") &&  me.lastAction && (me.lastAction.action & CursorActions.Drag) && !(me.lastAction.action & (CursorActions.End)) && (frameCount % me.tools[me.currentTool].stationaryReportInterval) === 0) {
-				me.PerformDrawAction(me.lastAction, me.GetCurrentCanvas().getContext("2d"))
+			else if (this.CheckToolValidity("stationaryReportInterval") && this.CheckToolValidity("tool") &&  this.lastAction && (this.lastAction.action & CursorActions.Drag) && !(this.lastAction.action & (CursorActions.End)) && (frameCount % this.tools[this.currentTool].stationaryReportInterval) === 0) {
+				this.PerformDrawAction(this.lastAction, this.GetCurrentCanvas().getContext("2d"))
 			}
 			
-			requestAnimationFrame(me._doFrame)
+			requestAnimationFrame(this._doFrame)
 		}
 	}
 	
@@ -753,31 +755,32 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	FromString(string, callback) {
 		let object = JSON.parse(string)
-		let me = this
 		
 		//Version 1 stuff. May be used in other versions as well.
-		let version1LoadComplete = function() {
-			me.ResetUndoBuffer()
-			me.Redraw();     
-			if (callback) callback(this, object)
+		let version1LoadComplete = ()=>{
+			this.ResetUndoBuffer()
+			this.Redraw();     
+			if (callback)
+				callback(this, object)
 		}
-		let version1LayerLoad = function(layer, buffer, redrawCheck) {
+		let version1LayerLoad = (layer, buffer, redrawCheck)=>{
 			CanvasUtilities.DrawDataURL(layer, buffer.canvas, 0, 0, redrawCheck)
 		}
-		let version1BufferLoad = function(layerLoadFunction) {
+		let version1BufferLoad = (layerLoadFunction)=>{
 			let loadedBuffers = 0
-			let redrawCheck = function() {
+			let redrawCheck = ()=>{
 				loadedBuffers++
-				if (loadedBuffers >= object.layers.length) version1LoadComplete()
+				if (loadedBuffers >= object.layers.length)
+					version1LoadComplete()
 			}
 			for (let i = 0; i < object.layers.length; i++) {
-				me.buffers[i].canvas.width = object.width
-				me.buffers[i].canvas.height = object.height
-				layerLoadFunction(object.layers[i], me.buffers[i], redrawCheck)
+				this.buffers[i].canvas.width = object.width
+				this.buffers[i].canvas.height = object.height
+				layerLoadFunction(object.layers[i], this.buffers[i], redrawCheck)
 			}
 		}
 		
-		let version2LayerLoad = function(layer, buffer, redrawCheck) {
+		let version2LayerLoad = (layer, buffer, redrawCheck)=>{
 			buffer.opacity = layer.opacity
 			CanvasUtilities.DrawDataURL(layer.canvas, buffer.canvas, 0, 0, redrawCheck)
 		}

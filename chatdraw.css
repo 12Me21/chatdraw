@@ -1,50 +1,30 @@
-#sendpane {
+#sendpane > draw-area{
 	position: relative;
+	z-index: 1000;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	background-color: #F5F5F5CC;
+}
+
+:host {
+	display: flex;
 }
 
 draw-area {
-	display: block;
-	z-index: 10;
-	position: absolute;
-	background-color: rgba(245,245,245,0.80);
-	bottom: 2px;
-	right: -webkit-calc(3.25rem + 2px);
-	right: calc(3.25rem + 2px);
+	display: flex;
+	flex-flow: column;
 }
 
-draw-area[data-fixedsize] {
-	font-size: 0;
-	height: 80vh;
-	box-sizing: border-box;
-	border: 1px solid #BBB;
-	width: -webkit-calc(100% - 3.25rem - 3.25rem);
-	width: calc(100% - 3.25rem - 3.25rem);
+canvas-container {
+	position: relative;
 }
 
-draw-area[data-docked] {
-	position: fixed;
-	right: 0;
-	bottom: 0;
-	width: 75%;
-}
-
-draw-area[data-fixedsize] iframe {
-	border:none;
-	margin: 0;
-	padding: 0;
-	width: 100%;
-	height: -webkit-calc(100% - 50px);
-	height: calc(100% - 50px);
-}
-
-draw-area *:focus, draw-area:focus {
-	outline:none;
-}
-
-draw-area canvas, #messagepane canvas {
+canvas {
 	display: inline-block;
 	margin: 0.0rem;
 	padding: 0;
+	box-sizing: content-box;
 	vertical-align: bottom;
 	image-rendering: -moz-crisp-edges;
 	image-rendering: crisp-edges;
@@ -53,76 +33,52 @@ draw-area canvas, #messagepane canvas {
 	border: 1px solid #BBB;
 }
 
-draw-area canvas.lightbox {
+canvas.lightbox {
 	pointer-events:none;
 	position: absolute;
 	left: 0;
 	top: 0;
 }
 
-draw-area .overlay {
+.overlay {
 	position: absolute;
 	left: 0;
 	top: 0;
 }
 
-draw-area canvas {
-	border: none !important;
+canvas {
 	cursor: crosshair;
 }
 
-draw-area[data-hidden] {
-	width: unset;
-	height: unset;
-}
-draw-area[data-hidden] :not([data-keep]) {
-	display: none !important;
-}
-
-draw-area button-area {
-	display: block;
+button-area {
+	display: flex;
+	justify-content: flex-end;
 	font-size: 0;
-	background-color: #e9e9e6;
+	background: #E9E9E6;
+	border: 1px #BBB;
+	border-style: none solid;
 }
 
-draw-area > button-area {
-}
-
-draw-area:not([data-hidden]) > button-area  {
-	text-align: right;
-	border-left: 1px solid #BBB;
-	border-right: 1px solid #BBB;
-}
-
-draw-area button-area button {
-	display: inline-block;
+button-area button {
+	flex: none;
+	appearance: none;
 	border: none;
 	border-radius: unset;
-	/*height: 1.6rem;
-	width: 1.6rem;*/
-	height: 25px;
-	width: 25px;
-	font-size: 14px;
 	outline: none;
-	/*background-color: rgba(235,235,235,0.80);*/
 }
 
-draw-area button-area button:hover {
-	background-color: rgba(41,41,41,.1);
+button-area button:hover {
+	background: #2929291A;
 }
 
-draw-area button-area button:active {
-	transform: none !important;
-}
-
-draw-area button-area button:disabled {
+button-area button:disabled {
 	color: #666;
-	background-color: rgba(41,41,41,.1);
+	background: #2929291A;
 }
 
-draw-area button-area button[data-selected] {
-	background-color: #666; /*#666;*/
-	color: #e9e9e6;
+button-area button[data-selected] {
+	color: #E9E9E6;
+	background: #666;
 }
 
 chatdraw-controlcontainer {
@@ -130,7 +86,6 @@ chatdraw-controlcontainer {
 	display: inline-block;
 }
 
-/*.chatdrawdownload, .chatdrawcopy*/
 chatdraw-controlcontainer > a {
 	padding: 0 0.2em;
 	text-decoration: none !important;
@@ -143,52 +98,40 @@ chatdraw-controlcontainer .chatdrawplay {
 	font-size: 1.0rem;
 }
 
-draw-area animate-area {
-	position: absolute;
-	left: -201px; /* WARN: THIS ASSUMES 1px BORDER! */
-	top: 0;
+animate-area {
+	order: -1;
+	display: flex;
+	flex-flow: column;
 	width: 200px;
-	height: 150px;
-	display: block;
+	flex: none;
 	background-color: rgba(245,245,245,0.80);
 	border-left: 1px solid #BBB;
 	border-top: 1px solid #BBB;
 	border-bottom: 1px solid #BBB;
 }
 
-draw-area animate-area > * {
-	width: 100%;
+animate-area animate-frames {
+	flex: 1;
 }
 
-draw-area animate-area animate-scroller {
-	display: block;
-	height: -webkit-calc(100% - 50px);
-	height: calc(100% - 50px);
-	overflow-y: scroll;
-}
-
-draw-area animate-area animate-frames {
-	display: block;
-}
-
-draw-area animate-area animate-frame {
+animate-area animate-frame {
 	display: block;
 	position: relative;
 	padding: 2px 7px;
 	margin: 0;
 }
 
-draw-area animate-area animate-frame[data-selected] {
-	background-color: #666; /*#666;*/
+animate-area animate-frame[data-selected] {
+	background-color: #666;
 }
 
-draw-area animate-area animate-frames canvas {
+animate-area animate-frames canvas {
 	width: 100% !important;
 	box-sizing: border-box !important;
 	cursor: pointer;
 }
 
-draw-area animate-area animate-frame frame-controls {
+animate-area animate-frame frame-controls {
 	position: absolute;
 	left: 9px;
 	bottom: 4px;
@@ -199,7 +142,7 @@ draw-area animate-area animate-frame frame-controls {
 	/*font-size: 8px;*/
 }
 
-draw-area animate-area animate-frame frame-controls > * {
+animate-area animate-frame frame-controls > * {
 	height: 11px;
 	font-size: 9px;
 	padding: 0;
@@ -207,7 +150,7 @@ draw-area animate-area animate-frame frame-controls > * {
 	border-radius: 0;
 }
 
-draw-area animate-area animate-frame frame-controls button {
+animate-area animate-frame frame-controls button {
 	border: none;
 	background-color: transparent;
 	margin: 0;
@@ -216,48 +159,51 @@ draw-area animate-area animate-frame frame-controls button {
 	margin-left: 2px;
 }
 
-draw-area animate-area animate-frame frame-controls input {
+animate-area animate-frame frame-controls input {
 	width: 30px;
 	box-sizing: border-box;
 	border: 1px solid #BBB;
-	background-color: #e9e9e6;
+	background-color: #E9E9E6;
 }
 
-draw-area animate-area animate-frame frame-controls .left {
+animate-area animate-frame frame-controls .left {
 	float: left;
 	margin-left: 0px;
 	margin-right: 2px;
 }
 
-draw-area animate-area button-area input {
+animate-area button-area input {
 	height: 25px;
 	box-sizing: border-box;
 	border-radius: 0;
 	border: 1px solid #BBB;
-	background-color: #e9e9e6;
+	background-color: #E9E9E6;
 }
 
-draw-area animate-area button-area input[type="number"] {
+animate-area button-area input[type="number"] {
 	width: 50px;
 }
 
-draw-area animate-area button-area input[name="name"] {
+animate-area button-area input[name="name"] {
 	width: 125px;
 }
 
-draw-area {
+:host {
 	--scale: 1;
 }
-draw-area canvas {
-	width: calc(var(--scale) * 200px)
+animate-area {
+	--scale: 1;
 }
-draw-area animate-area {
-	height: calc(var(--scale) * 300px)
+canvas {
+	width: calc(var(--scale) * 200px);
 }
-draw-area:not([data-hidden]) > button-area button {
+button-area button {
 	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
+}
+animate-area animate-scroller {
+	flex: 1;
 }
 
 /*@media(min-width: 700px) {
