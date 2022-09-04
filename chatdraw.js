@@ -392,8 +392,7 @@ var LocalChatDraw = (function() {
 		
 		drawer = new CanvasDrawer();
 		drawer.Attach(canvas, [firstFrame.canvas], 5);
-		drawer.OnUndoStateChange = function() 
-		{
+		drawer.OnUndoStateChange = function() {
 			undoButton.disabled = !drawer.CanUndo();
 			redoButton.disabled = !drawer.CanRedo();
 		};
@@ -1071,8 +1070,7 @@ function fillStyleToRgb(fillStyle) {
 }
 
 //Convert a hex color into RGB values
-function hexToRGB(hex) 
-{
+function hexToRGB(hex) {
 	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 	var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
 	hex = hex.replace(shorthandRegex, function(m, r, g, b) 
@@ -1088,8 +1086,7 @@ function hexToRGB(hex)
 	] : null;
 }
 
-function rgbToHex(channels) 
-{
+function rgbToHex(channels) {
 	return "#" + ((1 << 24) + (channels[0] << 16) + (channels[1] << 8) + channels[2]).toString(16).slice(1);
 }
 
@@ -1353,15 +1350,13 @@ function AnimationPlayer(canvas, frames, repeatFunction, defaultTimeFunction) {
 	this._hiddenRepeat = true;
 	this._hiddenDefaultTime = 3;
 	
-	this.GetRepeat = repeatFunction || function(value) 
-	{ 
+	this.GetRepeat = repeatFunction || function(value) { 
 		if(value === undefined) 
 			return me._hiddenRepeat; 
 		else
 			me._hiddenRepeat = value;      
 	};
-	this.GetDefaultTime = defaultTimeFunction || function(value) 
-	{ 
+	this.GetDefaultTime = defaultTimeFunction || function(value) { 
 		if(value === undefined)
 			return me._hiddenDefaultTime; 
 		else
@@ -1407,8 +1402,7 @@ AnimationPlayer.prototype._Animate = function() {
 };
 
 AnimationPlayer.prototype.Play = function(startFrame) {
-	if(this.OnPlay) 
-	{
+	if(this.OnPlay) {
 		if(this.OnPlay(this) === false) {
 			console.debug("Play was cancelled by OnPlay");
 			return;
