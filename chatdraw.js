@@ -4,20 +4,12 @@
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
 
-//Make sure there's at least SOMETHING there. It won't log, but it won't throw
-//errors either (I think).
-if (!window.LogSystem)
-	window.LogSystem = {RootLogger: {log: (message, level)=>{
-		console.log(message)
-	}}}
-
 let LocalChatDraw = (()=>{
 	
 	//The chatdraw canvas's expected width and height
 	let chatDrawCanvasWidth = 200
 	let chatDrawCanvasHeight = 100
 	
-	let colorButtonClass = "colorChange"
 	let colorPicker = null
 	let drawArea = null
 	let $root = document.createElement('chat-draw')
@@ -28,8 +20,6 @@ let LocalChatDraw = (()=>{
 	let drawer = false
 	let animateFrames = false
 	let animationPlayer = false
-	let drawIframe
-	let firstTimeRecentered = false
 	
 	let saveInput = false
 	
@@ -50,7 +40,7 @@ let LocalChatDraw = (()=>{
 			var content = messageElement.querySelector('[data-encoding="draw"]')
 			
 			if (content) {
-				LogSystem.RootLogger.log("Converting drawing encoding to canvas image")
+				console.log("Converting drawing encoding to canvas image")
 				
 				var originalString = content.innerHTML
 				var parts = originalString.split(")")
@@ -92,7 +82,7 @@ let LocalChatDraw = (()=>{
 					animator.OnStop = (player)=>{
 						playButton.textContent = "►"
 					}
-					playButton.addEventListener("click", ()=>{
+					playButton.onclick = ()=>{
 						if (animator.IsPlaying())
 							animator.Stop()
 						else {
@@ -101,11 +91,11 @@ let LocalChatDraw = (()=>{
 							else
 								animator.Play()
 						}
-					})
+					}
 					var copyAnimation = document.createElement("a")
 					copyAnimation.textContent = "📋"
 					copyAnimation.title = "Copy whole animation"
-					copyAnimation.addEventListener("click", ()=>{
+					copyAnimation.onclick = ()=>{
 						UXUtilities.Confirm("Copying this animation will OVERWRITE your current animation. Make sure you save your work first! Are you sure you want to copy this animation?", (confirmed)=>{
 							if (!confirmed) return
 							RequestUtilities.XHRSimple(animationLink, (response)=>{
@@ -117,7 +107,7 @@ let LocalChatDraw = (()=>{
 								saveInput.value = ""
 							})
 						})
-					})
+					}
 					controlContainer.appendChild(copyAnimation)
 					controlContainer.appendChild(playButton)
 				} else {
@@ -129,16 +119,16 @@ let LocalChatDraw = (()=>{
 					var copyLink = document.createElement("a")
 					copyLink.textContent = "📋"
 					copyLink.className = "chatdrawcopy"
-					copyLink.addEventListener("click", ev=>{
+					copyLink.onclick = ev=>{
 						copyDrawing(originalString)
-					})
+					}
 					if (allowAnimation) controlContainer.appendChild(copyLink)
 					controlContainer.appendChild(downloadLink)
 				}
 				content.appendChild(controlContainer)
 			}
 		} catch(ex) {
-			LogSystem.RootLogger.log("Error while converting drawing message to canvas: " + ex)
+			console.error("Error while converting drawing message to canvas: " + ex)
 		}
 	}
 	
@@ -149,10 +139,8 @@ let LocalChatDraw = (()=>{
 			toolNames = [toolNames]
 		let nextTool = 0
 		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
-		//makeUnsubmittableButton()
-		//tButton.textContent = displayCharacters[nextTool]
 		tButton.className = "toolButton"
-		tButton.addEventListener('click', ev=>{
+		tButton.onclick = ev=>{
 			//First, deselect ALL other buttons
 			let toolButtons = drawArea.querySelectorAll("button.toolButton")
 			for (let i = 0; i < toolButtons.length; i++) {
@@ -168,7 +156,7 @@ let LocalChatDraw = (()=>{
 			tButton.textContent = displayCharacters[nextTool]
 			tButton.dataset.selected = true
 			drawer.currentTool = toolNames[nextTool]
-		})
+		}
 		return tButton
 	}
 	
@@ -318,7 +306,7 @@ let LocalChatDraw = (()=>{
 			redoButton.disabled = !drawer.CanRedo()
 		}
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
-		drawer.onlyInnerStrokes = false
+		//drawer.onlyInnerStrokes = false
 		
 		//Set up the color picker
 		colorPicker.type = 'color'
@@ -327,7 +315,7 @@ let LocalChatDraw = (()=>{
 		colorPicker.style.top = "-10000px"
 		colorPicker.style.width = "0"
 		colorPicker.style.height = "0"
-		colorPicker.addEventListener("change", (event)=>{
+		colorPicker.onchange = event=>{
 			let frame = animateFrames.GetFrame(); //GetSelectedFrame()
 			let newColor = StyleUtilities.GetColor(event.target.value)
 			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
@@ -342,46 +330,46 @@ let LocalChatDraw = (()=>{
 			//the palette back to the buttons (maybe with a call to "select" again)
 			frame.palette = ChatDrawUtilities.StringToPalette(getButtonColorString())
 			animateFrames.SetFrame(frame)
-		})
+		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		clearButton.textContent = "❌️"
-		clearButton.addEventListener("click", ev=>{
-			if (drawer.StrokeCount()) drawer.UpdateUndoBuffer()
-			CanvasUtilities.Clear(animateFrames.GetFrame().canvas, 
-			                      rgbToFillStyle(getClearColor()))
+		clearButton.onclick = ev=>{
+			if (drawer.StrokeCount())
+				drawer.UpdateUndoBuffer()
+			CanvasUtilities.Clear(animateFrames.GetFrame().canvas, rgbToFillStyle(getClearColor()))
 			drawer.Redraw()
-		})
-		drawArea.setAttribute("tabindex", "-1")
-		drawArea.addEventListener("keydown", ev=>{
+		}
+		$root.setAttribute("tabindex", "-1")
+		$root.addEventListener("keydown", ev=>{
 			if (drawArea.dataset.hidden) return
-			if (ev.keyCode === 40)
+			if (ev.key === 'ArrowUp')
 				selectNextRadio()
-			if (ev.keyCode === 38)
+			if (ev.key === 'ArrowDown')
 				selectPreviousRadio()
 		})
 		widthButton.textContent = defaultLineWidth - 1
 		widthButton.dataset.width = defaultLineWidth - 1
-		widthButton.addEventListener("click", ev=>{
+		widthButton.onclick = ev=>{
 			widthToggle(widthButton)
-		})
+		}
 		sendButton.textContent = "➥"
 		sendButton.dataset.button = "sendDrawing"
-		sendButton.addEventListener("click", ev=>{
+		sendButton.onclick = ev=>{
 			sendDrawing()
-		})
+		}
 		toggleButton.textContent = "✎"
-		toggleButton.addEventListener("click", toggleInterface)
+		toggleButton.onclick = toggleInterface
 		cSizeButton.textContent = "◲"
-		cSizeButton.addEventListener("click", scaleInterface)
+		cSizeButton.onclick = scaleInterface
 		undoButton.textContent = "↶"
-		undoButton.addEventListener("click", ev=>{
+		undoButton.onclick = ev=>{
 			drawer.Undo()
-		})
+		}
 		redoButton.textContent = "↷"
-		redoButton.addEventListener("click", ev=>{
+		redoButton.onclick = ev=>{
 			drawer.Redo()
-		})
+		}
 		drawer.DoUndoStateChange()
 		
 		//These are the only elements that will be displayed if the drawing area
@@ -398,14 +386,14 @@ let LocalChatDraw = (()=>{
 			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			colorButton.textContent = "■"
-			colorButton.className = colorButtonClass
-			colorButton.addEventListener("click", ev=>{
+			colorButton.className = 'colorChange'
+			colorButton.onclick = ev=>{
 				colorButtonSelect(colorButton, canvas)
-			})
+			}
 			
 			buttonArea.appendChild(colorButton)
 			
-			if (i === 1)
+			if (i == 1)
 				colorButton.click()
 		}
 		
@@ -461,13 +449,13 @@ let LocalChatDraw = (()=>{
 		frameSkip.title = "Frame skip (1=60fps)"
 		frameSkip.value = 3
 		
-		lightboxButton.addEventListener("click", event=>{
-			let next = Number(lightboxButton.textContent) + 1
+		lightboxButton.onclick = event=>{
+			let next = +lightboxButton.textContent + 1
 			if (next > 3)
 				next = -3
-			lightboxButton.textContent = String(next)
+			lightboxButton.textContent = next
 			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex())
-		})
+		}
 		
 		let saveAnimationWrapper = (name)=>{
 			UXUtilities.Toast("Saving... please wait")
@@ -510,7 +498,7 @@ let LocalChatDraw = (()=>{
 			})
 		}
 		
-		saveAnimationButton.addEventListener("click", (event)=>{
+		saveAnimationButton.onclick = (event)=>{
 			if (!saveInput.value) {
 				UXUtilities.Toast("You must give the animation a name!")
 				return
@@ -525,15 +513,15 @@ let LocalChatDraw = (()=>{
 					saveAnimationWrapper(saveInput.value)
 				}
 			})
-		})
+		}
 		
-		listAnimations.addEventListener("click", event=>{
+		listAnimations.onclick = event=>{
 			getAnimations((anims)=>{
 				localModuleMessage("Your animations: \n" + anims.join("\n"))
 			}, listAnimations)
-		})
+		}
 		
-		loadAnimationButton.addEventListener("click", event=>{
+		loadAnimationButton.onclick = event=>{
 			if (!saveInput.value) {
 				UXUtilities.Toast("You must give a name to load an animation!")
 				return
@@ -547,13 +535,13 @@ let LocalChatDraw = (()=>{
 					if (confirmed) loadAnimationWrapper(saveInput.value)
 				})
 			})
-		})
+		}
 		
-		newFrame.addEventListener("click", event=>{
+		newFrame.onclick = event=>{
 			animateFrames.InsertNewFrame(animateFrames.GetSelectedFrameIndex(), true)
-		})
+		}
 		
-		repeatAnimation.addEventListener("click", event=>{
+		repeatAnimation.onclick = event=>{
 			if (repeatAnimation.hasAttribute("data-repeat")) {
 				delete repeatAnimation.dataset.repeat
 				repeatAnimation.textContent = "→"
@@ -561,9 +549,9 @@ let LocalChatDraw = (()=>{
 				repeatAnimation.dataset.repeat = true
 				repeatAnimation.textContent = "⟲"
 			}
-		})
+		}
 		
-		sendAnimation.addEventListener("click", event=>{
+		sendAnimation.onclick = event=>{
 			UXUtilities.Confirm("A copy of your current animation will be created and become publicly available. Animation will use the currently selected frame as a title card. Are you sure you want to post your animation?", (confirmed)=>{
 				if (!confirmed)
 					return
@@ -580,9 +568,9 @@ let LocalChatDraw = (()=>{
 					}
 				}, uploadData)
 			})
-		})
+		}
 		
-		exportAnimation.addEventListener("click", ev=>{
+		exportAnimation.onclick = ev=>{
 			UXUtilities.Confirm("Your animation will be captured as-is and turned into a gif. Frame timings may be slightly off due to gif timings, particularly lower frame times. Are you ready to export your animation?", (confirmed)=>{
 				if (!confirmed)
 					return
@@ -601,7 +589,7 @@ let LocalChatDraw = (()=>{
 					}
 				}, uploadData)
 			})
-		})
+		}
 		
 		animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{ 
 			if (newValue === undefined) {
@@ -642,12 +630,12 @@ let LocalChatDraw = (()=>{
 			lightbox.style.display = ""
 		}
 		
-		playPause.addEventListener("click", event=>{
+		playPause.onclick = event=>{
 			if (animationPlayer.IsPlaying())
 				animationPlayer.Stop()
 			else
 				animationPlayer.Play(animateFrames.GetSelectedFrameIndex())
-		})
+		}
 		
 		animateControls.appendChild(newFrame)
 		animateControls.appendChild(frameSkip)
@@ -692,31 +680,14 @@ let LocalChatDraw = (()=>{
 	}
 	
 	let interfaceVisible = ()=>{
-		try {
-			return !$root.dataset.hidden
-		} catch(ex) {
-			LogSystem.RootLogger.log("Error while checking interface visibility: " + ex)
-		}
+		return !$root.dataset.hidden
 	}
 	
 	let toggleInterface = (event, allowResize)=>{
-		try {
-			if ($root.dataset.hidden)
-				delete $root.dataset.hidden
-			else
-				$root.dataset.hidden = true
-			
-			if (drawIframe && !firstTimeRecentered && (allowResize !== false)) {
-				console.debug("DOING A HIDDEN DISPLAY FORCE SIZE HACK")
-				drawIframe.contentWindow.postMessage({recenter:true}, "*")
-				drawIframe.contentWindow.postMessage({recenter:true}, "*")
-				//because I don't feel like figuring out why it requires two so I
-				//just let it happen twice.
-				firstTimeRecentered = true
-			}
-		} catch(ex) {
-			LogSystem.RootLogger.log("Error while toggling drawing interface: " + ex)
-		}
+		if ($root.dataset.hidden)
+			delete $root.dataset.hidden
+		else
+			$root.dataset.hidden = true
 	}
 	
 	let scaleInterface = (event)=>{
@@ -734,7 +705,7 @@ let LocalChatDraw = (()=>{
 			
 			$root.style.setProperty('--scale', scale)
 		} catch(ex) {
-			LogSystem.RootLogger.log("Error while scaling drawing interface: " + ex)
+			console.error("Error while scaling drawing interface: " + ex)
 		}
 	}
 	
@@ -767,15 +738,12 @@ let LocalChatDraw = (()=>{
 	let sendDrawing = (animationLink)=>{
 		try {
 			let message = animateFrames.GetFrame().ToString()
-			if (animationLink) message = "(" + animationLink + ")" + message
+			if (animationLink)
+				message = "(" + animationLink + ")" + message
 			sendMessage("/drawsubmit " + message, false)
 		} catch(ex) {
-			LogSystem.RootLogger.log("Error while sending drawing: " + ex)
+			console.error("Error while sending drawing: " + ex)
 		}
-	}
-	
-	let sendDrawing2 = ()=>{
-		drawIframe.contentWindow.postMessage({uploadImage:true}, "*")
 	}
 	
 	//Get the colors from the drawing area buttons
@@ -810,7 +778,7 @@ let LocalChatDraw = (()=>{
 	
 	//Get the buttons representing the color switching
 	let getColorButtons = ()=>{
-		return drawArea.querySelectorAll("button-area button." + colorButtonClass)
+		return drawArea.querySelectorAll("button-area button.colorChange")
 	}
 	
 	return {
@@ -971,31 +939,32 @@ class AnimatorFrameSet {
 		let frameData = new AnimatorFrame(canvas, palette, 0)
 		
 		let frame = document.createElement(this.FrameTag)
-		let frameControls = document.createElement(this.FrameControlTag)
-		let frameTime = document.createElement("input")
-		let frameCopy = HTMLUtilities.CreateUnsubmittableButton("📋")
-		let framePaste = HTMLUtilities.CreateUnsubmittableButton("📤")
-		let frameDelete = HTMLUtilities.CreateUnsubmittableButton("✖")
-		
-		frameTime.setAttribute(this.FrameTimeAttribute, "")
-		frameTime.className = "left"
-		frameTime.title = "Individual frame time"
-		frameCopy.className = "left"
-		frameCopy.title = "Copy frame content"
-		framePaste.title = "Paste frame content"
-		frameDelete.className = "alerthover"
-		frameDelete.title = "Delete frame (cannot be undone!)"
-		
-		frame.addEventListener("click", e=>{
+		frame.onclick = ev=>{
 			me._SelectFrame(frame)
-		})
+		}
+		frame.appendChild(canvas)
 		
-		frameCopy.addEventListener("click", event=>{
+		let frameControls = document.createElement(this.FrameControlTag)
+		frame.appendChild(frameControls)
+		
+		let frameTime = document.createElement("input")
+		frameTime.setAttribute(this.FrameTimeAttribute, "")
+		frameTime.title = "Individual frame time"
+		frameControls.append(frameTime)
+		
+		let frameCopy = HTMLUtilities.CreateUnsubmittableButton("📋")
+		frameCopy.title = "Copy frame content"
+		frameCopy.onclick = event=>{
 			StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, me._GetDataFromFrame(frame).ToString())
 			UXUtilities.Toast("Copied frame to clipboard (chatdraw only!)")
-		})
+		}
+		frameControls.append(frameCopy)
 		
-		framePaste.addEventListener("click", event=>{
+		frameControls.append(document.createElement('spacer'))
+		
+		let framePaste = HTMLUtilities.CreateUnsubmittableButton("📤")
+		framePaste.title = "Paste frame content"
+		framePaste.onclick = event=>{
 			let clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
 			let myData = me._GetDataFromFrame(frame)
 			
@@ -1009,9 +978,13 @@ class AnimatorFrameSet {
 			} else {
 				UXUtilities.Toast("No chatdraw on clipboard")
 			}
-		})
+		}
+		frameControls.appendChild(framePaste)
 		
-		frameDelete.addEventListener("click", event=>{
+		let frameDelete = HTMLUtilities.CreateUnsubmittableButton("✖")
+		frameDelete.className = "alerthover"
+		frameDelete.title = "Delete frame (cannot be undone!)"
+		frameDelete.onclick = event=>{
 			if (me.GetFrameCount() === 1) {
 				UXUtilities.Toast("You can't delete the only frame!")
 				return
@@ -1028,14 +1001,8 @@ class AnimatorFrameSet {
 					frame.remove()
 				}
 			})
-		})
-		
-		frameControls.appendChild(frameTime)
-		frameControls.appendChild(frameCopy)
-		frameControls.appendChild(frameDelete)
-		frameControls.appendChild(framePaste)
-		frame.appendChild(canvas)
-		frame.appendChild(frameControls)
+		}
+		frameControls.append(frameDelete)
 		
 		this._FillFrameWithData(frame, frameData)
 		
@@ -1049,7 +1016,8 @@ class AnimatorFrameSet {
 		else
 			frames[index].after(frame)
 		
-		if (selectNow) this._SelectFrame(frame)
+		if (selectNow)
+			this._SelectFrame(frame)
 		
 		return frameData
 	}
@@ -1256,7 +1224,7 @@ let ChatDrawUtilities = {
 		new Color(0, 0, 255)
 	],
 	
-	PaletteToString: (palette)=>{
+	PaletteToString(palette) {
 		let colorSet = ""
 		
 		for (let i = 0; i < palette.length; i++) {
@@ -1266,7 +1234,7 @@ let ChatDrawUtilities = {
 		
 		return colorSet
 	},
-	StringToPalette: (string)=>{
+	StringToPalette(string) {
 		let colors = string.split("/")
 		let result = []
 		
@@ -1276,7 +1244,7 @@ let ChatDrawUtilities = {
 		return result
 	},
 	
-	GetClearColor: (palette)=>{
+	GetClearColor(palette) {
 		let max = 0
 		let clearColor = 0
 		
@@ -1292,7 +1260,7 @@ let ChatDrawUtilities = {
 		return palette[clearColor]
 	},
 	
-	CreateCanvas: ()=>{
+	CreateCanvas() {
 		let canvas = document.createElement("canvas")
 		canvas.width = ChatDrawUtilities.DefaultWidth
 		canvas.height = ChatDrawUtilities.DefaultHeight
@@ -1301,7 +1269,7 @@ let ChatDrawUtilities = {
 	},
 	
 	//First canvas is bottom
-	CreateLightbox: (frames, destination, opacities)=>{
+	CreateLightbox(frames, destination, opacities) {
 		CanvasUtilities.Clear(destination)
 		
 		let context = destination.getContext("2d")
@@ -1319,7 +1287,7 @@ let ChatDrawUtilities = {
 		}
 	},
 	
-	FrameToChatDraw: (frame)=>{
+	FrameToChatDraw(frame) {
 		let time = performance.now()
 		
 		let canvas = frame.canvas
@@ -1387,14 +1355,13 @@ let ChatDrawUtilities = {
 		return encodedString
 	},
 	
-	ChatDrawToFrame: (string)=>{
+	ChatDrawToFrame(string) {
 		//Legacy images need their original palette. The new images will have the
 		//palette encoded within them.
 		let width = ChatDrawUtilities.DefaultWidth
 		let height = ChatDrawUtilities.DefaultHeight
 		let palette = ChatDrawUtilities.LegacyColors; //ChatDrawUtilities.BaseColors; //legacyPalette.slice()
 		let realData = LZString.decompressFromBase64(string)
-		let i, j, k
 		
 		//Fix up the palette data based on legacy support. If legacy is detected
 		//(ie we have less than or equal to the minimum amount of bytes necessary) 
@@ -1403,17 +1370,13 @@ let ChatDrawUtilities = {
 		if (realData.length > Math.ceil((width * height)/ 4)) {
 			//The very last byte tells us how many palette colors there are. 
 			let paletteCount = realData.charCodeAt(realData.length - 1)
-			
 			palette = []
-			
 			//Now read all the "apparent" palette bytes.
-			for (i = 0; i < paletteCount; i++) {
+			for (let i = 0; i < paletteCount; i++) {
 				let color = []
-				
 				//build color from 3 channels
-				for (j = 0; j < 3; j++)
+				for (let j = 0; j < 3; j++)
 					color.push(realData.charCodeAt(realData.length - 1 - (paletteCount - i) * 3 + j));   
-				
 				palette.push(new Color(color[0], color[1], color[2]))
 			}
 		}
@@ -1435,11 +1398,11 @@ let ChatDrawUtilities = {
 		let pixelsPerByte = Math.floor(8 / bitsPerPixel)
 		
 		byte_loop: //loop over all the bytes.
-		for (i = 0; i < realData.length; i++) {
+		for (let i=0; i<realData.length; i++) {
 			currentByte = realData.charCodeAt(i)
 			
 			//Loop over the pixels within the bytes! Usually 4 for legacy
-			for (j = 0; j < pixelsPerByte; j++) {
+			for (let j=0; j<pixelsPerByte; j++) {
 				//AND out the bits that we actually want.
 				currentPalette = currentByte & ((1 << bitsPerPixel) - 1)
 				

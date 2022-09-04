@@ -16,7 +16,7 @@
 
 // --- Library OnLoad Setup ---
 // This stuff needs to be performed AFTER the document is loaded and all that.
-window.addEventListener("DOMContentLoaded", ()=>{
+document.addEventListener("DOMContentLoaded", ()=>{
 	UXUtilities._Setup()
 })
 
@@ -277,11 +277,12 @@ class DialogBox {
 		
 		for (let i = 0; i < buttons.length; i++) {
 			let btext = buttons[i]
-			if (buttons[i].text) btext = buttons[i].text
+			if (buttons[i].text)
+				btext = buttons[i].text
 			let callback = buttons[i].callback
 			let newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
 			
-			newButton.addEventListener("click", ev=>{
+			newButton.onclick = ev=>{
 				dialog.remove()
 				
 				if (this.container.childNodes.length === 0)
@@ -289,7 +290,7 @@ class DialogBox {
 				
 				if (callback)
 					callback()
-			})
+			}
 			
 			dialogButtons.appendChild(newButton)
 		}
@@ -395,14 +396,14 @@ let RequestUtilities = {
 		}
 		
 		//Use generic completion function with given success callback
-		xhr.addEventListener("load", event=>{
+		xhr.onload = event=>{
 			try {
 				callback(event.target.response)
 			} catch(e) {
 				console.log("Oops, XHR callback didn't work. Dumping exception")
 				console.log(e)
 			}
-		})
+		}
 		
 		if (data)
 			xhr.send(data)
@@ -601,13 +602,15 @@ let CanvasUtilities = {
 		let newCanvas = document.createElement("canvas")
 		newCanvas.width = width
 		newCanvas.height = height
-		if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
+		if (copyImage)
+			CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
 		return newCanvas
 	},
 	CopyInto(context, canvas, x, y) {
 		//x and y are the offset locations to place the copy into on the
 		//receiving canvas
-		x = x || 0; y = y || 0
+		x = x || 0
+		y = y || 0
 		let oldComposition = context.globalCompositeOperation
 		context.globalCompositeOperation = "copy"
 		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y)
@@ -713,16 +716,14 @@ let CanvasUtilities = {
 		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear)
 	},
 	DrawSolidSquareLine(ctx, sx, sy, tx, ty, width, clear) {
-		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
-		                                   CanvasUtilities._DrawSolidSquareLineFunc)
+		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, CanvasUtilities._DrawSolidSquareLineFunc)
 	},
 	//How to draw a single point on the SolidRound line
 	_DrawSolidRoundLineFunc(ctx, x, y, width, clear) { 
 		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear)
 	},
 	DrawSolidRoundLine(ctx, sx, sy, tx, ty, width, clear) {
-		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
-		                                   CanvasUtilities._DrawSolidRoundLineFunc)
+		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, CanvasUtilities._DrawSolidRoundLineFunc)
 	},
 	//How to draw a single point on the NormalSquare line
 	_DrawNormalSquareLineFunc(ctx, x, y, width, clear) { 
@@ -731,12 +732,10 @@ let CanvasUtilities = {
 	DrawNormalSquareLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
 			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-				                                   CanvasUtilities._DrawNormalSquareLineFunc)
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-			                                   CanvasUtilities._DrawNormalSquareLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
 		}
 	},
 	//How to draw a single point on the NormalRound line
@@ -746,12 +745,10 @@ let CanvasUtilities = {
 	DrawNormalRoundLine(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
 			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-				                                   CanvasUtilities._DrawNormalRoundLineFunc)
+				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
 			})
 		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-			                                   CanvasUtilities._DrawNormalRoundLineFunc)
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
 		}
 	},
 	DrawHollowRectangle(ctx, x, y, x2, y2, width) {
@@ -762,8 +759,10 @@ let CanvasUtilities = {
 		return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width)
 	},
 	ComputeBoundingBox(x, y, x2, y2, width) {
-		return [Math.min(x, x2) - width, Math.min(y, y2) - width,
-		        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1]
+		return [
+			Math.min(x, x2) - width, Math.min(y, y2) - width,
+			Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1
+		]
 	},
 	ComputeTotalBoundingBox(boxes) {
 		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
@@ -793,17 +792,17 @@ let CanvasUtilities = {
 	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
 	//falls outside the canvas.
 	ImageDataCoordinate(context, x, y) {
-		if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height)
+		if (x < 0 || x >= context.canvas.width || y < 0 || y >= context.canvas.height)
 			return -1
 		return 4 * (x + y * context.canvas.width)
 	},
 	GenericFlood(context, x, y, floodFunction) {
-		x = Math.floor(x); y = Math.floor(y)
+		x = Math.floor(x)
+		y = Math.floor(y)
 		let canvas = context.canvas
 		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		let data = iData.data
 		let queueX = [], queueY = []
-		let west, east, row, column
 		let enqueue = (qx, qy)=>{
 			queueX.push(qx)
 			queueY.push(qy)
@@ -811,25 +810,29 @@ let CanvasUtilities = {
 		if (floodFunction(context, x, y, data))
 			enqueue(x, y)
 		while (queueX.length) {
-			column = queueX.shift()
-			row = queueY.shift()
+			let column = queueX.shift()
+			let row = queueY.shift()
 			//Move west until it is just outside the range we want to fill. Move
 			//east in a similar manner.
-			for (west = column - 1; west >= -1 && floodFunction(context, west, row, data); west--)
-				for (east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++)
-					//Move from west to east EXCLUSIVE and fill the queue with matching
-					//north and south nodes.
-					for (column = west + 1; column < east; column++) {
-						if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
-							enqueue(column, row + 1)
-						if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
-							enqueue(column, row - 1)
-					}
+			let west, east
+			for (west = column-1; west>=-1 && floodFunction(context, west, row, data); west--)
+				;
+			for (east = column+1; east<=canvas.width && floodFunction(context, east, row, data); east++)
+				;
+			//Move from west to east EXCLUSIVE and fill the queue with matching
+			//north and south nodes.
+			for (column = west+1; column<east; column++) {
+				if (row+1 < canvas.height && floodFunction(context, column, row+1, data))
+					enqueue(column, row+1)
+				if (row-1 >= 0 && floodFunction(context, column, row-1, data))
+					enqueue(column, row-1)
+			}
 		}
 		context.putImageData(iData, 0, 0)
 	},
 	FloodFill(context, sx, sy, color, threshold) {
-		sx = Math.floor(sx); sy = Math.floor(sy)
+		sx = Math.floor(sx)
+		sy = Math.floor(sy)
 		console.debug("Flood filling starting from " + sx + ", " + sy)
 		threshold = threshold || 0
 		let originalColor = CanvasUtilities.GetColor(context, sx, sy)
@@ -872,11 +875,11 @@ let CanvasUtilities = {
 	FromString(string) {
 		let canvas = document.createElement("canvas")
 		let image = new Image()
-		image.addEventListener("load", ev=>{
+		image.onload = ev=>{
 			canvas.width = image.width
 			canvas.height = image.height
 			canvas.getContext("2d").drawImage(image, 0, 0)
-		})
+		}
 		image.src = string
 		return canvas
 	},
@@ -885,11 +888,11 @@ let CanvasUtilities = {
 		x = x || 0
 		y = y || 0
 		let image = new Image()
-		image.addEventListener("load", ev=>{
+		image.onload = ev=>{
 			canvas.getContext("2d").drawImage(image, x, y)
 			if (callback)
 				callback(canvas, image)
-		})
+		}
 		image.src = string
 	}
 }

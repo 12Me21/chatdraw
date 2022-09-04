@@ -195,8 +195,8 @@ class CanvasPerformer {
 		this._oldStyle = canvas.style.touchAction
 		
 		canvas.style.touchAction = "none"
-		document.addEventListener("mousedown", this._evMD)
-		document.addEventListener("touchstart", this._evTC)
+		canvas.addEventListener("mousedown", this._evMD)
+		canvas.addEventListener("touchstart", this._evTC)
 		canvas.addEventListener("touchstart", this._evPrevent); //Stops initial tuochmove distance cutoff
 		canvas.addEventListener("wheel", this._evMW)
 		canvas.addEventListener("contextmenu", this._evPrevent)
@@ -211,8 +211,8 @@ class CanvasPerformer {
 		if (!this._canvas)
 			throw "This CanvasPerformer is is not attached to a canvas!"
 		
-		document.removeEventListener("mousedown", this._evMD)
-		document.removeEventListener("touchstart", this._evTC)
+		canvas.removeEventListener("mousedown", this._evMD)
+		canvas.removeEventListener("touchstart", this._evTC)
 		canvas.removeEventListener("wheel", this._evMW)
 		canvas.removeEventListener("touchstart", this._evPrevent)
 		canvas.removeEventListener("contextmenu", this._evPrevent)
@@ -504,11 +504,11 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	//This is for both undos and redos
-	_PerformUndoRedoSwap(swapFunction) {
+	_PerformUndoRedoSwap(which) {
 		//Figure out which static canvas we're going to use to store our current state.
 		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
 		//Perform the actual action with a non-filled current state (just to get it in there)
-		let nextState = swapFunction(currentState)
+		let nextState = this.undoBuffer[which](currentState)
 		//The reason we don't fill in currentState until now is because we need the nextState data
 		currentState.id = nextState.id
 		this.currentLayer = nextState.id
@@ -523,13 +523,13 @@ class CanvasDrawer extends CanvasPerformer {
 	Undo() {
 		if (!this.CanUndo())
 			return
-		this._PerformUndoRedoSwap(this.undoBuffer.Undo.bind(this.undoBuffer))
+		this._PerformUndoRedoSwap('Undo')
 	}
 	
 	Redo() {
 		if (!this.CanRedo())
 			return
-		this._PerformUndoRedoSwap(this.undoBuffer.Redo.bind(this.undoBuffer))
+		this._PerformUndoRedoSwap('Redo')
 	}
 	
 	ClearUndoBuffer() {
@@ -833,15 +833,13 @@ class CanvasDrawer extends CanvasPerformer {
 	//Square tool (uses overlay)
 	static SquareTool(data, context) {
 		if (data.action & CursorActions.End) {
-			return CanvasUtilities.DrawHollowRectangle(context, 
-			                                           data.startX, data.startY, data.x, data.y, data.lineWidth)
+			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
 		}
 	}
 	
 	static SquareOverlay(data, context) {
 		if ((data.action & CursorActions.End) === 0) {
-			return CanvasUtilities.DrawHollowRectangle(context, 
-			                                           data.startX, data.startY, data.x, data.y, data.lineWidth)
+			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
 		} else {
 			return false
 		}
@@ -861,8 +859,7 @@ class CanvasDrawer extends CanvasPerformer {
 			CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
 			return true; //just redraw everything. No point optimizing
 		} else if (data.action & CursorActions.End) {
-			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, 
-			                                   drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
 			drawer.moveToolLayer = false
 			return true; //just redraw everything. No point optimizing.
 		} else {
@@ -1020,9 +1017,10 @@ class CanvasDrawer extends CanvasPerformer {
 			let color = StyleUtilities.GetColor(data.color)
 			let ocolorArray = originalColor.ToArray(true)
 			let colorArray = color.ToArray(true)
-			if (color.MaxDifference(originalColor) <= drawer.floodThreshold) return
+			if (color.MaxDifference(originalColor) <= drawer.floodThreshold)
+				return
 			
-			CanvasUtilities.GenericFlood(context, sx, sy, function(c, x, y, d) {
+			CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
 				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 				let currentColor = new Color(copyData[i], copyData[i+1], copyData[i+2], copyData[i+3]/255)
 				if (originalColor.MaxDifference(currentColor) <= drawer.floodThreshold) {

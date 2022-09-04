@@ -132,10 +132,10 @@ animate-area animate-frames canvas {
 }
 
 animate-area animate-frame frame-controls {
+	display: flex;
 	position: absolute;
 	left: 9px;
 	bottom: 4px;
-	display: block;
 	width: -webkit-calc(100% - 18px);
 	width: calc(100% - 18px);
 	vertical-align: bottom;
@@ -143,6 +143,7 @@ animate-area animate-frame frame-controls {
 }
 
 animate-area animate-frame frame-controls > * {
+	flex: none;
 	height: 11px;
 	font-size: 9px;
 	padding: 0;
@@ -155,7 +156,6 @@ animate-area animate-frame frame-controls button {
 	background-color: transparent;
 	margin: 0;
 	padding: 0;
-	float: right;
 	margin-left: 2px;
 }
 
@@ -167,7 +167,6 @@ animate-area animate-frame frame-controls input {
 }
 
 animate-area animate-frame frame-controls .left {
-	float: left;
 	margin-left: 0px;
 	margin-right: 2px;
 }
@@ -186,6 +185,14 @@ animate-area button-area input[type="number"] {
 
 animate-area button-area input[name="name"] {
 	width: 125px;
+}
+
+button {
+	cursor: pointer;
+}
+
+spacer {
+	flex: 1 !important;
 }
 
 :host {
