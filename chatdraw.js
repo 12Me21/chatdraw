@@ -260,8 +260,8 @@ let LocalChatDraw = (function() {
 		animateFrames.SelectFrameIndex(0)
 	}
 	
-	let setupInterface = function(interfaceContainer, skipChatSetup) {
-		let messagePane = interfaceContainer || document.querySelector("#sendpane")
+	let setupInterface = function(interfaceContainer) {
+		let messagePane = interfaceContainer
 		let i
 		
 		drawArea = document.createElement("draw-area")
@@ -670,10 +670,6 @@ let LocalChatDraw = (function() {
 		drawArea.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
-		
-		//Now set up the overall document events.
-		if (!skipChatSetup)
-			document.querySelector("#sendpane textarea").addEventListener("keyup", onKeyUp)
 	}
 	
 	let interfaceVisible = function() {
@@ -814,17 +810,6 @@ let LocalChatDraw = (function() {
 	//Get the buttons representing the color switching
 	let getColorButtons = function() {
 		return drawArea.querySelectorAll("button-area button." + colorButtonClass)
-	}
-	
-	let onKeyUp = function(event) {
-		try {
-			if (event.target.value.length > hideCharacters)
-				drawArea.style.visibility = "hidden"
-			else
-				drawArea.style.visibility = "visible"
-		} catch(ex) {
-			LogSystem.RootLogger.log("Couldn't hide or unhide drawing toggle: " + ex)
-		}
 	}
 	
 	return {
