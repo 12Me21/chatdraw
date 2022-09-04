@@ -17,7 +17,7 @@
 
 // --- Library OnLoad Setup ---
 // This stuff needs to be performed AFTER the document is loaded and all that.
-window.addEventListener("load", function() {
+window.addEventListener("DOMContentLoaded", function() {
 	UXUtilities._Setup()
 })
 
@@ -41,73 +41,14 @@ Function.prototype.callBind = function() {
 // Encode or decode HTML entitities / generate unique IDs for elements / etc.
 
 var HTMLUtilities = {
-	_nextID : 0,
-	UnescapeHTML : function(string) {
-		var elem = document.createElement("textarea")
-		elem.innerHTML = string
-		return elem.value
-	},
-	EscapeHTML : function(html) {
-		var text = document.createTextNode(html)
-		var div = document.createElement('div')
-		div.appendChild(text)
-		return div.innerHTML
-	},
-	RemoveSelf : function(element) {
-		element.parentNode.removeChild(element)
-	},
-	InsertBeforeSelf : function(newElement, element) {
-		element.parentNode.insertBefore(newElement, element)
-	},
-	InsertAfterSelf : function(newElement, element) {
-		element.parentNode.insertBefore(newElement, element.nextSibling)
-	},
-	InsertFirst : function(newElement, parent) {
-		parent.insertBefore(newElement, parent.firstElementChild)
-	},
-	Replace : function(oldElement, newElement) {
-		HTMLUtilities.InsertBeforeSelf(newElement, oldElement)
-		HTMLUtilities.RemoveSelf(oldElement)
-	},
-	MoveToEnd : function(element) {
+	_nextID: 0,
+	MoveToEnd: function(element) {
 		element.parentNode.appendChild(element)
 	},
-	GetUniqueID : function(base) {
+	GetUniqueID: function(base) {
 		return "genID_" + this._nextID++ + (base ? "_" + base : "")
 	},
-	NodeListToArray : function(nodeList) {
-		var tempArray = []
-		
-		for(var i = 0; i < nodeList.length; i++)
-			tempArray.push(nodeList[i])
-		
-		return tempArray
-	},
-	FindParentFromAction : function(element, action) {
-		var nextElement = element
-		
-		while(!action(nextElement)) {
-			if (nextElement.tagName.toLowerCase() === "body")
-				return false
-			
-			nextElement = nextElement.parentNode
-		}
-		
-		return nextElement
-	},
-	FindParentWithClass : function(element, className) {
-		var regex = new RegExp("\\b" + className + "\\b")
-		
-		return HTMLUtilities.FindParentFromAction(element, function(nextElement) {
-			return regex.test(nextElement.className)
-		}); 
-	},
-	FindParentWithTag : function(element, tagName) {
-		return HTMLUtilities.FindParentFromAction(element, function(nextElement) {
-			return nextElement.tagName.toLowerCase() === tagName.toLowerCase()
-		})
-	},
-	SimulateRadioSelect : function(selected, parent, selectedAttribute, selectedValue) {
+	SimulateRadioSelect: function(selected, parent, selectedAttribute, selectedValue) {
 		selectedAttribute = selectedAttribute || "data-selected"
 		selectedValue = selectedValue || "true"
 		var fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
@@ -115,35 +56,36 @@ var HTMLUtilities = {
 			fakeRadios[i].removeAttribute(selectedAttribute)
 		selected.setAttribute(selectedAttribute, selectedValue)
 	},
-	CreateUnsubmittableButton : function(text) {
+	CreateUnsubmittableButton: function(text) {
 		var button = document.createElement('button')
 		button.setAttribute("type", "button")
-		if (text) button.innerHTML = text
+		if (text) button.textContent = text
 		return button
 	},
-	CreateContainer : function(className, id) {
+	CreateContainer: function(className, id) {
 		var container = document.createElement("div")
 		container.className = className
-		if (id) container.id = id
+		if (id)
+			container.id = id
 		container.dataset.createdon = new Date().getTime()
 		return container
 	},
-	CreateSelect : function(options, name) {
+	CreateSelect: function(options, name) {
 		var select = document.createElement("select")
 		if (name) select.setAttribute("name", name)
-		for(var i = 0; i < options.length; i++) {
+		for (var i = 0; i < options.length; i++) {
 			var option = document.createElement("option")
 			if (options[i].value && options[i].text) {
-				option.innerHTML = options[i].text
+				option.textContent = options[i].text
 				option.setAttribute("value", options[i].value)
 			} else {
-				option.innerHTML = options[i]
+				option.textContent = options[i]
 			}
 			select.appendChild(option)
 		}
 		return select
 	},
-	SwapElements : function (obj1, obj2) {
+	SwapElements: function (obj1, obj2) {
 		// save the location of obj2
 		var parent2 = obj2.parentNode
 		var next2 = obj2.nextSibling
@@ -166,73 +108,71 @@ var HTMLUtilities = {
 	}
 }
 
-//Allows the generation of a simulated radio using any type of element. More
-//robust than the HTMLUtilities function; allows selection of radios based on
-//string value.
-var RadioSimulator = function(container, attribute, callback, clickCycle) {
-	this.container = container
-	this.attribute = attribute
-	this.callback = callback
-	this.clickCycle = clickCycle
-	this.selectedAttribute = "data-selected"
-}
-
-//Allows manual selection of radio button. Can also select by value (simply
-//pass the string value of the button to select.)
-RadioSimulator.prototype.SelectRadio = function(button) {
-	console.debug("Selecting radio: ")
-	console.debug(button)
-	
-	if ('string'===typeof(button)) {
-		button = this.container.querySelector('[' + this.attribute + '="' + button + '"]')
-	} else if (this.clickCycle && button.hasAttribute(this.selectedAttribute)) {
-		var radios = this.container.querySelectorAll("[" + this.attribute + "]")
-		for(var i = 0; i < radios.length; i++) {
-			if (radios[i] === button) {
-				button = radios[(i + 1) % radios.length]
-				break
-			}
-		}
-	}
-	
-	var value = button.getAttribute(this.attribute)
-	
-	if (!value) {
-		console.log("Could not select radio using this button! There is no " + this.attribute + " attribute!")
-		return
-	}
-	
-	if (this.callback)
-		this.callback(value, button)
-	
-	if (!this.container) {
-		console.log("There is no container for this RadioSimulator!")
-		return
-	}
-	
-	HTMLUtilities.SimulateRadioSelect(button, this.container, this.selectedAttribute)
-}
-
-RadioSimulator.prototype.CreateRadioButton = function(text, value) {
-	var button = HTMLUtilities.CreateUnsubmittableButton(text); 
-	var me = this
-	button.setAttribute(this.attribute, value)
-	button.addEventListener("click", function(e) { me.SelectRadio(button); })
-	return button
-}
-
-RadioSimulator.prototype.GetSelected = function() {
-	return this.container.querySelector("[" + this.selectedAttribute + "]")
-}
-
 //Provides toast messages in a container centered near the bottom of the
 //screen. You can create multiple toasters, but by default they'll all overlap
 //each other. If you need custom styling per toaster, style off the
 //container.id
-function Toaster() {
-	this.minDuration = 2000
-	this.maxDuration = 10000
-	this.container = false
+class Toaster {
+	constructor() {
+		this.minDuration = 2000
+		this.maxDuration = 10000
+		this.container = false
+	}
+	
+	Attach(toasterParent) {
+		Toaster.TrySetDefaultStyles()
+		if (this.container)
+			throw "Toaster already attached: " + this.container.id
+		
+		this.container = HTMLUtilities.CreateContainer(Toaster.ContainerClass, HTMLUtilities.GetUniqueID("toastContainer"))
+		
+		toasterParent.appendChild(this.container)
+	}
+	
+	AttachFullscreen(toasterParent) {
+		this.Attach(toasterParent || document.body)
+		this.container.dataset.fullscreen = "true"
+	}
+	
+	Detach() {
+		if (!this.container)
+			throw "Toaster not attached yet!"
+		
+		this.container.remove()
+		this.container = false
+	}
+	
+	Toast(text, duration) {
+		if (!this.container)
+			throw "Toaster not attached yet!"
+		
+		duration = duration || MathUtilities.MinMax(text.length * 50, this.minDuration, this.maxDuration)
+		
+		var toast = document.createElement("div")
+		toast.className = Toaster.ToastClass
+		toast.dataset.createdon = new Date().getTime()
+		toast.dataset.initialize = "true"
+		toast.dataset.fadingin = "true"
+		toast.textContent = text
+		
+		console.debug("Popping toast: " + text)
+		this.container.appendChild(toast)
+		
+		setTimeout(function() {
+			toast.removeAttribute("data-initialize")
+		}, 10)
+		//Give a big buffer zone of fadingin just in case people have long effects
+		setTimeout(function() {
+			toast.removeAttribute("data-fadingin")
+		}, 1000)
+		setTimeout(function() {
+			toast.dataset.fadingout = "true"
+		}, duration)
+		//Give a big buffer zone of fadingout just in case people have long effects
+		setTimeout(function() {
+			toast.remove()
+		}, duration + 2000)
+	}
 }
 
 Toaster.ToastClass = "randomousToast"
@@ -244,70 +184,50 @@ Toaster.TrySetDefaultStyles = function() {
 	
 	if (style) {
 		console.log("Setting up Toast default styles for the first time")
-		style.AppendClasses(Toaster.ContainerClass, [
-			"position:absolute","bottom:1em","left:50%","transform:translate(-50%,0)",
-			"z-index:2000000000","pointer-events: none"])
+		style.AppendClasses(Toaster.ContainerClass, ["position:absolute","bottom:1em","left:50%","transform:translate(-50%,0)", "z-index:2000000000","pointer-events: none"])
 		style.Append("." + Toaster.ContainerClass + "[data-fullscreen]", ["position:fixed"])
-		style.AppendClasses(Toaster.ToastClass, [
-			"max-width: 70vw","font-family:monospace","font-size:0.8rem",
-			"padding:0.5em 0.7em","background-color:#EEE","border-radius:0.5em",
-			"color:#333","opacity:1.0","transition: opacity 1s", "display: block",
-			"margin-bottom:0.1em","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)",
-			"overflow: hidden","text-overflow: ellipsis","text-align: center"])
+		style.AppendClasses(Toaster.ToastClass, ["max-width: 70vw","font-family:monospace","font-size:0.8rem", "padding:0.5em 0.7em","background-color:#EEE","border-radius:0.5em", "color:#333","opacity:1.0","transition: opacity 1s", "display: block", "margin-bottom:0.1em","box-shadow: 0 0 1em -0.3em rgba(0,0,0,0.6)", "overflow: hidden","text-overflow: ellipsis","text-align: center"])
 		style.Append("." + Toaster.ToastClass + "[data-fadingout]", ["opacity:0"])
 		style.Append("." + Toaster.ToastClass + "[data-initialize]", ["opacity:0"])
 		style.Append("." + Toaster.ToastClass + "[data-fadingin]", ["transition:opacity 0.2s"])
 	}
 }
 
-Toaster.prototype.Attach = function(toasterParent) {
-	Toaster.TrySetDefaultStyles()
-	if (this.container)
-		throw "Toaster already attached: " + this.container.id
-	
-	this.container = HTMLUtilities.CreateContainer(Toaster.ContainerClass, HTMLUtilities.GetUniqueID("toastContainer"))
-	
-	toasterParent.appendChild(this.container)
-}
-
-Toaster.prototype.AttachFullscreen = function(toasterParent) {
-	this.Attach(toasterParent || document.body)
-	this.container.dataset.fullscreen = "true"
-}
-
-Toaster.prototype.Detach = function() {
-	if (!this.container) throw "Toaster not attached yet!"
-	
-	HTMLUtilities.RemoveSelf(this.container)
-	this.container = false
-}
-
-Toaster.prototype.Toast = function(text, duration) {
-	if (!this.container) throw "Toaster not attached yet!"
-	
-	duration = duration || MathUtilities.MinMax(text.length * 50, this.minDuration, this.maxDuration); 
-	
-	var toast = document.createElement("div")
-	toast.className = Toaster.ToastClass
-	toast.dataset.createdon = new Date().getTime()
-	toast.dataset.initialize = "true"
-	toast.dataset.fadingin = "true"
-	toast.innerHTML = text
-	
-	console.debug("Popping toast: " + text)
-	this.container.appendChild(toast); 
-	
-	setTimeout(function() { toast.removeAttribute("data-initialize"); }, 10)
-	//Give a big buffer zone of fadingin just in case people have long effects
-	setTimeout(function() { toast.removeAttribute("data-fadingin"); }, 1000)
-	setTimeout(function() { toast.dataset.fadingout = "true"; }, duration)
-	//Give a big buffer zone of fadingout just in case people have long effects
-	setTimeout(function() { HTMLUtilities.RemoveSelf(toast); }, duration + 2000)
-}
-
 //Allows fading of any element it's attached to. Element must have position:
 //relative or absolute or something.
-function Fader() { }
+class Fader {
+	Attach(faderParent) {
+		Fader.TrySetDefaultStyles()
+		if (this.element)
+			throw "Tried to attach fader but already attached: " + this.element.id
+		this.element = Fader.CreateFadeElement()
+		faderParent.appendChild(this.element)
+	}
+	
+	AttachFullscreen(faderParent) {
+		this.Attach(faderParent || document.body)
+		this.element.dataset.fullscreen = "true"
+	}
+	
+	Detach() {
+		if (!this.element)
+			throw "Not attached yet"
+		this.element.remove()
+		this.element = false
+	}
+	
+	Fade(fadeDuration, color, cover) {
+		if (cover)
+			this.element.style.pointerEvents = "auto"
+		else
+			this.element.style.pointerEvents = "none"
+		
+		this.element.style.transition = "background-color " + fadeDuration + "ms"
+		setTimeout(()=>{
+			this.element.style.backgroundColor = color
+		}, 1)
+	}
+}
 
 Fader.FaderClass = "randomousFader"
 Fader.StyleID = HTMLUtilities.GetUniqueID("faderStyle")
@@ -333,45 +253,82 @@ Fader.CreateFadeElement = function() {
 	return element
 }
 
-Fader.prototype.Attach = function(faderParent) {
-	Fader.TrySetDefaultStyles()
-	if (this.element) throw "Tried to attach fader but already attached: " + this.element.id
-	this.element = Fader.CreateFadeElement(); 
-	faderParent.appendChild(this.element)
-}
-
-Fader.prototype.AttachFullscreen = function(faderParent) {
-	this.Attach(faderParent || document.body)
-	this.element.dataset.fullscreen = "true"
-}
-
-Fader.prototype.Detach = function() {
-	if (!this.element) throw "Not attached yet"
-	HTMLUtilities.RemoveSelf(this.element)
-	this.element = false
-}
-
-Fader.prototype.Fade = function(fadeDuration, color, cover) {
-	if (cover)
-		this.element.style.pointerEvents = "auto"
-	else
-		this.element.style.pointerEvents = "none"
-	
-	this.element.style.transition = "background-color " + fadeDuration + "ms"
-	var me = this
-	setTimeout(function() { me.element.style.backgroundColor = color; }, 1)
-}
-
 //Creates a dialog-box complete with buttons. A good replacement for
 //alert/confirm/etc.
-function DialogBox() {
-	//Since fader is "internal", parameters for fading should be too.
-	this.fader = new Fader()
-	this.fadeInTime = 100
-	this.fadeOutTime = 100
-	this.fadeColor = "rgba(0,0,0,0.5)"
+class DialogBox {
+	constructor() {
+		//Since fader is "internal", parameters for fading should be too.
+		this.fader = new Fader()
+		this.fadeInTime = 100
+		this.fadeOutTime = 100
+		this.fadeColor = "rgba(0,0,0,0.5)"
+		
+		this.container = false
+	}
 	
-	this.container = false
+	Attach(dialogParent) {
+		DialogBox.TrySetDefaultStyles()
+		if (this.container)
+			throw "DialogBox already attached: " + this.container.id
+		
+		this.container = HTMLUtilities.CreateContainer(DialogBox.ContainerClass,
+		                                               HTMLUtilities.GetUniqueID("dialogContainer"))
+		
+		this.fader.Attach(dialogParent)
+		dialogParent.appendChild(this.container)
+	}
+	
+	AttachFullscreen(dialogParent) {
+		this.Attach(dialogParent || document.body)
+		this.fader.Detach()
+		this.fader.AttachFullscreen(dialogParent)
+		this.container.dataset.fullscreen = "true"
+	}
+	
+	Detach() {
+		if (!this.container) throw "DialogBox not attached yet!"
+		
+		this.fader.Detach()
+		this.container.remove()
+		this.container = false
+	}
+	
+	Show(text, buttons) {
+		var dialog = HTMLUtilities.CreateContainer(DialogBox.DialogClass)
+		var dialogText = document.createElement("span")
+		var dialogButtons = HTMLUtilities.CreateContainer(DialogBox.ButtonContainerClass)
+		dialogText.innerHTML = text
+		dialogText.className = DialogBox.TextClass
+		dialog.appendChild(dialogText)
+		dialog.appendChild(dialogButtons)
+		
+		var i
+		var me = this
+		
+		for(i = 0; i < buttons.length; i++) {
+			var btext = buttons[i]
+			if (buttons[i].text) btext = buttons[i].text
+			var callback = buttons[i].callback
+			var newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
+			
+			/* jshint ignore: start */
+			newButton.addEventListener("click", function(callback) {
+				dialog.remove()
+				
+				if (me.container.childNodes.length === 0)
+					me.fader.Fade(me.fadeOutTime, "rgba(0,0,0,0)", false)
+				
+				if (callback)
+					callback()
+			}.callBind(callback))
+			/* jshint ignore: end */
+			
+			dialogButtons.appendChild(newButton)
+		}
+		
+		this.fader.Fade(this.fadeInTime, this.fadeColor, true)
+		this.container.appendChild(dialog)
+	}
 }
 
 DialogBox.DialogClass = "randomousDialog"
@@ -407,197 +364,129 @@ DialogBox.TrySetDefaultStyles = function() {
 	}
 }
 
-DialogBox.prototype.Attach = function(dialogParent) {
-	DialogBox.TrySetDefaultStyles()
-	if (this.container)
-		throw "DialogBox already attached: " + this.container.id
-	
-	this.container = HTMLUtilities.CreateContainer(DialogBox.ContainerClass,
-	                                               HTMLUtilities.GetUniqueID("dialogContainer"))
-	
-	this.fader.Attach(dialogParent)
-	dialogParent.appendChild(this.container)
-}
-
-DialogBox.prototype.AttachFullscreen = function(dialogParent) {
-	this.Attach(dialogParent || document.body)
-	this.fader.Detach()
-	this.fader.AttachFullscreen(dialogParent)
-	this.container.dataset.fullscreen = "true"
-}
-
-DialogBox.prototype.Detach = function() {
-	if (!this.container) throw "DialogBox not attached yet!"
-	
-	this.fader.Detach()
-	HTMLUtilities.RemoveSelf(this.container)
-	this.container = false
-}
-
-DialogBox.prototype.Show = function(text, buttons) {
-	var dialog = HTMLUtilities.CreateContainer(DialogBox.DialogClass)
-	var dialogText = document.createElement("span")
-	var dialogButtons = HTMLUtilities.CreateContainer(DialogBox.ButtonContainerClass)
-	dialogText.innerHTML = text
-	dialogText.className = DialogBox.TextClass
-	dialog.appendChild(dialogText)
-	dialog.appendChild(dialogButtons)
-	
-	var i
-	var me = this
-	
-	for(i = 0; i < buttons.length; i++) {
-		var btext = buttons[i]
-		if (buttons[i].text) btext = buttons[i].text
-		var callback = buttons[i].callback
-		var newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
-		
-		/* jshint ignore: start */
-		newButton.addEventListener("click", function(callback) {
-			HTMLUtilities.RemoveSelf(dialog)
-			
-			if (me.container.childNodes.length === 0)
-				me.fader.Fade(me.fadeOutTime, "rgba(0,0,0,0)", false)
-			
-			if (callback)
-				callback()
-		}.callBind(callback))
-		/* jshint ignore: end */
-		
-		dialogButtons.appendChild(newButton)
-	}
-	
-	me.fader.Fade(me.fadeInTime, me.fadeColor, true)
-	me.container.appendChild(dialog)
-}
-
 // --- UXUtilities ---
 // Utilities specifically for User Experience. Things like custom alerts,
 // custom confirms, toast, etc. 
 
-var UXUtilities = 
-	{
-		UtilitiesContainer : HTMLUtilities.CreateContainer("randomousUtilitiesContainer", 
-		                                                   HTMLUtilities.GetUniqueID("utilitiesContainer")),
-		_DefaultToaster : new Toaster(),
-		_ScreenFader : new Fader(),
-		_DefaultDialog : new DialogBox(),
-		_Setup : function() {
-			document.body.appendChild(UXUtilities.UtilitiesContainer)
-			UXUtilities._DefaultToaster.AttachFullscreen(UXUtilities.UtilitiesContainer)
-			UXUtilities._ScreenFader.AttachFullscreen(UXUtilities.UtilitiesContainer)
-			UXUtilities._DefaultDialog.AttachFullscreen(UXUtilities.UtilitiesContainer)
-		},
-		Toast : function(message, duration) { 
-			UXUtilities._DefaultToaster.Toast(message,duration)
-		},
-		FadeScreen : function(duration, color) {
-			UXUtilities._ScreenFader.Fade(duration, color)
-		},
-		Confirm : function(message, callback, yesMessage, noMessage) {
-			UXUtilities._DefaultDialog.Show(message, [
-				{ text: noMessage || "No", callback: function() { callback(false); }},
-				{ text: yesMessage || "Yes", callback: function() { callback(true); }}
-			])
-		},
-		Alert : function(message, callback, okMessage) {
-			UXUtilities._DefaultDialog.Show(message, [
-				{ text: okMessage || "OK", callback: function() { if (callback) callback(); }}
-			])
-		}
+var UXUtilities = {
+	UtilitiesContainer: HTMLUtilities.CreateContainer("randomousUtilitiesContainer", HTMLUtilities.GetUniqueID("utilitiesContainer")),
+	_DefaultToaster: new Toaster(),
+	_ScreenFader: new Fader(),
+	_DefaultDialog: new DialogBox(),
+	_Setup: function() {
+		document.body.appendChild(UXUtilities.UtilitiesContainer)
+		UXUtilities._DefaultToaster.AttachFullscreen(UXUtilities.UtilitiesContainer)
+		UXUtilities._ScreenFader.AttachFullscreen(UXUtilities.UtilitiesContainer)
+		UXUtilities._DefaultDialog.AttachFullscreen(UXUtilities.UtilitiesContainer)
+	},
+	Toast: function(message, duration) { 
+		UXUtilities._DefaultToaster.Toast(message,duration)
+	},
+	FadeScreen: function(duration, color) {
+		UXUtilities._ScreenFader.Fade(duration, color)
+	},
+	Confirm: function(message, callback, yesMessage, noMessage) {
+		UXUtilities._DefaultDialog.Show(message, [
+			{text: noMessage || "No", callback: function() { callback(false); }},
+			{text: yesMessage || "Yes", callback: function() { callback(true); }}
+		])
+	},
+	Alert: function(message, callback, okMessage) {
+		UXUtilities._DefaultDialog.Show(message, [
+			{ text: okMessage || "OK", callback: function() { if (callback) callback(); }}
+		])
 	}
+}
 
 // --- StorageUtilities ---
 // Retrieve and store data put into browser storage (such as cookies,
 // localstorage, etc.
 
-var StorageUtilities =
-	{
-		GetAllCookies : function() {
-			var cookies = {}
-			var cookieStrings = document.cookie.split(";")
+var StorageUtilities = {
+	GetAllCookies: function() {
+		var cookies = {}
+		var cookieStrings = document.cookie.split(";")
+		
+		for(var i = 0; i < cookieStrings.length; i++) {
+			var matches = /([^=]+)=(.*)/.exec(cookieStrings[i])
 			
-			for(var i = 0; i < cookieStrings.length; i++) {
-				var matches = /([^=]+)=(.*)/.exec(cookieStrings[i])
-				
-				if (matches && matches.length >= 3)
-					cookies[matches[1].trim()] = matches[2].trim()
-			}
-			
-			return cookies
-		},
-		GetPHPSession : function() {
-			return StorageUtilities.GetAllCookies().PHPSESSID
-		},
-		WriteSafeCookie : function(name, value, expireDays) {
-			var expire = new Date()
-			var storeValue = btoa(JSON.stringify(value))
-			expireDays = expireDays || 356
-			expire.setTime(expire.getTime() + (expireDays * 24 * 60 * 60 * 1000))
-			document.cookie = name + "=" + storeValue + "; expires=" + expire.toUTCString()
-		},
-		ReadRawCookie : function(name) {
-			return StorageUtilities.GetAllCookies()[name]
-		},
-		ReadSafeCookie : function(name) {
-			var raw = StorageUtilities.ReadRawCookie(name)
-			
-			if (raw)
-				return JSON.parse(atob(raw))
-			
-			return null
-		},
-		HasCookie : function(name) {
-			return name in StorageUtilities.GetAllCookies()
-		},
-		WriteLocal : function(name, value) {
-			localStorage.setItem(name, JSON.stringify(value))
-		},
-		ReadLocal : function (name) {
-			try
-			{
-				return JSON.parse(localStorage.getItem(name))
-			} catch(error) {
-				//console.log("Failed to retrieve " + name + " from local storage")
-				return undefined
-			}
+			if (matches && matches.length >= 3)
+				cookies[matches[1].trim()] = matches[2].trim()
+		}
+		
+		return cookies
+	},
+	GetPHPSession: function() {
+		return StorageUtilities.GetAllCookies().PHPSESSID
+	},
+	WriteSafeCookie: function(name, value, expireDays) {
+		var expire = new Date()
+		var storeValue = btoa(JSON.stringify(value))
+		expireDays = expireDays || 356
+		expire.setTime(expire.getTime() + (expireDays * 24 * 60 * 60 * 1000))
+		document.cookie = name + "=" + storeValue + "; expires=" + expire.toUTCString()
+	},
+	ReadRawCookie: function(name) {
+		return StorageUtilities.GetAllCookies()[name]
+	},
+	ReadSafeCookie: function(name) {
+		var raw = StorageUtilities.ReadRawCookie(name)
+		
+		if (raw)
+			return JSON.parse(atob(raw))
+		
+		return null
+	},
+	HasCookie: function(name) {
+		return name in StorageUtilities.GetAllCookies()
+	},
+	WriteLocal: function(name, value) {
+		localStorage.setItem(name, JSON.stringify(value))
+	},
+	ReadLocal: function (name) {
+		try
+		{
+			return JSON.parse(localStorage.getItem(name))
+		} catch(error) {
+			//console.log("Failed to retrieve " + name + " from local storage")
+			return undefined
 		}
 	}
+}
 
 // --- URLUtilities ---
 // Functions for parsing/manipulating URLs and... stuff.
 
-var URLUtilities =
-	{
-		GetQueryString : function(url) {
-			var queryPart = url.match(/(\?[^#]*)/)
-			if (!queryPart) return ""
-			return queryPart[1]
-		},
-		//Taken from Tarik on StackOverflow:
-		//http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
-		GetQueryVariable : function(variable, url) {
-			var query = url ? URLUtilities.GetQueryString(url) : window.location.search
-			var vars = query.substring(1).split('&')
+var URLUtilities = {
+	GetQueryString: function(url) {
+		var queryPart = url.match(/(\?[^#]*)/)
+		if (!queryPart) return ""
+		return queryPart[1]
+	},
+	//Taken from Tarik on StackOverflow:
+	//http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
+	GetQueryVariable: function(variable, url) {
+		var query = url ? URLUtilities.GetQueryString(url) : window.location.search
+		var vars = query.substring(1).split('&')
+		
+		for (var i = 0; i < vars.length; i++) {
+			var pair = vars[i].split('=')
 			
-			for (var i = 0; i < vars.length; i++) {
-				var pair = vars[i].split('=')
-				
-				if (decodeURIComponent(pair[0]) == variable) 
-					return decodeURIComponent(pair[1])
-			}
-			
-			return null
-		},
-		AddQueryVariable : function(variable, value, url) {
-			if (URLUtilities.GetQueryString(url)) 
-				url += "&"; 
-			else
-				url += "?"
-			
-			return url + variable + "=" + value
+			if (decodeURIComponent(pair[0]) == variable) 
+				return decodeURIComponent(pair[1])
 		}
+		
+		return null
+	},
+	AddQueryVariable: function(variable, value, url) {
+		if (URLUtilities.GetQueryString(url)) 
+			url += "&"
+		else
+			url += "?"
+		
+		return url + variable + "=" + value
 	}
+}
 
 //Special console logging
 var _loglevel = 0
@@ -621,180 +510,177 @@ if (_loglevel >= 100) {
 // --- Request ---
 // Helpers for POST/GET requests
 
-var RequestUtilities = 
-	{
-		XHRSimple : function(page, callback, data, extraHeaders) {
-			var xhr = new XMLHttpRequest()
-			
-			if (data)
-				xhr.open("POST", page)
-			else
-				xhr.open("GET", page)
-			
-			if (extraHeaders) {
-				for(var key in extraHeaders) {
-					if (extraHeaders.hasOwnProperty(key))
-						xhr.setRequestHeader(key, extraHeaders[key])
-				}
+var RequestUtilities = {
+	XHRSimple: function(page, callback, data, extraHeaders) {
+		var xhr = new XMLHttpRequest()
+		
+		if (data)
+			xhr.open("POST", page)
+		else
+			xhr.open("GET", page)
+		
+		if (extraHeaders) {
+			for(var key in extraHeaders) {
+				if (extraHeaders.hasOwnProperty(key))
+					xhr.setRequestHeader(key, extraHeaders[key])
 			}
-			
-			//Use generic completion function with given success callback
-			xhr.addEventListener("load", function(event) {
-				try
-				{
-					callback(event.target.response)
-				} catch(e) {
-					console.log("Oops, XHR callback didn't work. Dumping exception")
-					console.log(e)
-				}
-			})
-			
-			if (data)
-				xhr.send(data)
-			else
-				xhr.send()
-		},
-		XHRJSON: function(page, callback, data) {
-			RequestUtilities.XHRSimple(page, function(response) {
-				callback(JSON.parse(response))
-			}, data, {"Content-type": "application/json"})
 		}
+		
+		//Use generic completion function with given success callback
+		xhr.addEventListener("load", function(event) {
+			try {
+				callback(event.target.response)
+			} catch(e) {
+				console.log("Oops, XHR callback didn't work. Dumping exception")
+				console.log(e)
+			}
+		})
+		
+		if (data)
+			xhr.send(data)
+		else
+			xhr.send()
+	},
+	XHRJSON: function(page, callback, data) {
+		RequestUtilities.XHRSimple(page, function(response) {
+			callback(JSON.parse(response))
+		}, data, {"Content-type": "application/json"})
 	}
+}
 
 // --- Color / Color Utilities ---
 // Functions objects for working with colors in a generic way. Any canvas
 // functions will use this object rather than some specific format.
-function Color(r,g,b,a) {
-	this.r = r
-	this.g = g
-	this.b = b
-	this.a = a; //This should be a decimal a ranging from 0 to 1
-	if (this.a === undefined) this.a = 1
-}
-
-Color.prototype.ToArray = function(expandedAlpha) {
-	return [this.r, this.g, this.b, this.a * (expandedAlpha ? 255 : 1)]
-}
-
-Color.prototype.ToRGBString = function() {
-	var pre = "rgb"
-	var vars = this.r + "," + this.g + "," + this.b
-	if (this.a !== 1) {
-		pre += "a"
-		vars += "," + this.a
+class Color {
+	constructor(r, g, b, a=1) {
+		this.r = r
+		this.g = g
+		this.b = b
+		this.a = a; //This should be a decimal a ranging from 0 to 1
 	}
-	return pre + "(" + vars + ")"
-}
-
-Color.prototype.ToHexString = function(includeAlpha) {
-	var string = "#" + this.r.toString(16).padStart(2, "0") + 
-		this.g.toString(16).padStart(2, "0") + 
-		this.b.toString(16).padStart(2, "0")
 	
-	if (includeAlpha)
-		string += (255 * this.a).toString(16).padStart(2, "0")
+	ToArray(expandedAlpha) {
+		return [this.r, this.g, this.b, this.a * (expandedAlpha ? 255 : 1)]
+	}
 	
-	return string
-}
-
-//Find the maximum difference between the channels of two colors.
-Color.prototype.MaxDifference = function(compareColor) {
-	return Math.max(
-		Math.abs(this.r - compareColor.r), 
-		Math.abs(this.g - compareColor.g), 
-		Math.abs(this.b - compareColor.b), 
-		Math.abs(this.a - compareColor.a) * 255)
+	ToRGBString() {
+		var pre = "rgb"
+		var vars = this.r + "," + this.g + "," + this.b
+		if (this.a !== 1) {
+			pre += "a"
+			vars += "," + this.a
+		}
+		return pre + "(" + vars + ")"
+	}
+	
+	ToHexString(includeAlpha) {
+		var string = "#" + this.r.toString(16).padStart(2, "0") + 
+			this.g.toString(16).padStart(2, "0") + 
+			this.b.toString(16).padStart(2, "0")
+		
+		if (includeAlpha)
+			string += (255 * this.a).toString(16).padStart(2, "0")
+		
+		return string
+	}
+	
+	//Find the maximum difference between the channels of two colors.
+	MaxDifference(compareColor) {
+		return Math.max(
+			Math.abs(this.r - compareColor.r), 
+			Math.abs(this.g - compareColor.g), 
+			Math.abs(this.b - compareColor.b), 
+			Math.abs(this.a - compareColor.a) * 255)
+	}
 }
 
 // --- StyleUtilities ---
 // Functions for working with styles and colors. Some of these may have a poor
 // runtime
 
-var StyleUtilities =
-	{
-		_cContext : document.createElement("canvas").getContext("2d"),
-		GetColor : function(input) {
-			this._cContext.clearRect(0,0,1,1)
-			this._cContext.fillStyle = input
-			this._cContext.fillRect(0,0,1,1)
-			var data = this._cContext.getImageData(0,0,1,1).data
-			return new Color(data[0], data[1], data[2], data[3] / 255)
-		},
-		_GetColorMath : function(f, func) {
-			var arr = [0,0,0]
-			func(f, arr)
-			return new Color(255 * arr[0], 255 * arr[1], 255 * arr[2], 1)
-		},
-		GetGray : function(f) {
-			return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetGray)
-		},
-		GetRGB : function(f) {
-			return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetRGB)
-		},
-		GetHue : function(f) {
-			return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetHue)
-		},
-		//Create a style element WITHOUT inserting it into the head. The given ID
-		//will be set. The style element returned will have extra functionality
-		//attached to it for easy style appending.
-		CreateStyleElement : function(id) {
-			var mStyle = document.createElement("style")
-			mStyle.appendChild(document.createTextNode(""))
-			mStyle.nextInsert = 0
-			mStyle.Append = function(selectors, rules) {
-				var i, finalSelectors = []
-				if (!Array.isArray(selectors)) selectors = [ selectors ]
-				if (!Array.isArray(rules)) rules = [ rules ]
-				for(i = 0; i < selectors.length; i++) {
-					if (!Array.isArray(selectors[i])) selectors[i] = [ selectors[i] ]
-					finalSelectors.push(selectors[i].join(" "))
-				}
-				mStyle.sheet.insertRule(
-					finalSelectors.join(",") + "{" + rules.join(";") + "}", mStyle.nextInsert++)
+var StyleUtilities = {
+	_cContext: document.createElement("canvas").getContext("2d"),
+	GetColor: function(input) {
+		this._cContext.clearRect(0,0,1,1)
+		this._cContext.fillStyle = input
+		this._cContext.fillRect(0,0,1,1)
+		var data = this._cContext.getImageData(0,0,1,1).data
+		return new Color(data[0], data[1], data[2], data[3] / 255)
+	},
+	_GetColorMath: function(f, func) {
+		var arr = [0,0,0]
+		func(f, arr)
+		return new Color(255 * arr[0], 255 * arr[1], 255 * arr[2], 1)
+	},
+	GetGray: function(f) {
+		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetGray)
+	},
+	GetRGB: function(f) {
+		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetRGB)
+	},
+	GetHue: function(f) {
+		return StyleUtilities._GetColorMath(f, MathUtilities.Color.SetHue)
+	},
+	//Create a style element WITHOUT inserting it into the head. The given ID
+	//will be set. The style element returned will have extra functionality
+	//attached to it for easy style appending.
+	CreateStyleElement: function(id) {
+		var mStyle = document.createElement("style")
+		mStyle.appendChild(document.createTextNode(""))
+		mStyle.nextInsert = 0
+		mStyle.Append = function(selectors, rules) {
+			var i, finalSelectors = []
+			if (!Array.isArray(selectors)) selectors = [ selectors ]
+			if (!Array.isArray(rules)) rules = [ rules ]
+			for(i = 0; i < selectors.length; i++) {
+				if (!Array.isArray(selectors[i])) selectors[i] = [ selectors[i] ]
+				finalSelectors.push(selectors[i].join(" "))
 			}
-			mStyle.AppendClasses = function(classnames, rules) {
-				var i, j
-				if (!Array.isArray(classnames)) classnames = [ classnames ]
-				for(i = 0; i < classnames.length; i++) {
-					if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ]
-					for(j = 0; j < classnames[i].length; j++)
-						classnames[i][j] = "." + classnames[i][j]
-				}
-				mStyle.Append(classnames, rules)
-			}
-			if (id) mStyle.id = id
-			return mStyle
-		},
-		InsertStylesAtTop : function(styles) {
-			if (!Array.isArray(styles)) styles = [ styles ]
-			for(var i = styles.length - 1; i >= 0; i--)
-				document.head.insertBefore(styles[i], document.head.firstChild)
-		},
-		TrySingleStyle : function(id) {
-			if (document.getElementById(id))
-				return false
-			
-			var s = StyleUtilities.CreateStyleElement(id)
-			StyleUtilities.InsertStylesAtTop(s)
-			return s
-		},
-		//Converts width and height into the true width and height on the device (or
-		//as close to it, anyway). Usefull mostly for canvases.
-		GetTrueRect : function(element) {
-			window.devicePixelRatio = window.devicePixelRatio || 1
-			var pixelRatio = 1
-			var rect = element.getBoundingClientRect()
-			rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / 
-				window.devicePixelRatio; 
-			rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / 
-				window.devicePixelRatio; 
-			return rect
-		},
-		NoImageInterpolationRules : function() {
-			return ["image-rendering:moz-crisp-edges","image-rendering:crisp-edges",
-			        "image-rendering:optimizespeed","image-rendering:pixelated"]
+			mStyle.sheet.insertRule(
+				finalSelectors.join(",") + "{" + rules.join(";") + "}", mStyle.nextInsert++)
 		}
+		mStyle.AppendClasses = function(classnames, rules) {
+			var i, j
+			if (!Array.isArray(classnames)) classnames = [ classnames ]
+			for(i = 0; i < classnames.length; i++) {
+				if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ]
+				for(j = 0; j < classnames[i].length; j++)
+					classnames[i][j] = "." + classnames[i][j]
+			}
+			mStyle.Append(classnames, rules)
+		}
+		if (id) mStyle.id = id
+		return mStyle
+	},
+	InsertStylesAtTop: function(styles) {
+		if (!Array.isArray(styles)) styles = [ styles ]
+		for(var i = styles.length - 1; i >= 0; i--)
+			document.head.insertBefore(styles[i], document.head.firstChild)
+	},
+	TrySingleStyle: function(id) {
+		if (document.getElementById(id))
+			return false
+		
+		var s = StyleUtilities.CreateStyleElement(id)
+		StyleUtilities.InsertStylesAtTop(s)
+		return s
+	},
+	//Converts width and height into the true width and height on the device (or
+	//as close to it, anyway). Usefull mostly for canvases.
+	GetTrueRect: function(element) {
+		window.devicePixelRatio = window.devicePixelRatio || 1
+		var pixelRatio = 1
+		var rect = element.getBoundingClientRect()
+		rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / 
+			window.devicePixelRatio
+		rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / 
+			window.devicePixelRatio
+		return rect
+	},
+	NoImageInterpolationRules: function() {
+		return ["image-rendering:moz-crisp-edges","image-rendering:crisp-edges", "image-rendering:optimizespeed","image-rendering:pixelated"]
 	}
+}
 
 StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height = 1
 
@@ -804,24 +690,24 @@ StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height =
 var CanvasUtilities = {
 	//WARNING! This function breaks canvases without a style set width or height 
 	//on devices with a higher devicePixelRatio than 1 O_O
-	AutoSize : function(canvas) {
+	AutoSize: function(canvas) {
 		var rect = StyleUtilities.GetTrueRect(canvas)
-		canvas.width = rect.width; 
-		canvas.height = rect.height; 
+		canvas.width = rect.width
+		canvas.height = rect.height
 	},
 	//Basically the opposite of autosize: sets the style to match the canvas
 	//size.
-	AutoStyle : function(canvas) {
+	AutoStyle: function(canvas) {
 		canvas.style.width = canvas.width + "px"
 		canvas.style.height = canvas.height + "px"
 	},
-	GetScaling : function(canvas) {
+	GetScaling: function(canvas) {
 		var rect = StyleUtilities.GetTrueRect(canvas)
 		return [rect.width / canvas.width, rect.height / canvas.height]
 	},
 	//Set scaling of canvas. Alternatively, set the scaling of the given element
 	//(canvas will remain unaffected)
-	SetScaling : function(canvas, scale, element) {
+	SetScaling: function(canvas, scale, element) {
 		if (!Array.isArray(scale)) scale = [scale, scale]
 		var oldWidth = canvas.style.width
 		var oldHeight = canvas.style.height
@@ -837,7 +723,7 @@ var CanvasUtilities = {
 		element.style.width = (rect.width * scale[0]) + "px"
 		element.style.height = (rect.height * scale[1]) + "px"
 	},
-	CreateCopy : function(canvas, copyImage, x, y, width, height) {
+	CreateCopy: function(canvas, copyImage, x, y, width, height) {
 		//Width and height are cropping, not scaling. X and Y are the place to
 		//start the copy within the original canvas 
 		x = x || 0; y = y || 0
@@ -849,7 +735,7 @@ var CanvasUtilities = {
 		if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
 		return newCanvas
 	},
-	CopyInto : function(context, canvas, x, y) {
+	CopyInto: function(context, canvas, x, y) {
 		//x and y are the offset locations to place the copy into on the
 		//receiving canvas
 		x = x || 0; y = y || 0
@@ -858,7 +744,7 @@ var CanvasUtilities = {
 		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y)
 		context.globalCompositeOperation = oldComposition
 	},
-	OptimizedDrawImage : function(context, image, x, y, scaleX, scaleY) {
+	OptimizedDrawImage: function(context, image, x, y, scaleX, scaleY) {
 		scaleX = scaleX || image.width
 		scaleY = scaleY || image.height
 		var oldImageSmoothing = context.imageSmoothingEnabled
@@ -866,13 +752,13 @@ var CanvasUtilities = {
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
 		context.imageSmoothingEnabled = oldImageSmoothing
 	},
-	Clear : function(canvas, color) {
+	Clear: function(canvas, color) {
 		var context = canvas.getContext("2d")
 		var oldStyle = context.fillStyle
 		var oldAlpha = context.globalAlpha
 		if (color) {
 			context.globalAlpha = 1
-			context.fillStyle = color; 
+			context.fillStyle = color
 			context.fillRect(0, 0, canvas.width, canvas.height)
 		} else {
 			context.clearRect(0, 0, canvas.width, canvas.height)
@@ -880,7 +766,7 @@ var CanvasUtilities = {
 		context.fillStyle = oldStyle
 		context.globalAlpha = oldAlpha
 	},
-	DrawSolidCenteredRectangle : function(ctx, cx, cy, width, height, clear) {
+	DrawSolidCenteredRectangle: function(ctx, cx, cy, width, height, clear) {
 		cx = Math.round(cx - width / 2)
 		cy = Math.round(cy - height / 2)
 		if (clear)
@@ -903,7 +789,7 @@ var CanvasUtilities = {
 		for(y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
 			for(x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
 				if (x*x*rs2+y*y*rs1 <= rss) {
-					ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1); 
+					ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1)
 					break
 				}
 			}
@@ -911,7 +797,7 @@ var CanvasUtilities = {
 		
 		return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2]
 	},
-	DrawNormalCenteredRectangle : function(ctx, cx, cy, width, height) {
+	DrawNormalCenteredRectangle: function(ctx, cx, cy, width, height) {
 		cx = cx - (width - 1) / 2
 		cy = cy - (height - 1) / 2
 		
@@ -931,7 +817,7 @@ var CanvasUtilities = {
 	},
 	//Wraps the given "normal eraser" function in the necessary crap to get the
 	//eraser to function properly. Then you just have to fill wherever necessary.
-	PerformNormalEraser : function(ctx, func) {
+	PerformNormalEraser: function(ctx, func) {
 		var oldStyle = ctx.fillStyle
 		var oldComposition = ctx.globalCompositeOperation
 		ctx.fillStyle = "rgba(0,0,0,1)"
@@ -942,7 +828,7 @@ var CanvasUtilities = {
 		return result
 	},
 	//Draws a general line using the given function to generate each point.
-	DrawLineRaw : function(ctx, sx, sy, tx, ty, width, clear, func) {
+	DrawLineRaw: function(ctx, sx, sy, tx, ty, width, clear, func) {
 		var dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
 		var ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
 		if (dist === 0) dist=0.001
@@ -954,26 +840,26 @@ var CanvasUtilities = {
 		return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width)
 	},
 	//How to draw a single point on the SolidSquare line
-	_DrawSolidSquareLineFunc : function(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear); 
+	_DrawSolidSquareLineFunc: function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear)
 	},
-	DrawSolidSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawSolidSquareLine: function(ctx, sx, sy, tx, ty, width, clear) {
 		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
 		                                   CanvasUtilities._DrawSolidSquareLineFunc)
 	},
 	//How to draw a single point on the SolidRound line
-	_DrawSolidRoundLineFunc : function(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear); 
+	_DrawSolidRoundLineFunc: function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear)
 	},
-	DrawSolidRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawSolidRoundLine: function(ctx, sx, sy, tx, ty, width, clear) {
 		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
 		                                   CanvasUtilities._DrawSolidRoundLineFunc)
 	},
 	//How to draw a single point on the NormalSquare line
-	_DrawNormalSquareLineFunc : function(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear); 
+	_DrawNormalSquareLineFunc: function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear)
 	},
-	DrawNormalSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawNormalSquareLine: function(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
 			return CanvasUtilities.PerformNormalEraser(ctx, function() {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
@@ -985,10 +871,10 @@ var CanvasUtilities = {
 		}
 	},
 	//How to draw a single point on the NormalRound line
-	_DrawNormalRoundLineFunc : function(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear); 
+	_DrawNormalRoundLineFunc: function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear)
 	},
-	DrawNormalRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
+	DrawNormalRoundLine: function(ctx, sx, sy, tx, ty, width, clear) {
 		if (clear) {
 			return CanvasUtilities.PerformNormalEraser(ctx, function() {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
@@ -999,18 +885,18 @@ var CanvasUtilities = {
 			                                   CanvasUtilities._DrawNormalRoundLineFunc)
 		}
 	},
-	DrawHollowRectangle : function(ctx, x, y, x2, y2, width) {
+	DrawHollowRectangle: function(ctx, x, y, x2, y2, width) {
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y2, x2, y2, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x, y2, width)
 		CanvasUtilities.DrawSolidSquareLine(ctx, x2, y, x2, y2, width)
 		return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width)
 	},
-	ComputeBoundingBox : function(x, y, x2, y2, width) {
+	ComputeBoundingBox: function(x, y, x2, y2, width) {
 		return [Math.min(x, x2) - width, Math.min(y, y2) - width,
 		        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1]
 	},
-	ComputeTotalBoundingBox : function(boxes) {
+	ComputeTotalBoundingBox: function(boxes) {
 		var finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
 		
 		for(var i = 0; i < boxes.length; i++) {
@@ -1023,59 +909,65 @@ var CanvasUtilities = {
 		
 		return finalBox
 	},
-	GetColor : function(context, x, y) {
+	GetColor: function(context, x, y) {
 		var data = context.getImageData(x, y, 1, 1).data
 		return new Color(data[0], data[1], data[2], data[3] / 255)
 	},
-	GetColorFromData : function(data, i) {
+	GetColorFromData: function(data, i) {
 		return new Color(data[i], data[i+1], data[i+2], data[i+3]/255)
 	},
-	//PutColorInData : function(color, data, i)
+	//PutColorInData: function(color, data, i)
 	//{
 	//   var array = color.ToArray(true)
 	//   for(var i = 0; i < 
 	//},
 	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
 	//falls outside the canvas.
-	ImageDataCoordinate : function(context, x, y) {
-		if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height) return -1
+	ImageDataCoordinate: function(context, x, y) {
+		if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height)
+			return -1
 		return 4 * (x + y * context.canvas.width)
 	},
-	GenericFlood : function(context, x, y, floodFunction) {
+	GenericFlood: function(context, x, y, floodFunction) {
 		x = Math.floor(x); y = Math.floor(y)
-		var canvas = context.canvas; 
+		var canvas = context.canvas
 		var iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		var data = iData.data
-		var queueX = [], queueY = []; 
+		var queueX = [], queueY = []
 		var west, east, row, column
-		var enqueue = function(qx, qy) { queueX.push(qx); queueY.push(qy); }
-		if (floodFunction(context, x, y, data)) enqueue(x, y)
-		while(queueX.length) {
+		var enqueue = function(qx, qy) {
+			queueX.push(qx)
+			queueY.push(qy)
+		}
+		if (floodFunction(context, x, y, data))
+			enqueue(x, y)
+		while (queueX.length) {
 			column = queueX.shift()
 			row = queueY.shift()
 			//Move west until it is just outside the range we want to fill. Move
 			//east in a similar manner.
-			for(west = column - 1; west >= -1 && floodFunction(context, west, row, data); west--)
-			for(east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++)
-			//Move from west to east EXCLUSIVE and fill the queue with matching
-			//north and south nodes.
-			for(column = west + 1; column < east; column++) {
-				if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
-					enqueue(column, row + 1)
-				if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
-					enqueue(column, row - 1)
-			}
+			for (west = column - 1; west >= -1 && floodFunction(context, west, row, data); west--)
+				for (east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++)
+					//Move from west to east EXCLUSIVE and fill the queue with matching
+					//north and south nodes.
+					for(column = west + 1; column < east; column++) {
+						if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
+							enqueue(column, row + 1)
+						if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
+							enqueue(column, row - 1)
+					}
 		}
 		context.putImageData(iData, 0, 0)
 	},
-	FloodFill : function(context, sx, sy, color, threshold) {
+	FloodFill: function(context, sx, sy, color, threshold) {
 		sx = Math.floor(sx); sy = Math.floor(sy)
 		console.debug("Flood filling starting from " + sx + ", " + sy)
 		threshold = threshold || 0
 		var originalColor = CanvasUtilities.GetColor(context, sx, sy)
 		var ocolorArray = originalColor.ToArray(true)
 		var colorArray = color.ToArray(true)
-		if (color.MaxDifference(originalColor) <= threshold) return; 
+		if (color.MaxDifference(originalColor) <= threshold)
+			return
 		var floodFunction = function(c, x, y, d) {
 			var i = CanvasUtilities.ImageDataCoordinate(c, x, y)
 			var currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
@@ -1089,7 +981,7 @@ var CanvasUtilities = {
 		}
 		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction)
 	},
-	SwapColor : function(context, original, newColor, threshold) {
+	SwapColor: function(context, original, newColor, threshold) {
 		var canvas = context.canvas
 		var iData = context.getImageData(0, 0, canvas.width, canvas.height)
 		var data = iData.data
@@ -1107,10 +999,10 @@ var CanvasUtilities = {
 		
 		context.putImageData(iData, 0, 0)
 	},
-	ToString : function(canvas) {
+	ToString: function(canvas) {
 		return canvas.toDataURL("image/png")
 	},
-	FromString : function(string) {
+	FromString: function(string) {
 		var canvas = document.createElement("canvas")
 		var image = new Image()
 		image.addEventListener("load", function(e) {
@@ -1122,7 +1014,7 @@ var CanvasUtilities = {
 		return canvas
 	},
 	//Draw the image from a data url into the given canvas.
-	DrawDataURL : function(string, canvas, x, y, callback) {
+	DrawDataURL: function(string, canvas, x, y, callback) {
 		x = x || 0
 		y = y || 0
 		var image = new Image()
@@ -1138,9 +1030,9 @@ var CanvasUtilities = {
 // Functions to help with built-in events (such as the mouse event).
 
 var EventUtilities = {
-	SignalCodes : { Cancel : 2, Run : 1, Wait : 0},
-	mButtonMap : [ 1, 4, 2, 8, 16 ],
-	MouseButtonToButtons : function(button) {
+	SignalCodes: { Cancel: 2, Run: 1, Wait: 0},
+	mButtonMap: [ 1, 4, 2, 8, 16 ],
+	MouseButtonToButtons: function(button) {
 		return EventUtilities.mButtonMap[button]
 	},
 	//This is a NON-BLOCKING function that simply "schedules" the function to be
@@ -1153,7 +1045,9 @@ var EventUtilities = {
 		else if (s === EventUtilities.SignalCodes.Run)
 			perform()
 		else
-			window.setTimeout(function() { EventUtilities.ScheduleWaitingTask(signal, perform, interval);}, interval)
+			window.setTimeout(function() {
+				EventUtilities.ScheduleWaitingTask(signal, perform, interval)
+			}, interval)
 	}
 }
 
@@ -1162,7 +1056,7 @@ var EventUtilities = {
 // elements and whatever)
 
 var ScreenUtilities = {
-	LaunchIntoFullscreen : function(element) {
+	LaunchIntoFullscreen: function(element) {
 		if (element.requestFullscreen)
 			element.requestFullscreen()
 		else if (element.mozRequestFullScreen)
@@ -1175,7 +1069,7 @@ var ScreenUtilities = {
 		//Keep the UXUtilities INSIDE the fullscreen thingy.
 		element.appendChild(UXUtilities.UtilitiesContainer)
 	},
-	ExitFullscreen : function() {
+	ExitFullscreen: function() {
 		if (document.exitFullscreen)
 			document.exitFullscreen()
 		else if (document.mozCancelFullScreen)
@@ -1186,9 +1080,8 @@ var ScreenUtilities = {
 		//Replace the utilities back into the body.
 		document.body.appendChild(UXUtilities.UtilitiesContainer)
 	},
-	IsFullscreen : function() {
-		if (document.fullscreenElement || document.mozFullScreenElement ||
-		    document.webkitFullscreenElement)
+	IsFullscreen: function() {
+		if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement)
 			return true
 		
 		return false
@@ -1199,13 +1092,13 @@ var ScreenUtilities = {
 // Functions which provide extra math functionality.
 
 var MathUtilities = {
-	Distance : function(x1, y1, x2, y2) {
+	Distance: function(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
-	Midpoint : function(x1, y1, x2, y2) {
+	Midpoint: function(x1, y1, x2, y2) {
 		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
 	},
-	MinMax : function(value, min, max) {
+	MinMax: function(value, min, max) {
 		if (min > max) {
 			var temp = min
 			min = max
@@ -1213,10 +1106,10 @@ var MathUtilities = {
 		}
 		return  Math.max(Math.min(value, max), min)
 	},
-	SlopeAngle : function(x,y) { 
-		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0); 
+	SlopeAngle: function(x,y) { 
+		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
 	},
-	IntRandom : function(max, min) {
+	IntRandom: function(max, min) {
 		min = min || 0; //getOrDefault(min, 0)
 		
 		if (min > max) {
@@ -1227,32 +1120,32 @@ var MathUtilities = {
 		
 		return Math.floor((Math.random() * (max - min)) + min)
 	},
-	LinearInterpolate : function(y1, y2, mu) {
+	LinearInterpolate: function(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},
-	CosInterpolate : function (y1, y2, mu) {
+	CosInterpolate: function (y1, y2, mu) {
 		var mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
 	},
-	NewGuid : function() {
+	NewGuid: function() {
 		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
 			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 		})
 	},
-	GetSquare : function(x, y, x2, y2) {
+	GetSquare: function(x, y, x2, y2) {
 		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
 	},
-	IsPointInSquare : function(point, square) {
+	IsPointInSquare: function(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
 			point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
-	Color : {
-		SetGray : function(f, arr) {
+	Color: {
+		SetGray: function(f, arr) {
 			arr[0] = f
 			arr[1] = f
 			arr[2] = f
 		},
-		SetRGB : function(f, arr) {
+		SetRGB: function(f, arr) {
 			//Duplicate code but fewer branches
 			if (f < 0.5) {
 				arr[0] = 1 - 2 * f
@@ -1263,7 +1156,7 @@ var MathUtilities = {
 			}
 			arr[1] = 1 - Math.abs(f * 2 - 1)
 		},
-		SetHue : function(f, arr) {
+		SetHue: function(f, arr) {
 			if (f < 1 / 6) {
 				arr[0] = 1
 				arr[1] = f * 6
@@ -1297,131 +1190,61 @@ var MathUtilities = {
 // Basically all undo buffers work the same, so here's a generic object you can
 // use for all your undo needs
 
-function UndoBuffer(maxSize, maxVirtualIndex) {
-	this.maxSize = maxSize || 5
-	this.maxVirtualIndex = maxVirtualIndex || this.maxSize
-	this.Clear()
-}
-
-UndoBuffer.prototype.Clear = function() {
-	this.undoBuffer = []
-	this.redoBuffer = []
-	this.virtualIndex = 0
-}
-
-UndoBuffer.prototype._ShiftVirtualIndex = function(amount) {
-	this.virtualIndex += amount; 
-	while(this.virtualIndex < 0) this.virtualIndex += this.maxVirtualIndex
-	this.virtualIndex = this.virtualIndex % this.maxVirtualIndex
-}
-
-UndoBuffer.prototype.UndoCount = function() { return this.undoBuffer.length; }
-UndoBuffer.prototype.RedoCount = function() { return this.redoBuffer.length; }
-
-UndoBuffer.prototype.Add = function(currentState) {
-	this.undoBuffer.push(currentState)
-	this.redoBuffer = []
-	this._ShiftVirtualIndex(1)
-	while(this.undoBuffer.length > this.maxSize)
-		this.undoBuffer.shift()
-	return this.UndoCount()
-}
-
-UndoBuffer.prototype.Undo = function(currentState) {
-	if (this.UndoCount() <= 0) return
-	this.redoBuffer.push(currentState)
-	this._ShiftVirtualIndex(-1)
-	return this.undoBuffer.pop()
-}
-
-UndoBuffer.prototype.Redo = function(currentState) {
-	if (this.RedoCount() <= 0) return
-	this.undoBuffer.push(currentState)
-	this._ShiftVirtualIndex(1)
-	return this.redoBuffer.pop()
-}
-
-UndoBuffer.prototype.ClearRedos = function() {
-	this.redoBuffer = []
-}
-
-// --- CodeTester ---
-// An easy way to run unit tests. Just create this object then fire away the
-// RunAll function!
-
-function CodeTester(element, tests) {
-	this.element = element
-	this.tests = tests
-	this.stopOnFailure = false
-}
-
-CodeTester.prototype.Test = function(test, expectedValue) {
-	var testElement = document.createElement("p")
-	var testCode = document.createElement("span")
-	var result = document.createElement("span")
-	var extra = document.createElement("span")
-	testCode.className = "testcode"
-	testCode.innerHTML = test
-	result.className = "result"
-	extra.className = "extra"
-	
-	try
-	{
-		/* jshint ignore: start */
-		var testResult = eval(test)
-		var success = false
-		
-		if (expectedValue !== undefined) {
-			testCode.innerHTML += " === " + expectedValue;   
-			success = testResult === eval(expectedValue)
-		} else {
-			success = testResult
-		}
-		/* jshint ignore : end */
-		
-		if (success) {
-			result.innerHTML = "[OK]"
-			result.className += " success"
-		} else {
-			throw "returned " + testResult
-		}
-	} catch(ex) {
-		result.innerHTML = "[FAIL]"
-		result.className += " failure"
-		extra.innerHTML = "(" + ex + ")"
+class UndoBuffer {
+	constructor(maxSize, maxVirtualIndex) {
+		this.maxSize = maxSize || 5
+		this.maxVirtualIndex = maxVirtualIndex || this.maxSize
+		this.Clear()
 	}
 	
-	testElement.appendChild(testCode)
-	testElement.appendChild(result)
-	testElement.appendChild(extra)
-	
-	return testElement
-}
-
-CodeTester.prototype.RunAll = function(fillElement, tests, stopOnFailure) {
-	var failures = 0
-	fillElement = fillElement || this.element
-	tests= tests || this.tests
-	stopOnFailure = stopOnFailure || this.stopOnFailure
-	
-	for(var i = 0; i < tests.length; i++) {
-		var resultElement
-		
-		if (tests[i].indexOf("/") === 0) {
-			resultElement = this.Test(tests[i].slice(1), tests[i + 1])
-			i++
-		} else {
-			resultElement = this.Test(tests[i])
-		}
-		
-		fillElement.appendChild(resultElement)
-		if (resultElement.querySelector(".failure")) {
-			failures++
-			if (stopOnFailure) return
-		}
+	Clear() {
+		this.undoBuffer = []
+		this.redoBuffer = []
+		this.virtualIndex = 0
 	}
 	
-	return failures
+	_ShiftVirtualIndex(amount) {
+		this.virtualIndex += amount
+		while(this.virtualIndex < 0)
+			this.virtualIndex += this.maxVirtualIndex
+		this.virtualIndex = this.virtualIndex % this.maxVirtualIndex
+	}
+	
+	UndoCount() {
+		return this.undoBuffer.length
+	}
+	RedoCount() {
+		return this.redoBuffer.length
+	}
+	
+	Add(currentState) {
+		this.undoBuffer.push(currentState)
+		this.redoBuffer = []
+		this._ShiftVirtualIndex(1)
+		while(this.undoBuffer.length > this.maxSize)
+			this.undoBuffer.shift()
+		return this.UndoCount()
+	}
+	
+	Undo(currentState) {
+		if (this.UndoCount() <= 0)
+			return
+		this.redoBuffer.push(currentState)
+		this._ShiftVirtualIndex(-1)
+		return this.undoBuffer.pop()
+	}
+	
+	Redo(currentState) {
+		if (this.RedoCount() <= 0)
+			return
+		this.undoBuffer.push(currentState)
+		this._ShiftVirtualIndex(1)
+		return this.redoBuffer.pop()
+	}
+	
+	ClearRedos() {
+		this.redoBuffer = []
+	}
 }
 
 // --- ConsoleEmulator ---
@@ -1470,12 +1293,8 @@ ConsoleEmulator.prototype.TrySetDefaultStyles = function() {
 	style.appendChild(document.createTextNode(""))
 	style.id = ConsoleEmulator.StyleID
 	document.head.insertBefore(style, document.head.firstChild)
-	style.sheet.insertRule(".consoleEmulator { font-family: monospace; " +
-	                       "font-size: 12px; height: 30em; width: 45.5em; background-color: #222; " +
-	                       "color: #CCC; display: block; word-wrap: break-word; overflow: hidden; " +
-	                       "white-space: pre-wrap; padding: 1px; overflow-y: scroll; }", 0)
-	style.sheet.insertRule(".consoleEmulator .cursor { color: limegreen; " +
-	                       "/*animation: 1s blink step-end infinite;*/ } ", 1)
+	style.sheet.insertRule(".consoleEmulator { font-family: monospace; font-size: 12px; height: 30em; width: 45.5em; background-color: #222; color: #CCC; display: block; word-wrap: break-word; overflow: hidden; white-space: pre-wrap; padding: 1px; overflow-y: scroll; }", 0)
+	style.sheet.insertRule(".consoleEmulator .cursor { color: limegreen; /*animation: 1s blink step-end infinite;*/ } ", 1)
 	style.sheet.insertRule(".consoleEmulator .input { color: #EEE; }", 2)
 	style.sheet.insertRule(".consoleEmulator .red { color: red; }", 3)
 	style.sheet.insertRule(".consoleEmulator .blue { color: blue; }", 4)
@@ -1507,7 +1326,7 @@ ConsoleEmulator.prototype.Generate = function() {
 	
 	this.cursor = document.createElement("span")
 	this.cursor.className = ConsoleEmulator.CursorClassName
-	this.cursor.innerHTML = "█"
+	this.cursor.textContent = "█"
 	
 	this.rawConsole = document.createElement("div")
 	this.rawConsole.className = ConsoleEmulator.ClassName

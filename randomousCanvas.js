@@ -67,7 +67,7 @@ class CanvasPerformer {
 		//Event for "mouse up". Creates a generic "cursor" action
 		this._evMU = (e)=>{
 			console.trace("CanvasPerformer mouse up")
-			this.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), this._canvas); 
+			this.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), this._canvas)
 			lastMAction = 0
 		}
 		//Event for the "wheel". Creates a generic "cursor" action
@@ -198,7 +198,7 @@ class CanvasPerformer {
 		canvas.addEventListener("touchstart", this._evPrevent); //Stops initial tuochmove distance cutoff
 		canvas.addEventListener("wheel", this._evMW)
 		canvas.addEventListener("contextmenu", this._evPrevent)
-		document.addEventListener("mouseup", this._evMU); 
+		document.addEventListener("mouseup", this._evMU)
 		document.addEventListener("touchend", this._evTC)
 		document.addEventListener("touchcancel", this._evTC)
 		document.addEventListener("mousemove", this._evMM)
@@ -214,7 +214,7 @@ class CanvasPerformer {
 		canvas.removeEventListener("wheel", this._evMW)
 		canvas.removeEventListener("touchstart", this._evPrevent)
 		canvas.removeEventListener("contextmenu", this._evPrevent)
-		document.removeEventListener("mouseup", this._evMU); 
+		document.removeEventListener("mouseup", this._evMU)
 		document.removeEventListener("touchend", this._evTC)
 		document.removeEventListener("touchcancel", this._evTC)
 		document.removeEventListener("mousemove", this._evMM)
@@ -297,20 +297,20 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = false
 		this.tools = 
 			{
-				"freehand" : new CanvasDrawerTool(CanvasDrawer.FreehandTool),
-				"eraser" : new CanvasDrawerTool(CanvasDrawer.EraserTool),
-				"slow" : new CanvasDrawerTool(CanvasDrawer.SlowTool),
-				"spray" : new CanvasDrawerTool(CanvasDrawer.SprayTool),
-				"line" : new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
-				"square" : new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
-				"clear" : new CanvasDrawerTool(CanvasDrawer.ClearTool),
-				"fill" : new CanvasDrawerTool(CanvasDrawer.FillTool),
-				"dropper" : new CanvasDrawerTool(CanvasDrawer.DropperTool),
-				"mover" : new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
+				"freehand": new CanvasDrawerTool(CanvasDrawer.FreehandTool),
+				"eraser": new CanvasDrawerTool(CanvasDrawer.EraserTool),
+				"slow": new CanvasDrawerTool(CanvasDrawer.SlowTool),
+				"spray": new CanvasDrawerTool(CanvasDrawer.SprayTool),
+				"line": new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
+				"square": new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
+				"clear": new CanvasDrawerTool(CanvasDrawer.ClearTool),
+				"fill": new CanvasDrawerTool(CanvasDrawer.FillTool),
+				"dropper": new CanvasDrawerTool(CanvasDrawer.DropperTool),
+				"mover": new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
 			}
 		
 		this.constants = {
-			"endInterrupt" : CursorActions.End | CursorActions.Interrupt
+			"endInterrupt": CursorActions.End | CursorActions.Interrupt
 		}
 		
 		this.tools.slow.stationaryReportInterval = 1
@@ -359,7 +359,7 @@ class CanvasDrawer extends CanvasPerformer {
 				else if (me.lineShape === "normalsquare")
 					data.lineFunction = CanvasUtilities.DrawNormalSquareLine
 				else
-					data.lineFunction = CanvasUtilities.DrawNormalRoundLine; 
+					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
 				
 				//Replace this with some generic cursor drawing thing that takes both
 				//strings AND functions to draw the cursor.
@@ -367,8 +367,8 @@ class CanvasDrawer extends CanvasPerformer {
 					;//me._canvas.style.cursor = me.defaultCursor
 				
 				if (data.action & CursorActions.Start) {
-					data.oldX = data.x; 
-					data.oldY = data.y; 
+					data.oldX = data.x
+					data.oldY = data.y
 					data.startX = data.x
 					data.startY = data.y
 					strokeCount++
@@ -380,7 +380,7 @@ class CanvasDrawer extends CanvasPerformer {
 				}
 				
 				if (me.CheckToolValidity("frameLock"))
-					me.frameActions.push({"data" : data, "context": context})
+					me.frameActions.push({"data": data, "context": context})
 				else
 					me.PerformDrawAction(data, context)
 			}
@@ -457,9 +457,9 @@ class CanvasDrawer extends CanvasPerformer {
 	ClearLayer(layer) {
 		this.UpdateUndoBuffer()
 		if (layer !== undefined && this.Buffered())
-			CanvasUtilities.Clear(this.GetLayerByID(layer).canvas, false); 
+			CanvasUtilities.Clear(this.GetLayerByID(layer).canvas, false)
 		else
-			CanvasUtilities.Clear(this.GetCurrentCanvas(), false); 
+			CanvasUtilities.Clear(this.GetCurrentCanvas(), false)
 		this.Redraw()
 	}
 	
@@ -671,7 +671,7 @@ class CanvasDrawer extends CanvasPerformer {
 			this.ignoreCurrentStroke = false
 		}
 		
-		this.lastAction = data; 
+		this.lastAction = data
 	}
 	
 	ResetUndoBuffer(size, canvasBlueprint) {
@@ -711,16 +711,16 @@ class CanvasDrawer extends CanvasPerformer {
 			this.undoBuffer = false
 		
 		//mainCanvas.setAttribute("tabindex", "-1")
-		CanvasPerformer.prototype.Attach.apply(this, [mainCanvas])
+		super.Attach(mainCanvas)
 		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
 		this._doFrame()
 	}
 	
-	Detach= function() {
+	Detach() {
 		this.undoBuffer = false
 		this.buffers = false
 		this.overlay = false
-		CanvasPerformer.prototype.Detach.apply(this, [])
+		super.Detach()
 	}
 	
 	ToString() {
@@ -899,7 +899,7 @@ class CanvasDrawer extends CanvasPerformer {
 	//         {
 	//            var s = MathUtilities.GetSquare(data.startX, data.startY, data.x, data.y)
 	//            drawer.moveToolSelectData = CanvasUtilities.CreateCopy(context.canvas, true,
-	//               s[0], s[1], s[2], s[3]); 
+	//               s[0], s[1], s[2], s[3])
 	//            drawer.moveToolLocation = [s[0], s[1]]
 	//            context.clearRect(s[0], s[1], s[2], s[3])
 	//            drawer.moveToolStage = 1
@@ -1000,7 +1000,7 @@ class CanvasDrawer extends CanvasPerformer {
 			if (drawer.floodThreshold === undefined)
 				drawer.floodThreshold = 0
 			
-			var sx = Math.floor(data.x); 
+			var sx = Math.floor(data.x)
 			var sy = Math.floor(data.y)
 			console.debug("Flood filling starting from " + sx + ", " + sy)
 			
@@ -1019,7 +1019,7 @@ class CanvasDrawer extends CanvasPerformer {
 			var color = StyleUtilities.GetColor(data.color)
 			var ocolorArray = originalColor.ToArray(true)
 			var colorArray = color.ToArray(true)
-			if (color.MaxDifference(originalColor) <= drawer.floodThreshold) return; 
+			if (color.MaxDifference(originalColor) <= drawer.floodThreshold) return
 			
 			CanvasUtilities.GenericFlood(context, sx, sy, function(c, x, y, d) {
 				var i = CanvasUtilities.ImageDataCoordinate(c, x, y)
@@ -1039,7 +1039,7 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	static DropperTool(data, context, drawer) {
 		if (data.action & CursorActions.End) {
-			var sx = Math.floor(data.x); 
+			var sx = Math.floor(data.x)
 			var sy = Math.floor(data.y)
 			var canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
 			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
