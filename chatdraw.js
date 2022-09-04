@@ -144,8 +144,10 @@ var LocalChatDraw = (function() {
 	};
 	
 	var createToolButton = function(displayCharacters, toolNames) {
-		if (!TypeUtilities.IsArray(displayCharacters)) displayCharacters= [displayCharacters];
-		if (!TypeUtilities.IsArray(toolNames)) toolNames = [toolNames];
+		if (!Array.isArray(displayCharacters))
+			displayCharacters= [displayCharacters];
+		if (!Array.isArray(toolNames))
+			toolNames = [toolNames];
 		var nextTool = 0;
 		var tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool]); 
 		//makeUnsubmittableButton();
@@ -154,8 +156,7 @@ var LocalChatDraw = (function() {
 		tButton.addEventListener('click', function() {
 			//First, deselect ALL other buttons;
 			var toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton");
-			for(var i = 0; i < toolButtons.length; i++)
-			{
+			for(var i = 0; i < toolButtons.length; i++) {
 				if (toolButtons[i] != tButton) toolButtons[i].removeAttribute("data-selected");
 			}
 			
@@ -564,7 +565,7 @@ var LocalChatDraw = (function() {
 			}
 			
 			getAnimations(function(anims) {
-				if (ArrayUtilities.Contains(anims, saveInput.value)) {
+				if (anims.includes(saveInput.value)) {
 					UXUtilities.Confirm("There's already an animation named " + saveInput.value + ", are you sure you want to overwrite it?", function(confirmed) {
 						if (confirmed) saveAnimationWrapper(saveInput.value);
 					});
@@ -586,7 +587,7 @@ var LocalChatDraw = (function() {
 				return;
 			}
 			getAnimations(function(anims) {
-				if (!ArrayUtilities.Contains(anims, saveInput.value)) {
+				if (!anims.includes(saveInput.value)) {
 					UXUtilities.Toast("Couldn't find animation " + saveInput.value);
 					return;
 				}

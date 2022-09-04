@@ -5,7 +5,6 @@
 // An enormous library full of garbage
 
 // ---- List of utilities ----
-// * TypeUtilities
 // * HTMLUtilities
 // * StorageUtilities
 // * URLUtilities
@@ -15,86 +14,6 @@
 // * EventUtilities
 // * ScreenUtilities
 // * MathUtilities
-// * DateUtilities
-// * ArrayUtilities
-
-// --- Shims ---
-// Maybe your browser sucks and we have to fill in for it. Whatever.
-
-//At LEAST make sure console logging doesn't completely break the script.
-if (!window.console) window.console = {};
-if (!window.console.log) window.console.log = function() {};
-
-if (!String.prototype.trim) 
-	String.prototype.trim = function () { return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, ''); };
-
-if (!Array.prototype.indexOf) {
-	//Taken directly from ECMA-262 or whatever.
-	Array.prototype.indexOf = function(value, fromIndex) {
-		if (this === null) throw new TypeError('"this" is null or not defined');
-		var o = Object(this);
-		var len = o.length >>> 0;
-		if (len === 0) return -1;
-		var n = fromIndex | 0;
-		if (n >= len) return -1;
-		var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
-		while (k < len) if (k in o && o[k] === searchElement) return k;
-		return -1;
-	};
-}
-
-// https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
-if (!String.prototype.padStart) {
-	String.prototype.padStart = function padStart(targetLength,padString) {
-		targetLength = targetLength>>0; //floor if number or convert non-number to 0;
-		padString = String(padString || ' ');
-		if (this.length > targetLength) {
-			return String(this);
-		} else 
-		{
-			targetLength = targetLength-this.length;
-			if (targetLength > padString.length) {
-				padString += padString.repeat(targetLength/padString.length); //append to original to ensure we are longer than needed
-			}
-			return padString.slice(0,targetLength) + String(this);
-		}
-	};
-}
-
-//This type of shim doesn't execute the selector function every time. A
-//suitable function is chosen NOW, then assigned as a shim. 
-window.requestAnimationFrame = (function() {
-	return window.requestAnimationFrame || window.webkitRequestAnimationFrame || 
-		window.mozRequestAnimationFrame || window.oRequestAnimationFrame || 
-		window.msRequestAnimationFrame ||
-		function(callback) { window.setTimeout(callback, 1000 / 60); };
-})();
-
-// Source: https://github.com/jserz/js_piece/blob/master/DOM/ParentNode/prepend()/prepend().md
-(function (arr) {
-	arr.forEach(function (item) {
-		if (item.hasOwnProperty('prepend')) {
-			return;
-		}
-		Object.defineProperty(item, 'prepend', {
-			configurable: true,
-			enumerable: true,
-			writable: true,
-			value: function prepend() {
-				var argArr = Array.prototype.slice.call(arguments),
-				docFrag = document.createDocumentFragment();
-				
-				argArr.forEach(function (argItem) {
-					var isNode = argItem instanceof Node;
-					docFrag.appendChild(isNode ? argItem : document.createTextNode(String(argItem)));
-				});
-				
-				this.insertBefore(docFrag, this.firstChild);
-			}
-		});
-	});
-})([Element.prototype, Document.prototype, DocumentFragment.prototype]);
 
 // --- Library OnLoad Setup ---
 // This stuff needs to be performed AFTER the document is loaded and all that.
@@ -116,21 +35,6 @@ Function.prototype.callBind = function() {
 	return function() {
 		return fnc.apply(this, args);
 	};
-};
-
-// --- TypeUtilities ---
-// Functions for working with or detecting types.
-
-var TypeUtilities = {
-	IsFunction: function(x) {
-		return 'function'===typeof x
-	},
-	IsArray: function(x) {
-		return Array.isArray(x)
-	},
-	IsString: function(x) {
-		return 'string'===typeof x
-	}
 };
 
 // --- HTMLUtilities ---
@@ -279,7 +183,7 @@ RadioSimulator.prototype.SelectRadio = function(button) {
 	console.debug("Selecting radio: ");
 	console.debug(button);
 	
-	if (TypeUtilities.IsString(button)) {
+	if ('string'===typeof(button)) {
 		button = this.container.querySelector('[' + this.attribute + '="' + button + '"]');
 	} else if (this.clickCycle && button.hasAttribute(this.selectedAttribute)) {
 		var radios = this.container.querySelectorAll("[" + this.attribute + "]");
@@ -629,7 +533,7 @@ var StorageUtilities =
 		},
 		WriteSafeCookie : function(name, value, expireDays) {
 			var expire = new Date();
-			var storeValue = Base64.encode(JSON.stringify(value));
+			var storeValue = btoa(JSON.stringify(value));
 			expireDays = expireDays || 356;
 			expire.setTime(expire.getTime() + (expireDays * 24 * 60 * 60 * 1000));
 			document.cookie = name + "=" + storeValue + "; expires=" + expire.toUTCString();
@@ -641,7 +545,7 @@ var StorageUtilities =
 			var raw = StorageUtilities.ReadRawCookie(name);
 			
 			if (raw)
-				return JSON.parse(Base64.decode(raw));
+				return JSON.parse(atob(raw));
 			
 			return null;
 		},
@@ -841,10 +745,10 @@ var StyleUtilities =
 			mStyle.nextInsert = 0;
 			mStyle.Append = function(selectors, rules) {
 				var i, finalSelectors = [];
-				if (!TypeUtilities.IsArray(selectors)) selectors = [ selectors ];
-				if (!TypeUtilities.IsArray(rules)) rules = [ rules ];
+				if (!Array.isArray(selectors)) selectors = [ selectors ];
+				if (!Array.isArray(rules)) rules = [ rules ];
 				for(i = 0; i < selectors.length; i++) {
-					if (!TypeUtilities.IsArray(selectors[i])) selectors[i] = [ selectors[i] ];
+					if (!Array.isArray(selectors[i])) selectors[i] = [ selectors[i] ];
 					finalSelectors.push(selectors[i].join(" "));
 				}
 				mStyle.sheet.insertRule(
@@ -852,9 +756,9 @@ var StyleUtilities =
 			};
 			mStyle.AppendClasses = function(classnames, rules) {
 				var i, j;
-				if (!TypeUtilities.IsArray(classnames)) classnames = [ classnames ];
+				if (!Array.isArray(classnames)) classnames = [ classnames ];
 				for(i = 0; i < classnames.length; i++) {
-					if (!TypeUtilities.IsArray(classnames[i])) classnames[i] = [ classnames[i] ];
+					if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ];
 					for(j = 0; j < classnames[i].length; j++)
 						classnames[i][j] = "." + classnames[i][j];
 				}
@@ -864,7 +768,7 @@ var StyleUtilities =
 			return mStyle;
 		},
 		InsertStylesAtTop : function(styles) {
-			if (!TypeUtilities.IsArray(styles)) styles = [ styles ];
+			if (!Array.isArray(styles)) styles = [ styles ];
 			for(var i = styles.length - 1; i >= 0; i--)
 				document.head.insertBefore(styles[i], document.head.firstChild);
 		},
@@ -899,540 +803,497 @@ StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height =
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
-var CanvasUtilities =
-	{
-		//WARNING! This function breaks canvases without a style set width or height 
-		//on devices with a higher devicePixelRatio than 1 O_O
-		AutoSize : function(canvas) {
-			var rect = StyleUtilities.GetTrueRect(canvas);
-			canvas.width = rect.width; 
-			canvas.height = rect.height; 
-		},
-		//Basically the opposite of autosize: sets the style to match the canvas
-		//size.
-		AutoStyle : function(canvas) {
-			canvas.style.width = canvas.width + "px";
-			canvas.style.height = canvas.height + "px";
-		},
-		GetScaling : function(canvas) {
-			var rect = StyleUtilities.GetTrueRect(canvas);
-			return [rect.width / canvas.width, rect.height / canvas.height];
-		},
-		//Set scaling of canvas. Alternatively, set the scaling of the given element
-		//(canvas will remain unaffected)
-		SetScaling : function(canvas, scale, element) {
-			if (!TypeUtilities.IsArray(scale)) scale = [scale, scale];
-			var oldWidth = canvas.style.width;
-			var oldHeight = canvas.style.height;
-			canvas.style.width = canvas.width + "px";
-			canvas.style.height = canvas.height + "px";
-			var rect = StyleUtilities.GetTrueRect(canvas);
-			if (element) {
-				canvas.style.width = oldWidth || "";
-				canvas.style.height = oldHeight || "";
-			} else {
-				element = canvas;
-			}
-			element.style.width = (rect.width * scale[0]) + "px";
-			element.style.height = (rect.height * scale[1]) + "px";
-		},
-		CreateCopy : function(canvas, copyImage, x, y, width, height) {
-			//Width and height are cropping, not scaling. X and Y are the place to
-			//start the copy within the original canvas 
-			x = x || 0; y = y || 0;
-			if (width === undefined) width = canvas.width;
-			if (height === undefined) height = canvas.height;
-			var newCanvas = document.createElement("canvas");
-			newCanvas.width = width;
-			newCanvas.height = height;
-			if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y);
-			return newCanvas;
-		},
-		CopyInto : function(context, canvas, x, y) {
-			//x and y are the offset locations to place the copy into on the
-			//receiving canvas
-			x = x || 0; y = y || 0;
-			var oldComposition = context.globalCompositeOperation;
-			context.globalCompositeOperation = "copy";
-			CanvasUtilities.OptimizedDrawImage(context, canvas, x, y);
-			context.globalCompositeOperation = oldComposition;
-		},
-		OptimizedDrawImage : function(context, image, x, y, scaleX, scaleY) {
-			scaleX = scaleX || image.width;
-			scaleY = scaleY || image.height;
-			var oldImageSmoothing = context.imageSmoothingEnabled;
-			context.imageSmoothingEnabled = false;
-			context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY));
-			context.imageSmoothingEnabled = oldImageSmoothing;
-		},
-		Clear : function(canvas, color) {
-			var context = canvas.getContext("2d");
-			var oldStyle = context.fillStyle;
-			var oldAlpha = context.globalAlpha;
-			if (color) {
-				context.globalAlpha = 1;
-				context.fillStyle = color; 
-				context.fillRect(0, 0, canvas.width, canvas.height);
-			} else {
-				context.clearRect(0, 0, canvas.width, canvas.height);
-			}
-			context.fillStyle = oldStyle;
-			context.globalAlpha = oldAlpha;
-		},
-		DrawSolidCenteredRectangle : function(ctx, cx, cy, width, height, clear) {
-			cx = Math.round(cx - width / 2);
-			cy = Math.round(cy - height / 2);
-			if (clear)
-				ctx.clearRect(cx, cy, Math.round(width), Math.round(height));
-			else
-				ctx.fillRect(cx, cy, Math.round(width), Math.round(height));
-			//The bounding rectangle for the area that was updated on the canvas.
-			return [cx, cy, width, height];
-		},
-		DrawSolidEllipse: function(ctx, cx, cy, radius1, radius2, clear) {
-			radius2 = radius2 || radius1;
-			var line = clear ? "clearRect" : "fillRect";
-			var rs1 = radius1 * radius1;
-			var rs2 = radius2 * radius2;
-			var rss = rs1 * rs2;
-			var x, y;
-			cx -= 0.5; //A HACK OOPS
-			cy -= 0.5;
-			
-			for(y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
-				for(x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
-					if (x*x*rs2+y*y*rs1 <= rss) {
-						ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1); 
-						break;
-					}
+var CanvasUtilities = {
+	//WARNING! This function breaks canvases without a style set width or height 
+	//on devices with a higher devicePixelRatio than 1 O_O
+	AutoSize : function(canvas) {
+		var rect = StyleUtilities.GetTrueRect(canvas);
+		canvas.width = rect.width; 
+		canvas.height = rect.height; 
+	},
+	//Basically the opposite of autosize: sets the style to match the canvas
+	//size.
+	AutoStyle : function(canvas) {
+		canvas.style.width = canvas.width + "px";
+		canvas.style.height = canvas.height + "px";
+	},
+	GetScaling : function(canvas) {
+		var rect = StyleUtilities.GetTrueRect(canvas);
+		return [rect.width / canvas.width, rect.height / canvas.height];
+	},
+	//Set scaling of canvas. Alternatively, set the scaling of the given element
+	//(canvas will remain unaffected)
+	SetScaling : function(canvas, scale, element) {
+		if (!Array.isArray(scale)) scale = [scale, scale];
+		var oldWidth = canvas.style.width;
+		var oldHeight = canvas.style.height;
+		canvas.style.width = canvas.width + "px";
+		canvas.style.height = canvas.height + "px";
+		var rect = StyleUtilities.GetTrueRect(canvas);
+		if (element) {
+			canvas.style.width = oldWidth || "";
+			canvas.style.height = oldHeight || "";
+		} else {
+			element = canvas;
+		}
+		element.style.width = (rect.width * scale[0]) + "px";
+		element.style.height = (rect.height * scale[1]) + "px";
+	},
+	CreateCopy : function(canvas, copyImage, x, y, width, height) {
+		//Width and height are cropping, not scaling. X and Y are the place to
+		//start the copy within the original canvas 
+		x = x || 0; y = y || 0;
+		if (width === undefined) width = canvas.width;
+		if (height === undefined) height = canvas.height;
+		var newCanvas = document.createElement("canvas");
+		newCanvas.width = width;
+		newCanvas.height = height;
+		if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y);
+		return newCanvas;
+	},
+	CopyInto : function(context, canvas, x, y) {
+		//x and y are the offset locations to place the copy into on the
+		//receiving canvas
+		x = x || 0; y = y || 0;
+		var oldComposition = context.globalCompositeOperation;
+		context.globalCompositeOperation = "copy";
+		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y);
+		context.globalCompositeOperation = oldComposition;
+	},
+	OptimizedDrawImage : function(context, image, x, y, scaleX, scaleY) {
+		scaleX = scaleX || image.width;
+		scaleY = scaleY || image.height;
+		var oldImageSmoothing = context.imageSmoothingEnabled;
+		context.imageSmoothingEnabled = false;
+		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY));
+		context.imageSmoothingEnabled = oldImageSmoothing;
+	},
+	Clear : function(canvas, color) {
+		var context = canvas.getContext("2d");
+		var oldStyle = context.fillStyle;
+		var oldAlpha = context.globalAlpha;
+		if (color) {
+			context.globalAlpha = 1;
+			context.fillStyle = color; 
+			context.fillRect(0, 0, canvas.width, canvas.height);
+		} else {
+			context.clearRect(0, 0, canvas.width, canvas.height);
+		}
+		context.fillStyle = oldStyle;
+		context.globalAlpha = oldAlpha;
+	},
+	DrawSolidCenteredRectangle : function(ctx, cx, cy, width, height, clear) {
+		cx = Math.round(cx - width / 2);
+		cy = Math.round(cy - height / 2);
+		if (clear)
+			ctx.clearRect(cx, cy, Math.round(width), Math.round(height));
+		else
+			ctx.fillRect(cx, cy, Math.round(width), Math.round(height));
+		//The bounding rectangle for the area that was updated on the canvas.
+		return [cx, cy, width, height];
+	},
+	DrawSolidEllipse: function(ctx, cx, cy, radius1, radius2, clear) {
+		radius2 = radius2 || radius1;
+		var line = clear ? "clearRect" : "fillRect";
+		var rs1 = radius1 * radius1;
+		var rs2 = radius2 * radius2;
+		var rss = rs1 * rs2;
+		var x, y;
+		cx -= 0.5; //A HACK OOPS
+		cy -= 0.5;
+		
+		for(y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
+			for(x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
+				if (x*x*rs2+y*y*rs1 <= rss) {
+					ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1); 
+					break;
 				}
 			}
-			
-			return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2];
-		},
-		DrawNormalCenteredRectangle : function(ctx, cx, cy, width, height) {
-			cx = cx - (width - 1) / 2;
-			cy = cy - (height - 1) / 2;
-			
-			ctx.fillRect(cx, cy, width, height);
-			
-			//The bounding rectangle for the area that was updated on the canvas.
-			return [cx, cy, width, height];
-		},
-		//For now, doesn't actually draw an ellipse
-		DrawNormalCenteredEllipse: function(ctx, cx, cy, width, height) {
-			ctx.beginPath();
-			ctx.arc(cx, cy, width / 2, 0, Math.PI * 2, 0);
-			ctx.fill();
-			
-			//The bounding rectangle for the area that was updated on the canvas.
-			return [cx - width / 2 - 1, cy - height / 2 - 1, width, width];
-		},
-		//Wraps the given "normal eraser" function in the necessary crap to get the
-		//eraser to function properly. Then you just have to fill wherever necessary.
-		PerformNormalEraser : function(ctx, func) {
-			var oldStyle = ctx.fillStyle;
-			var oldComposition = ctx.globalCompositeOperation;
-			ctx.fillStyle = "rgba(0,0,0,1)";
-			ctx.globalCompositeOperation = "destination-out";
-			var result = func();
-			ctx.fillStyle = oldStyle;
-			ctx.globalCompositeOperation = oldComposition;
-			return result;
-		},
-		//Draws a general line using the given function to generate each point.
-		DrawLineRaw : function(ctx, sx, sy, tx, ty, width, clear, func) {
-			var dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
-			var ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
-			if (dist === 0) dist=0.001;
-			for(var i=0;i<dist;i+=0.5) {
-				func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear);
-			}
-			//This is just an approximation and will most likely be larger than
-			//necessary. It is the bounding rectangle for the area that was updated
-			return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width);
-		},
-		//How to draw a single point on the SolidSquare line
-		_DrawSolidSquareLineFunc : function(ctx, x, y, width, clear) { 
-			CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear); 
-		},
-		DrawSolidSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
-			                                   CanvasUtilities._DrawSolidSquareLineFunc);
-		},
-		//How to draw a single point on the SolidRound line
-		_DrawSolidRoundLineFunc : function(ctx, x, y, width, clear) { 
-			CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear); 
-		},
-		DrawSolidRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
-			                                   CanvasUtilities._DrawSolidRoundLineFunc);
-		},
-		//How to draw a single point on the NormalSquare line
-		_DrawNormalSquareLineFunc : function(ctx, x, y, width, clear) { 
-			CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear); 
-		},
-		DrawNormalSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			if (clear) {
-				return CanvasUtilities.PerformNormalEraser(ctx, function() {
-					return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-					                                   CanvasUtilities._DrawNormalSquareLineFunc);
-				});
-			} else {
+		}
+		
+		return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2];
+	},
+	DrawNormalCenteredRectangle : function(ctx, cx, cy, width, height) {
+		cx = cx - (width - 1) / 2;
+		cy = cy - (height - 1) / 2;
+		
+		ctx.fillRect(cx, cy, width, height);
+		
+		//The bounding rectangle for the area that was updated on the canvas.
+		return [cx, cy, width, height];
+	},
+	//For now, doesn't actually draw an ellipse
+	DrawNormalCenteredEllipse: function(ctx, cx, cy, width, height) {
+		ctx.beginPath();
+		ctx.arc(cx, cy, width / 2, 0, Math.PI * 2, 0);
+		ctx.fill();
+		
+		//The bounding rectangle for the area that was updated on the canvas.
+		return [cx - width / 2 - 1, cy - height / 2 - 1, width, width];
+	},
+	//Wraps the given "normal eraser" function in the necessary crap to get the
+	//eraser to function properly. Then you just have to fill wherever necessary.
+	PerformNormalEraser : function(ctx, func) {
+		var oldStyle = ctx.fillStyle;
+		var oldComposition = ctx.globalCompositeOperation;
+		ctx.fillStyle = "rgba(0,0,0,1)";
+		ctx.globalCompositeOperation = "destination-out";
+		var result = func();
+		ctx.fillStyle = oldStyle;
+		ctx.globalCompositeOperation = oldComposition;
+		return result;
+	},
+	//Draws a general line using the given function to generate each point.
+	DrawLineRaw : function(ctx, sx, sy, tx, ty, width, clear, func) {
+		var dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
+		var ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
+		if (dist === 0) dist=0.001;
+		for(var i=0;i<dist;i+=0.5) {
+			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear);
+		}
+		//This is just an approximation and will most likely be larger than
+		//necessary. It is the bounding rectangle for the area that was updated
+		return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width);
+	},
+	//How to draw a single point on the SolidSquare line
+	_DrawSolidSquareLineFunc : function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear); 
+	},
+	DrawSolidSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
+		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
+		                                   CanvasUtilities._DrawSolidSquareLineFunc);
+	},
+	//How to draw a single point on the SolidRound line
+	_DrawSolidRoundLineFunc : function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear); 
+	},
+	DrawSolidRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
+		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear,
+		                                   CanvasUtilities._DrawSolidRoundLineFunc);
+	},
+	//How to draw a single point on the NormalSquare line
+	_DrawNormalSquareLineFunc : function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear); 
+	},
+	DrawNormalSquareLine : function(ctx, sx, sy, tx, ty, width, clear) {
+		if (clear) {
+			return CanvasUtilities.PerformNormalEraser(ctx, function() {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 				                                   CanvasUtilities._DrawNormalSquareLineFunc);
-			}
-		},
-		//How to draw a single point on the NormalRound line
-		_DrawNormalRoundLineFunc : function(ctx, x, y, width, clear) { 
-			CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear); 
-		},
-		DrawNormalRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
-			if (clear) {
-				return CanvasUtilities.PerformNormalEraser(ctx, function() {
-					return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
-					                                   CanvasUtilities._DrawNormalRoundLineFunc);
-				});
-			} else {
+			});
+		} else {
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+			                                   CanvasUtilities._DrawNormalSquareLineFunc);
+		}
+	},
+	//How to draw a single point on the NormalRound line
+	_DrawNormalRoundLineFunc : function(ctx, x, y, width, clear) { 
+		CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear); 
+	},
+	DrawNormalRoundLine : function(ctx, sx, sy, tx, ty, width, clear) {
+		if (clear) {
+			return CanvasUtilities.PerformNormalEraser(ctx, function() {
 				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
 				                                   CanvasUtilities._DrawNormalRoundLineFunc);
-			}
-		},
-		DrawHollowRectangle : function(ctx, x, y, x2, y2, width) {
-			CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width);
-			CanvasUtilities.DrawSolidSquareLine(ctx, x, y2, x2, y2, width);
-			CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x, y2, width);
-			CanvasUtilities.DrawSolidSquareLine(ctx, x2, y, x2, y2, width);
-			return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width);
-		},
-		ComputeBoundingBox : function(x, y, x2, y2, width) {
-			return [Math.min(x, x2) - width, Math.min(y, y2) - width,
-			        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1];
-		},
-		ComputeTotalBoundingBox : function(boxes) {
-			var finalBox = [ Infinity, Infinity, -Infinity, -Infinity];
-			
-			for(var i = 0; i < boxes.length; i++) {
-				if (!boxes[i] || boxes[i].length < 4) return false;
-				finalBox[0] = Math.min(boxes[0], finalBox[0]);
-				finalBox[1] = Math.min(boxes[1], finalBox[1]);
-				finalBox[2] = Math.max(boxes[0] + boxes[2], finalBox[2]);
-				finalBox[3] = Math.max(boxes[1] + boxes[3], finalBox[3]);
-			}
-			
-			return finalBox;
-		},
-		GetColor : function(context, x, y) {
-			var data = context.getImageData(x, y, 1, 1).data;
-			return new Color(data[0], data[1], data[2], data[3] / 255);
-		},
-		GetColorFromData : function(data, i) {
-			return new Color(data[i], data[i+1], data[i+2], data[i+3]/255);
-		},
-		//PutColorInData : function(color, data, i)
-		//{
-		//   var array = color.ToArray(true);
-		//   for(var i = 0; i < 
-		//},
-		//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
-		//falls outside the canvas.
-		ImageDataCoordinate : function(context, x, y) {
-			if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height) return -1;
-			return 4 * (x + y * context.canvas.width);
-		},
-		GenericFlood : function(context, x, y, floodFunction) {
-			x = Math.floor(x); y = Math.floor(y);
-			var canvas = context.canvas; 
-			var iData = context.getImageData(0, 0, canvas.width, canvas.height);
-			var data = iData.data;
-			var queueX = [], queueY = []; 
-			var west, east, row, column;
-			var enqueue = function(qx, qy) { queueX.push(qx); queueY.push(qy); };
-			if (floodFunction(context, x, y, data)) enqueue(x, y);
-			while(queueX.length) {
-				column = queueX.shift();
-				row = queueY.shift();
-				//Move west until it is just outside the range we want to fill. Move
-				//east in a similar manner.
-				for(west = column - 1; west >= -1 && floodFunction(context, west, row, data); west--);
-				for(east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++);
-				//Move from west to east EXCLUSIVE and fill the queue with matching
-				//north and south nodes.
-				for(column = west + 1; column < east; column++) {
-					if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
-						enqueue(column, row + 1);
-					if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
-						enqueue(column, row - 1);
-				}
-			}
-			context.putImageData(iData, 0, 0);
-		},
-		FloodFill : function(context, sx, sy, color, threshold) {
-			sx = Math.floor(sx); sy = Math.floor(sy);
-			console.debug("Flood filling starting from " + sx + ", " + sy);
-			threshold = threshold || 0;
-			var originalColor = CanvasUtilities.GetColor(context, sx, sy);
-			var ocolorArray = originalColor.ToArray(true);
-			var colorArray = color.ToArray(true);
-			if (color.MaxDifference(originalColor) <= threshold) return; 
-			var floodFunction = function(c, x, y, d) {
-				var i = CanvasUtilities.ImageDataCoordinate(c, x, y);
-				var currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255);
-				if (originalColor.MaxDifference(currentColor) <= threshold) {
-					for(var j = 0; j < 4; j++)
-						d[i + j] = colorArray[j];
-					return true;
-				} else {
-					return false;
-				}
-			};
-			CanvasUtilities.GenericFlood(context, sx, sy, floodFunction);
-		},
-		SwapColor : function(context, original, newColor, threshold) {
-			var canvas = context.canvas;
-			var iData = context.getImageData(0, 0, canvas.width, canvas.height);
-			var data = iData.data;
-			var newArray = newColor.ToArray(true);
-			var i, j;
-			
-			for(i = 0; i < data.length; i+=4) {
-				var cCol = CanvasUtilities.GetColorFromData(data, i);
-				
-				if (cCol.MaxDifference(original) <= threshold) {
-					for(j = 0; j < 4; j++)
-						data[i+j] = newArray[j];
-				}
-			}
-			
-			context.putImageData(iData, 0, 0);
-		},
-		ToString : function(canvas) {
-			return canvas.toDataURL("image/png");
-		},
-		FromString : function(string) {
-			var canvas = document.createElement("canvas");
-			var image = new Image();
-			image.addEventListener("load", function(e) {
-				canvas.width = image.width;
-				canvas.height = image.height;
-				canvas.getContext("2d").drawImage(image, 0, 0);
 			});
-			image.src = string;
-			return canvas;
-		},
-		//Draw the image from a data url into the given canvas.
-		DrawDataURL : function(string, canvas, x, y, callback) {
-			x = x || 0;
-			y = y || 0;
-			var image = new Image();
-			image.addEventListener("load", function(e) {
-				canvas.getContext("2d").drawImage(image, x, y);
-				if (callback) callback(canvas, image);
-			});
-			image.src = string;
+		} else {
+			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false,
+			                                   CanvasUtilities._DrawNormalRoundLineFunc);
 		}
-	};
+	},
+	DrawHollowRectangle : function(ctx, x, y, x2, y2, width) {
+		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width);
+		CanvasUtilities.DrawSolidSquareLine(ctx, x, y2, x2, y2, width);
+		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x, y2, width);
+		CanvasUtilities.DrawSolidSquareLine(ctx, x2, y, x2, y2, width);
+		return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width);
+	},
+	ComputeBoundingBox : function(x, y, x2, y2, width) {
+		return [Math.min(x, x2) - width, Math.min(y, y2) - width,
+		        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1];
+	},
+	ComputeTotalBoundingBox : function(boxes) {
+		var finalBox = [ Infinity, Infinity, -Infinity, -Infinity];
+		
+		for(var i = 0; i < boxes.length; i++) {
+			if (!boxes[i] || boxes[i].length < 4) return false;
+			finalBox[0] = Math.min(boxes[0], finalBox[0]);
+			finalBox[1] = Math.min(boxes[1], finalBox[1]);
+			finalBox[2] = Math.max(boxes[0] + boxes[2], finalBox[2]);
+			finalBox[3] = Math.max(boxes[1] + boxes[3], finalBox[3]);
+		}
+		
+		return finalBox;
+	},
+	GetColor : function(context, x, y) {
+		var data = context.getImageData(x, y, 1, 1).data;
+		return new Color(data[0], data[1], data[2], data[3] / 255);
+	},
+	GetColorFromData : function(data, i) {
+		return new Color(data[i], data[i+1], data[i+2], data[i+3]/255);
+	},
+	//PutColorInData : function(color, data, i)
+	//{
+	//   var array = color.ToArray(true);
+	//   for(var i = 0; i < 
+	//},
+	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
+	//falls outside the canvas.
+	ImageDataCoordinate : function(context, x, y) {
+		if (x < 0 || x >= context.canvas.width || y < 0 || y > context.canvas.height) return -1;
+		return 4 * (x + y * context.canvas.width);
+	},
+	GenericFlood : function(context, x, y, floodFunction) {
+		x = Math.floor(x); y = Math.floor(y);
+		var canvas = context.canvas; 
+		var iData = context.getImageData(0, 0, canvas.width, canvas.height);
+		var data = iData.data;
+		var queueX = [], queueY = []; 
+		var west, east, row, column;
+		var enqueue = function(qx, qy) { queueX.push(qx); queueY.push(qy); };
+		if (floodFunction(context, x, y, data)) enqueue(x, y);
+		while(queueX.length) {
+			column = queueX.shift();
+			row = queueY.shift();
+			//Move west until it is just outside the range we want to fill. Move
+			//east in a similar manner.
+			for(west = column - 1; west >= -1 && floodFunction(context, west, row, data); west--);
+			for(east = column + 1; east <= canvas.width && floodFunction(context, east, row, data); east++);
+			//Move from west to east EXCLUSIVE and fill the queue with matching
+			//north and south nodes.
+			for(column = west + 1; column < east; column++) {
+				if (row + 1 < canvas.height && floodFunction(context, column, row + 1, data))
+					enqueue(column, row + 1);
+				if (row - 1 >= 0 && floodFunction(context, column, row - 1, data))
+					enqueue(column, row - 1);
+			}
+		}
+		context.putImageData(iData, 0, 0);
+	},
+	FloodFill : function(context, sx, sy, color, threshold) {
+		sx = Math.floor(sx); sy = Math.floor(sy);
+		console.debug("Flood filling starting from " + sx + ", " + sy);
+		threshold = threshold || 0;
+		var originalColor = CanvasUtilities.GetColor(context, sx, sy);
+		var ocolorArray = originalColor.ToArray(true);
+		var colorArray = color.ToArray(true);
+		if (color.MaxDifference(originalColor) <= threshold) return; 
+		var floodFunction = function(c, x, y, d) {
+			var i = CanvasUtilities.ImageDataCoordinate(c, x, y);
+			var currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255);
+			if (originalColor.MaxDifference(currentColor) <= threshold) {
+				for(var j = 0; j < 4; j++)
+					d[i + j] = colorArray[j];
+				return true;
+			} else {
+				return false;
+			}
+		};
+		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction);
+	},
+	SwapColor : function(context, original, newColor, threshold) {
+		var canvas = context.canvas;
+		var iData = context.getImageData(0, 0, canvas.width, canvas.height);
+		var data = iData.data;
+		var newArray = newColor.ToArray(true);
+		var i, j;
+		
+		for(i = 0; i < data.length; i+=4) {
+			var cCol = CanvasUtilities.GetColorFromData(data, i);
+			
+			if (cCol.MaxDifference(original) <= threshold) {
+				for(j = 0; j < 4; j++)
+					data[i+j] = newArray[j];
+			}
+		}
+		
+		context.putImageData(iData, 0, 0);
+	},
+	ToString : function(canvas) {
+		return canvas.toDataURL("image/png");
+	},
+	FromString : function(string) {
+		var canvas = document.createElement("canvas");
+		var image = new Image();
+		image.addEventListener("load", function(e) {
+			canvas.width = image.width;
+			canvas.height = image.height;
+			canvas.getContext("2d").drawImage(image, 0, 0);
+		});
+		image.src = string;
+		return canvas;
+	},
+	//Draw the image from a data url into the given canvas.
+	DrawDataURL : function(string, canvas, x, y, callback) {
+		x = x || 0;
+		y = y || 0;
+		var image = new Image();
+		image.addEventListener("load", function(e) {
+			canvas.getContext("2d").drawImage(image, x, y);
+			if (callback) callback(canvas, image);
+		});
+		image.src = string;
+	}
+};
 
 // --- Event Utilities ---
 // Functions to help with built-in events (such as the mouse event).
 
-var EventUtilities =
-	{
-		SignalCodes : { Cancel : 2, Run : 1, Wait : 0},
-		mButtonMap : [ 1, 4, 2, 8, 16 ],
-		MouseButtonToButtons : function(button) {
-			return EventUtilities.mButtonMap[button];
-		},
-		//This is a NON-BLOCKING function that simply "schedules" the function to be
-		//performed later if the signal is in the "WAIT" phase.
-		ScheduleWaitingTask: function(signal, perform, interval) {
-			interval = interval || 100;
-			var s = signal();
-			if (s === EventUtilities.SignalCodes.Cancel)
-				return;
-			else if (s === EventUtilities.SignalCodes.Run)
-				perform();
-			else
-				window.setTimeout(function() { EventUtilities.ScheduleWaitingTask(signal, perform, interval);}, interval);
-		}
-	};
+var EventUtilities = {
+	SignalCodes : { Cancel : 2, Run : 1, Wait : 0},
+	mButtonMap : [ 1, 4, 2, 8, 16 ],
+	MouseButtonToButtons : function(button) {
+		return EventUtilities.mButtonMap[button];
+	},
+	//This is a NON-BLOCKING function that simply "schedules" the function to be
+	//performed later if the signal is in the "WAIT" phase.
+	ScheduleWaitingTask: function(signal, perform, interval) {
+		interval = interval || 100;
+		var s = signal();
+		if (s === EventUtilities.SignalCodes.Cancel)
+			return;
+		else if (s === EventUtilities.SignalCodes.Run)
+			perform();
+		else
+			window.setTimeout(function() { EventUtilities.ScheduleWaitingTask(signal, perform, interval);}, interval);
+	}
+};
 
 // --- Screen Utilities ---
 // Functions to help with setting up or altering the screen (such as fullscreen
 // elements and whatever)
 
-var ScreenUtilities = 
-	{
-		LaunchIntoFullscreen : function(element) {
-			if (element.requestFullscreen)
-				element.requestFullscreen();
-			else if (element.mozRequestFullScreen)
-				element.mozRequestFullScreen();
-			else if (element.webkitRequestFullscreen)
-				element.webkitRequestFullscreen();
-			else if (element.msRequestFullscreen)
-				element.msRequestFullscreen();
-			
-			//Keep the UXUtilities INSIDE the fullscreen thingy.
-			element.appendChild(UXUtilities.UtilitiesContainer);
-		},
-		ExitFullscreen : function() {
-			if (document.exitFullscreen)
-				document.exitFullscreen();
-			else if (document.mozCancelFullScreen)
-				document.mozCancelFullScreen();
-			else if (document.webkitExitFullscreen)
-				document.webkitExitFullscreen();
-			
-			//Replace the utilities back into the body.
-			document.body.appendChild(UXUtilities.UtilitiesContainer);
-		},
-		IsFullscreen : function() {
-			if (document.fullscreenElement || document.mozFullScreenElement ||
-			   document.webkitFullscreenElement)
-				return true;
-			
-			return false;
-		}
-	};
+var ScreenUtilities = {
+	LaunchIntoFullscreen : function(element) {
+		if (element.requestFullscreen)
+			element.requestFullscreen();
+		else if (element.mozRequestFullScreen)
+			element.mozRequestFullScreen();
+		else if (element.webkitRequestFullscreen)
+			element.webkitRequestFullscreen();
+		else if (element.msRequestFullscreen)
+			element.msRequestFullscreen();
+		
+		//Keep the UXUtilities INSIDE the fullscreen thingy.
+		element.appendChild(UXUtilities.UtilitiesContainer);
+	},
+	ExitFullscreen : function() {
+		if (document.exitFullscreen)
+			document.exitFullscreen();
+		else if (document.mozCancelFullScreen)
+			document.mozCancelFullScreen();
+		else if (document.webkitExitFullscreen)
+			document.webkitExitFullscreen();
+		
+		//Replace the utilities back into the body.
+		document.body.appendChild(UXUtilities.UtilitiesContainer);
+	},
+	IsFullscreen : function() {
+		if (document.fullscreenElement || document.mozFullScreenElement ||
+		    document.webkitFullscreenElement)
+			return true;
+		
+		return false;
+	}
+};
 
 // --- Math Utilities ---
 // Functions which provide extra math functionality.
 
-var MathUtilities =
-	{
-		Distance : function(x1, y1, x2, y2) {
-			return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+var MathUtilities = {
+	Distance : function(x1, y1, x2, y2) {
+		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+	},
+	Midpoint : function(x1, y1, x2, y2) {
+		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2];
+	},
+	MinMax : function(value, min, max) {
+		if (min > max) {
+			var temp = min;
+			min = max;
+			max = temp;
+		}
+		return  Math.max(Math.min(value, max), min);
+	},
+	SlopeAngle : function(x,y) { 
+		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0); 
+	},
+	IntRandom : function(max, min) {
+		min = min || 0; //getOrDefault(min, 0);
+		
+		if (min > max) {
+			var temp = min;
+			min = max;
+			max = temp;
+		}
+		
+		return Math.floor((Math.random() * (max - min)) + min);
+	},
+	LinearInterpolate : function(y1, y2, mu) {
+		return y1 + mu * (y2 - y1);
+	},
+	CosInterpolate : function (y1, y2, mu) {
+		var mu2 = (1 - Math.cos(mu * Math.PI)) / 2;
+		return (y1* (1 - mu2) + y2 * mu2);
+	},
+	NewGuid : function() {
+		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+		});
+	},
+	GetSquare : function(x, y, x2, y2) {
+		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)];
+	},
+	IsPointInSquare : function(point, square) {
+		return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
+			point[1] >= square[1] && point[1] <= square[1] + square[3];
+	},
+	Color : {
+		SetGray : function(f, arr) {
+			arr[0] = f;
+			arr[1] = f;
+			arr[2] = f;
 		},
-		Midpoint : function(x1, y1, x2, y2) {
-			return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2];
-		},
-		MinMax : function(value, min, max) {
-			if (min > max) {
-				var temp = min;
-				min = max;
-				max = temp;
+		SetRGB : function(f, arr) {
+			//Duplicate code but fewer branches
+			if (f < 0.5) {
+				arr[0] = 1 - 2 * f;
+				arr[2] = 0;
+			} else {
+				arr[0] = 0;
+				arr[2] = 2 * f - 1;
 			}
-			return  Math.max(Math.min(value, max), min);
+			arr[1] = 1 - Math.abs(f * 2 - 1);
 		},
-		SlopeAngle : function(x,y) { 
-			return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0); 
-		},
-		IntRandom : function(max, min) {
-			min = min || 0; //getOrDefault(min, 0);
-			
-			if (min > max) {
-				var temp = min;
-				min = max;
-				max = temp;
-			}
-			
-			return Math.floor((Math.random() * (max - min)) + min);
-		},
-		LinearInterpolate : function(y1, y2, mu) {
-			return y1 + mu * (y2 - y1);
-		},
-		CosInterpolate : function (y1, y2, mu) {
-			var mu2 = (1 - Math.cos(mu * Math.PI)) / 2;
-			return (y1* (1 - mu2) + y2 * mu2);
-		},
-		NewGuid : function() {
-			return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
-				return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
-			});
-		},
-		GetSquare : function(x, y, x2, y2) {
-			return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)];
-		},
-		IsPointInSquare : function(point, square) {
-			return point[0] >= square[0] && point[0] <= square[0] + square[2] &&
-				point[1] >= square[1] && point[1] <= square[1] + square[3];
-		},
-		Color : 
-		{
-			SetGray : function(f, arr) {
-				arr[0] = f;
-				arr[1] = f;
-				arr[2] = f;
-			},
-			SetRGB : function(f, arr) {
-				//Duplicate code but fewer branches
-				if (f < 0.5) {
-					arr[0] = 1 - 2 * f;
-					arr[2] = 0;
-				} else {
-					arr[0] = 0;
-					arr[2] = 2 * f - 1;
-				}
-				arr[1] = 1 - Math.abs(f * 2 - 1);
-			},
-			SetHue : function(f, arr) {
-				if (f < 1 / 6) {
-					arr[0] = 1;
-					arr[1] = f * 6;
-					arr[2] = 0;
-				} else if (f < 2 / 6) {
-					arr[0] = 1 - (f - 1 / 6) * 6;
-					arr[1] = 1;
-					arr[2] = 0;
-				} else if (f < 0.5) {
-					arr[0] = 0;
-					arr[1] = 1;
-					arr[2] = (f - 2 / 6) * 6;
-				} else if (f < 4 / 6) {
-					arr[0] = 0;
-					arr[1] = 1 - (f - 0.5) * 6;
-					arr[2] = 1;
-				} else if (f < 5 / 6) {
-					arr[0] = (f - 4 / 6) * 6;
-					arr[1] = 0;
-					arr[2] = 1;
-				} else {
-					arr[0] = 1;
-					arr[1] = 0;
-					arr[2] = 1 - (f - 5 / 6) * 6;
-				}
+		SetHue : function(f, arr) {
+			if (f < 1 / 6) {
+				arr[0] = 1;
+				arr[1] = f * 6;
+				arr[2] = 0;
+			} else if (f < 2 / 6) {
+				arr[0] = 1 - (f - 1 / 6) * 6;
+				arr[1] = 1;
+				arr[2] = 0;
+			} else if (f < 0.5) {
+				arr[0] = 0;
+				arr[1] = 1;
+				arr[2] = (f - 2 / 6) * 6;
+			} else if (f < 4 / 6) {
+				arr[0] = 0;
+				arr[1] = 1 - (f - 0.5) * 6;
+				arr[2] = 1;
+			} else if (f < 5 / 6) {
+				arr[0] = (f - 4 / 6) * 6;
+				arr[1] = 0;
+				arr[2] = 1;
+			} else {
+				arr[0] = 1;
+				arr[1] = 0;
+				arr[2] = 1 - (f - 5 / 6) * 6;
 			}
 		}
-	};
-
-// --- Date Utilities ---
-// Functions for working with and converting dates
-
-var DateUtilities = 
-	{
-		LocaleDateString : function(separator, date) {
-			date = date || new Date();
-			
-			if (separator) 
-				return date.toLocaleDateString().replace(/\//g, separator);
-			else
-				return date.toLocaleDateString();
-		}
-	};
-
-// --- Array Utilities ---
-
-var ArrayUtilities =
-	{
-		Contains : function(array, item) {
-			return ArrayUtilities.Any(array, function(x) { return x === item; });
-		},
-		Where : function(array, check) {
-			var result = [];
-			for(var i = 0; i < array.length; i++)
-				if (check(array[i], i))
-					result.push(array[i]);
-			return result;
-		},
-		Any : function(array, check) {
-			for(var i = 0; i < array.length; i++)
-				if (check(array[i], i))
-					return true;
-			
-			return false;
-		}
-	};
+	}
+};
 
 // --- UndoBuffer ---
 // Basically all undo buffers work the same, so here's a generic object you can
@@ -1677,194 +1538,3 @@ ConsoleEmulator.prototype.SetAsConsoleLog = function(colored) {
 	console.trace = function(object) { trace(object); me.WriteLine(object, colored ? "blue": false);};
 	console.debug("Attached console to ConsoleEmulator");
 };
-
-// --- ColorPicker ---
-// A purely javascript color picker (so people on bad devices don't get stuck
-// without a color picker).
-
-//This is the Base64 library just copied directly into my script lol.
-(function(global) {
-	'use strict';
-	// existing version for noConflict()
-	var _Base64 = global.Base64;
-	var version = "2.1.9";
-	// if node.js, we use Buffer
-	var buffer;
-	if (typeof module !== 'undefined' && module.exports) {
-		try {
-			buffer = require('buffer').Buffer;
-		} catch (err) {}
-	}
-	// constants
-	var b64chars
-		= 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-	var b64tab = function(bin) {
-		var t = {};
-		for (var i = 0, l = bin.length; i < l; i++) t[bin.charAt(i)] = i;
-		return t;
-	}(b64chars);
-	var fromCharCode = String.fromCharCode;
-	// encoder stuff
-	var cb_utob = function(c) {
-		var cc;
-		if (c.length < 2) {
-			cc = c.charCodeAt(0);
-			return cc < 0x80 ? c
-				: cc < 0x800 ? (fromCharCode(0xc0 | (cc >>> 6)) + 
-				                fromCharCode(0x80 | (cc & 0x3f)))
-				: (fromCharCode(0xe0 | ((cc >>> 12) & 0x0f)) + 
-				   fromCharCode(0x80 | ((cc >>>  6) & 0x3f)) + 
-				   fromCharCode(0x80 | ( cc         & 0x3f)));
-		} else {
-			cc = 0x10000 + 
-				(c.charCodeAt(0) - 0xD800) * 0x400 + 
-				(c.charCodeAt(1) - 0xDC00);
-			return (fromCharCode(0xf0 | ((cc >>> 18) & 0x07)) + 
-			        fromCharCode(0x80 | ((cc >>> 12) & 0x3f)) + 
-			        fromCharCode(0x80 | ((cc >>>  6) & 0x3f)) + 
-			        fromCharCode(0x80 | ( cc         & 0x3f)));
-		}
-	};
-	var re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
-	var utob = function(u) {
-		return u.replace(re_utob, cb_utob);
-	};
-	var cb_encode = function(ccc) {
-		var padlen = [0, 2, 1][ccc.length % 3],
-		ord = ccc.charCodeAt(0) << 16
-			| ((ccc.length > 1 ? ccc.charCodeAt(1) : 0) << 8)
-			| ((ccc.length > 2 ? ccc.charCodeAt(2) : 0)),
-		chars = [
-			b64chars.charAt( ord >>> 18),
-			b64chars.charAt((ord >>> 12) & 63),
-			padlen >= 2 ? '=' : b64chars.charAt((ord >>> 6) & 63),
-			padlen >= 1 ? '=' : b64chars.charAt(ord & 63)
-		];
-		return chars.join('');
-	};
-	var btoa = global.btoa ? function(b) {
-		return global.btoa(b);
-	} : function(b) {
-		return b.replace(/[\s\S]{1,3}/g, cb_encode);
-	};
-	var _encode = buffer ? function (u) {
-		return (u.constructor === buffer.constructor ? u : new buffer(u))
-			.toString('base64');
-	}
-	: function (u) { return btoa(utob(u)); }
-	;
-	var encode = function(u, urisafe) {
-		return !urisafe ? 
-			_encode(String(u)) : 
-			_encode(String(u)).replace(/[+\/]/g, function(m0) {
-				return m0 == '+' ? '-' : '_';
-			}).replace(/=/g, '');
-	};
-	var encodeURI = function(u) { return encode(u, true); };
-	// decoder stuff
-	var re_btou = new RegExp([
-		'[\xC0-\xDF][\x80-\xBF]',
-		'[\xE0-\xEF][\x80-\xBF]{2}',
-		'[\xF0-\xF7][\x80-\xBF]{3}'
-	].join('|'), 'g');
-	var cb_btou = function(cccc) {
-		switch(cccc.length) {
-		case 4:
-			var cp = ((0x07 & cccc.charCodeAt(0)) << 18)
-				|    ((0x3f & cccc.charCodeAt(1)) << 12)
-				|    ((0x3f & cccc.charCodeAt(2)) <<  6)
-				|     (0x3f & cccc.charCodeAt(3)),
-			offset = cp - 0x10000;
-			return (fromCharCode((offset  >>> 10) + 0xD800) + 
-			        fromCharCode((offset & 0x3FF) + 0xDC00));
-		case 3:
-			return fromCharCode(
-				((0x0f & cccc.charCodeAt(0)) << 12)
-					| ((0x3f & cccc.charCodeAt(1)) << 6)
-					|  (0x3f & cccc.charCodeAt(2))
-			);
-		default:
-			return  fromCharCode(
-				((0x1f & cccc.charCodeAt(0)) << 6)
-					|  (0x3f & cccc.charCodeAt(1))
-			);
-		}
-	};
-	var btou = function(b) {
-		return b.replace(re_btou, cb_btou);
-	};
-	var cb_decode = function(cccc) {
-		var len = cccc.length,
-		padlen = len % 4,
-		n = (len > 0 ? b64tab[cccc.charAt(0)] << 18 : 0)
-			| (len > 1 ? b64tab[cccc.charAt(1)] << 12 : 0)
-			| (len > 2 ? b64tab[cccc.charAt(2)] <<  6 : 0)
-			| (len > 3 ? b64tab[cccc.charAt(3)]       : 0),
-		chars = [
-			fromCharCode( n >>> 16),
-			fromCharCode((n >>>  8) & 0xff),
-			fromCharCode( n         & 0xff)
-		];
-		chars.length -= [0, 0, 2, 1][padlen];
-		return chars.join('');
-	};
-	var atob = global.atob ? function(a) {
-		return global.atob(a);
-	} : function(a){
-		return a.replace(/[\s\S]{1,4}/g, cb_decode);
-	};
-	var _decode = buffer ? function(a) {
-		return (a.constructor === buffer.constructor ? 
-		        a : new buffer(a, 'base64')).toString();
-	}
-	: function(a) { return btou(atob(a)); };
-	var decode = function(a){
-		return _decode(
-			String(a).replace(/[-_]/g, function(m0) { return m0 == '-' ? '+' : '/'; })
-				.replace(/[^A-Za-z0-9\+\/]/g, '')
-		);
-	};
-	var noConflict = function() {
-		var Base64 = global.Base64;
-		global.Base64 = _Base64;
-		return Base64;
-	};
-	// export Base64
-	global.Base64 = {
-		VERSION: version,
-		atob: atob,
-		btoa: btoa,
-		fromBase64: decode,
-		toBase64: encode,
-		utob: utob,
-		encode: encode,
-		encodeURI: encodeURI,
-		btou: btou,
-		decode: decode,
-		noConflict: noConflict
-	};
-	// if ES5 is available, make Base64.extendString() available
-	if (typeof Object.defineProperty === 'function') {
-		var noEnum = function(v){
-			return {value:v,enumerable:false,writable:true,configurable:true};
-		};
-		global.Base64.extendString = function () {
-			Object.defineProperty(
-				String.prototype, 'fromBase64', noEnum(function () {
-					return decode(this);
-				}));
-			Object.defineProperty(
-				String.prototype, 'toBase64', noEnum(function (urisafe) {
-					return encode(this, urisafe);
-				}));
-			Object.defineProperty(
-				String.prototype, 'toBase64URI', noEnum(function () {
-					return encode(this, true);
-				}));
-		};
-	}
-	// that's it!
-	if (global.Meteor) {
-		Base64 = global.Base64; // for normal export in Meteor.js
-	}
-})(this);
