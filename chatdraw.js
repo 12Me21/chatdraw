@@ -5,7 +5,9 @@
 //Make sure there's at least SOMETHING there. It won't log, but it won't throw
 //errors either (I think).
 if(!window.LogSystem)
-   window.LogSystem = {RootLogger : {log : function(message, level){}}};
+	window.LogSystem = {RootLogger : {log : function(message, level){
+		console.log(message)
+	}}};
 
 var LocalChatDraw = (function() {
 
