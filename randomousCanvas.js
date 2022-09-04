@@ -49,17 +49,17 @@ class CanvasPerformer {
 		this._canvas = false
 		this._oldStyle = {}
 		
-		var lastMAction = 0
-		var lastTAction = 0
-		var startZDistance = 0
-		var lastZDistance = 0
-		var lastTPosition = [-1,-1]
+		let lastMAction = 0
+		let lastTAction = 0
+		let startZDistance = 0
+		let lastZDistance = 0
+		let lastTPosition = [-1,-1]
 		
 		//Event for "mouse down". Creates a generic "cursor" action
 		this._evMD = e=>{
 			console.trace("CanvasPerformer mouse down")
-			var action = CursorActions.Start
-			var buttons = e.buttons || EventUtilities.MouseButtonToButtons(e.button)
+			let action = CursorActions.Start
+			let buttons = e.buttons || EventUtilities.MouseButtonToButtons(e.button)
 			
 			lastMAction = this.ButtonsToAction(buttons)
 			this.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), this._canvas)
@@ -81,8 +81,8 @@ class CanvasPerformer {
 			if (this.ZoomTouches !== 2)
 				throw "Zoom must use 2 fingers!"
 			
-			var extraAction = 0
-			var nextAction = this.TouchesToAction(e.touches.length)
+			let extraAction = 0
+			let nextAction = this.TouchesToAction(e.touches.length)
 			
 			//If we enter evTC and there is a lastTAction, that means that last
 			//action has ended. Either we went from 1 touch to 0 or maybe 2 touches
@@ -113,11 +113,11 @@ class CanvasPerformer {
 		}
 		//Event for "touch move". Creates a generic "cursor" action.
 		this._evTM = (e)=>{
-			var action = this.TouchesToAction(e.touches.length)
+			let action = this.TouchesToAction(e.touches.length)
 			lastTPosition = this.TouchesToXY(action, e.touches)
 			
 			if (action & CursorActions.Zoom) {
-				var startZoomDiff = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
+				let startZoomDiff = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
 				this.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1], startZoomDiff - lastZDistance), this._canvas)
 				lastZDistance = startZoomDiff
 			} else {
@@ -145,7 +145,7 @@ class CanvasPerformer {
 	
 	//Convert the touch count to an appropriate action
 	TouchesToAction(touches) {
-		var action = 0
+		let action = 0
 		
 		if (touches === this.DragTouches)
 			action = action | CursorActions.Drag
@@ -225,11 +225,11 @@ class CanvasPerformer {
 	}
 	
 	Perform(e, cursorData, canvas) {
-		var context = canvas.getContext("2d")
-		var clientRect = canvas.getBoundingClientRect()
-		//var clientStyle = window.getComputedStyle(canvas)
-		var scalingX = canvas.clientWidth / canvas.width
-		var scalingY = canvas.clientHeight / canvas.height
+		let context = canvas.getContext("2d")
+		let clientRect = canvas.getBoundingClientRect()
+		//let clientStyle = window.getComputedStyle(canvas)
+		let scalingX = canvas.clientWidth / canvas.width
+		let scalingY = canvas.clientHeight / canvas.height
 		
 		//Do NOTHING if the canvas is non-existent
 		if (scalingX <= 0 || scalingY <= 0) return
@@ -335,9 +335,9 @@ class CanvasDrawer extends CanvasPerformer {
 		this.ignoreCurrentStroke = false
 		
 		//All private stuff that's only used for our internal functions.
-		var me = this
-		var strokeCount = 0
-		var frameCount = 0
+		let me = this
+		let strokeCount = 0
+		let frameCount = 0
 		
 		this.StrokeCount = function() { return strokeCount; }
 		this.FrameCount = function() { return frameCount; }
@@ -389,17 +389,16 @@ class CanvasDrawer extends CanvasPerformer {
 			frameCount++
 			
 			//Oh look, we were detached. How nice.
-			if (!me._canvas) return
+			if (!me._canvas)
+				return
 			
 			//I don't care what the tool wants or what the settings are, all I care
 			//about is whether or not there are actions for me to perform. Maybe some
 			//other thing added actions; I shouldn't ignore those.
 			if (me.frameActions.length) {
-				for(var i = 0; i < me.frameActions.length; i++) {
-					if (me.frameActions[i].data.action & (CursorActions.Start |
-					                                      CursorActions.End) || i === me.frameActions.length - 1) {
-						me.PerformDrawAction(me.frameActions[i].data,
-						                     me.frameActions[i].context)
+				for (let i = 0; i < me.frameActions.length; i++) {
+					if (me.frameActions[i].data.action & (CursorActions.Start | CursorActions.End) || i === me.frameActions.length - 1) {
+						me.PerformDrawAction(me.frameActions[i].data, me.frameActions[i].context)
 					}
 				}
 				
@@ -409,9 +408,7 @@ class CanvasDrawer extends CanvasPerformer {
 			//the tool and the reportInterval are valid, there even WAS a lastAction
 			//which had Drag but not Start/End, and it's far enough away from the
 			//last stationary report.
-			else if (me.CheckToolValidity("stationaryReportInterval") && me.CheckToolValidity("tool") && 
-			         me.lastAction && (me.lastAction.action & CursorActions.Drag) && 
-			         !(me.lastAction.action & (CursorActions.End)) && (frameCount % me.tools[me.currentTool].stationaryReportInterval) === 0) {
+			else if (me.CheckToolValidity("stationaryReportInterval") && me.CheckToolValidity("tool") &&  me.lastAction && (me.lastAction.action & CursorActions.Drag) && !(me.lastAction.action & (CursorActions.End)) && (frameCount % me.tools[me.currentTool].stationaryReportInterval) === 0) {
 				me.PerformDrawAction(me.lastAction, me.GetCurrentCanvas().getContext("2d"))
 			}
 			
@@ -426,7 +423,7 @@ class CanvasDrawer extends CanvasPerformer {
 	//Convert layer ID (which can be anything) to actual index into layer buffer.
 	//Only works if there is actually a buffer.
 	LayerIDToBufferIndex(id) {
-		for(var i = 0; i < this.buffers.length; i++)
+		for(let i = 0; i < this.buffers.length; i++)
 			if (this.buffers[i].id === id)
 				return i
 		
@@ -507,9 +504,9 @@ class CanvasDrawer extends CanvasPerformer {
 	//This is for both undos and redos
 	_PerformUndoRedoSwap(swapFunction) {
 		//Figure out which static canvas we're going to use to store our current state.
-		var currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
+		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
 		//Perform the actual action with a non-filled current state (just to get it in there)
-		var nextState = swapFunction(currentState)
+		let nextState = swapFunction(currentState)
 		//The reason we don't fill in currentState until now is because we need the nextState data
 		currentState.id = nextState.id
 		this.currentLayer = nextState.id
@@ -541,7 +538,7 @@ class CanvasDrawer extends CanvasPerformer {
 	UpdateUndoBuffer() {
 		if (!this.SupportsUndo()) return
 		console.trace("Updating undo buffer")
-		var currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
+		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
 		currentState.id = this.currentLayer
 		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
 		this.undoBuffer.Add(currentState)
@@ -555,9 +552,9 @@ class CanvasDrawer extends CanvasPerformer {
 		//make us lose the drawing itself!
 		if (!this.Buffered() || bounding === false) return
 		
-		var context = canvas.getContext("2d")
-		var oldComposition = context.globalCompositeOperation
-		var oldAlpha = context.globalAlpha
+		let context = canvas.getContext("2d")
+		let oldComposition = context.globalCompositeOperation
+		let oldAlpha = context.globalAlpha
 		context.globalCompositeOperation = "source-over"
 		if (!bounding) bounding = [0,0,canvas.width,canvas.height]
 		bounding[0] = MathUtilities.MinMax(Math.floor(bounding[0]), 0, canvas.width - 1)
@@ -585,7 +582,7 @@ class CanvasDrawer extends CanvasPerformer {
 		//context.clearRect(bounding[0] + offsetX, bounding[1] + offsetY, bounding[2] * zoom, bounding[3] * zoom)
 		context.clearRect(bounding[0], bounding[1], bounding[2], bounding[3])
 		if (this.overlay.active) this.buffers.splice(this.CurrentLayerIndex() + 1, 0, this.overlay)
-		for(var i = 0; i < this.buffers.length; i++) {
+		for(let i = 0; i < this.buffers.length; i++) {
 			context.globalAlpha = this.buffers[i].opacity
 			//context.drawImage(this.buffers[i].canvas, 
 			//   bounding[0], bounding[1], bounding[2], bounding[3],
@@ -609,7 +606,7 @@ class CanvasDrawer extends CanvasPerformer {
 	PerformDrawAction(data, context) {
 		//Ensure the drawing canvases are properly set up before we hand the data
 		//off to a tool action thingy.
-		var bcontext = this.GetCurrentCanvas().getContext("2d")
+		let bcontext = this.GetCurrentCanvas().getContext("2d")
 		context.fillStyle = this.color
 		bcontext.fillStyle = this.color
 		context.globalAlpha = 1.0; //this.opacity
@@ -619,8 +616,9 @@ class CanvasDrawer extends CanvasPerformer {
 			//Interrupted? Clear the overlay... don't know what we were doing
 			//but whatever, man. Oh and call the tool's interrupt function...
 			this.overlay.active = false
-			var interruptHandler = this.CheckToolValidity("interrupt")
-			if (interruptHandler) interruptHandler(data, bcontext, this)
+			let interruptHandler = this.CheckToolValidity("interrupt")
+			if (interruptHandler)
+				interruptHandler(data, bcontext, this)
 			//CanvasUtilities.Clear(this.overlay.canvas)
 			//UXUtilities.Toast("Disabling overlay")
 			//console.log("Clearing overlay")
@@ -648,11 +646,11 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//Now actually perform the action.
 		if (!this.ignoreCurrentStroke) {
-			var bounding = this.tools[this.currentTool].tool(data, bcontext, this)
-			var overlay = this.CheckToolValidity("overlay")
+			let bounding = this.tools[this.currentTool].tool(data, bcontext, this)
+			let overlay = this.CheckToolValidity("overlay")
 			
 			if (overlay && this.overlay.canvas) {
-				var overlayContext = this.overlay.canvas.getContext("2d")
+				let overlayContext = this.overlay.canvas.getContext("2d")
 				overlayContext.fillStyle = this.color
 				overlayContext.globalAlpha = this.opacity
 				overlayContext.clearRect(0, 0, this.overlay.canvas.width, this.overlay.canvas.height)
@@ -680,7 +678,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = new UndoBuffer(size, size + 1)
 		this.undoBuffer.staticBuffer = []
 		for (let i = 0; i < size + 1; i++) {
-			var layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint), -1)
+			let layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint), -1)
 			this.undoBuffer.staticBuffer.push(layer)
 		}
 	}
@@ -688,7 +686,7 @@ class CanvasDrawer extends CanvasPerformer {
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
 	//overlays will be the same size as mainCanvas.
 	Attach(mainCanvas, layers, undoCount, useToolOverlay) {
-		var i
+		let i
 		
 		if (undoCount === undefined)
 			undoCount = 5
@@ -725,10 +723,10 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	ToString() {
 		//Version 1-2 assumes the width and height of all layers are the same.
-		var object = {version:2, width: this._canvas.width, height: this._canvas.height}
-		var layers = []
+		let object = {version:2, width: this._canvas.width, height: this._canvas.height}
+		let layers = []
 		
-		var layerToObject = function(layer) {
+		let layerToObject = function(layer) {
 			return {
 				canvas:CanvasUtilities.ToString(layer.canvas),
 				opacity:layer.opacity
@@ -737,7 +735,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		if (this.Buffered()) {
 			object.buffered = true
-			for(var i = 0; i < this.buffers.length; i++) {
+			for(let i = 0; i < this.buffers.length; i++) {
 				layers.push(layerToObject(this.buffers[i]))
 			}
 		} else {
@@ -754,32 +752,32 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	FromString(string, callback) {
-		var object = JSON.parse(string)
-		var me = this
+		let object = JSON.parse(string)
+		let me = this
 		
 		//Version 1 stuff. May be used in other versions as well.
-		var version1LoadComplete = function() {
+		let version1LoadComplete = function() {
 			me.ResetUndoBuffer()
 			me.Redraw();     
 			if (callback) callback(this, object)
 		}
-		var version1LayerLoad = function(layer, buffer, redrawCheck) {
+		let version1LayerLoad = function(layer, buffer, redrawCheck) {
 			CanvasUtilities.DrawDataURL(layer, buffer.canvas, 0, 0, redrawCheck)
 		}
-		var version1BufferLoad = function(layerLoadFunction) {
-			var loadedBuffers = 0
-			var redrawCheck = function() {
+		let version1BufferLoad = function(layerLoadFunction) {
+			let loadedBuffers = 0
+			let redrawCheck = function() {
 				loadedBuffers++
 				if (loadedBuffers >= object.layers.length) version1LoadComplete()
 			}
-			for(var i = 0; i < object.layers.length; i++) {
+			for(let i = 0; i < object.layers.length; i++) {
 				me.buffers[i].canvas.width = object.width
 				me.buffers[i].canvas.height = object.height
 				layerLoadFunction(object.layers[i], me.buffers[i], redrawCheck)
 			}
 		}
 		
-		var version2LayerLoad = function(layer, buffer, redrawCheck) {
+		let version2LayerLoad = function(layer, buffer, redrawCheck) {
 			buffer.opacity = layer.opacity
 			CanvasUtilities.DrawDataURL(layer.canvas, buffer.canvas, 0, 0, redrawCheck)
 		}
@@ -791,7 +789,7 @@ class CanvasDrawer extends CanvasPerformer {
 			this._canvas.width = object.width
 			this._canvas.height = object.height
 			
-			var loadLayerFunction = version1LayerLoad
+			let loadLayerFunction = version1LayerLoad
 			if (object.version === 2) loadLayerFunction = version2LayerLoad
 			
 			if (object.buffered) {
@@ -979,11 +977,11 @@ class CanvasDrawer extends CanvasPerformer {
 		if (drawer.sprayRate === undefined) drawer.sprayRate = 1 / 1.5
 		
 		if (data.action & CursorActions.Drag) {
-			var x,y,radius=data.lineWidth*drawer.spraySpread
-			var count = data.lineWidth * drawer.sprayRate
+			let x,y,radius=data.lineWidth*drawer.spraySpread
+			let count = data.lineWidth * drawer.sprayRate
 			//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
 			//data.lineWidth * drawer.sprayRate
-			for(var i=0;i<count;i+=0.1) {
+			for(let i=0;i<count;i+=0.1) {
 				if (MathUtilities.IntRandom(10))
 					continue
 				do {
@@ -1000,8 +998,8 @@ class CanvasDrawer extends CanvasPerformer {
 			if (drawer.floodThreshold === undefined)
 				drawer.floodThreshold = 0
 			
-			var sx = Math.floor(data.x)
-			var sy = Math.floor(data.y)
+			let sx = Math.floor(data.x)
+			let sy = Math.floor(data.y)
 			console.debug("Flood filling starting from " + sx + ", " + sy)
 			
 			//We create a COPY so that it takes the colors from ALL layers into
@@ -1010,22 +1008,22 @@ class CanvasDrawer extends CanvasPerformer {
 			//layer's colors and shapes, not the current layer. If this is not
 			//desireable, replace this fill function with the generic one from
 			//CanvasUtilities.
-			var canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
+			let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
 			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
-			var copyContext = canvasCopy.getContext("2d")
-			var copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data
+			let copyContext = canvasCopy.getContext("2d")
+			let copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data
 			
-			var originalColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-			var color = StyleUtilities.GetColor(data.color)
-			var ocolorArray = originalColor.ToArray(true)
-			var colorArray = color.ToArray(true)
+			let originalColor = CanvasUtilities.GetColor(copyContext, sx, sy)
+			let color = StyleUtilities.GetColor(data.color)
+			let ocolorArray = originalColor.ToArray(true)
+			let colorArray = color.ToArray(true)
 			if (color.MaxDifference(originalColor) <= drawer.floodThreshold) return
 			
 			CanvasUtilities.GenericFlood(context, sx, sy, function(c, x, y, d) {
-				var i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-				var currentColor = new Color(copyData[i], copyData[i+1], copyData[i+2], copyData[i+3]/255)
+				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
+				let currentColor = new Color(copyData[i], copyData[i+1], copyData[i+2], copyData[i+3]/255)
 				if (originalColor.MaxDifference(currentColor) <= drawer.floodThreshold) {
-					for(var j = 0; j < 4; j++) {
+					for(let j = 0; j < 4; j++) {
 						d[i + j] = colorArray[j]
 						copyData[i + j] = colorArray[j]
 					}
@@ -1039,12 +1037,12 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	static DropperTool(data, context, drawer) {
 		if (data.action & CursorActions.End) {
-			var sx = Math.floor(data.x)
-			var sy = Math.floor(data.y)
-			var canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
+			let sx = Math.floor(data.x)
+			let sy = Math.floor(data.y)
+			let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
 			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
-			var copyContext = canvasCopy.getContext("2d")
-			var pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
+			let copyContext = canvasCopy.getContext("2d")
+			let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
 			drawer.SetColor(pickupColor.ToRGBString())
 		}
 	}

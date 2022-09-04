@@ -14,37 +14,37 @@ if (!window.LogSystem)
 let LocalChatDraw = (function() {
 	
 	//The chatdraw canvas's expected width and height
-	var chatDrawCanvasWidth = 200
-	var chatDrawCanvasHeight = 100
+	let chatDrawCanvasWidth = 200
+	let chatDrawCanvasHeight = 100
 	
-	var drawAreaID = "chatdraw"
-	var colorButtonClass = "colorChange"
-	var colorPickerID = "colorPicker"
-	var hideCharacters = 20
-	var maxLineWidth = 7
-	var maxScale = 5
-	var defaultLineWidth = 2
-	var drawer = false
-	var animateFrames = false
-	var animationPlayer = false
-	var drawIframe
-	var firstTimeRecentered = false
+	let drawAreaID = "chatdraw"
+	let colorButtonClass = "colorChange"
+	let colorPickerID = "colorPicker"
+	let hideCharacters = 20
+	let maxLineWidth = 7
+	let maxScale = 5
+	let defaultLineWidth = 2
+	let drawer = false
+	let animateFrames = false
+	let animationPlayer = false
+	let drawIframe
+	let firstTimeRecentered = false
 	
-	var saveInput = false
+	let saveInput = false
 	
-	var animationTag = "_chdran"
-	var allowAnimation = true
+	let animationTag = "_chdran"
+	let allowAnimation = true
 	
-	var copyDrawing = function(string) {
+	let copyDrawing = function(string) {
 		StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, string)
 		UXUtilities.Toast("Copied drawing (chatdraw only!)")
 	}
 	
-	var getClipboardDrawing = function() {
+	let getClipboardDrawing = function() {
 		return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
 	}
 	
-	var checkMessageForDrawing = function(messageElement) {
+	let checkMessageForDrawing = function(messageElement) {
 		try {
 			var content = messageElement.querySelector('[data-encoding="draw"]')
 			
@@ -141,20 +141,20 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var createToolButton = function(displayCharacters, toolNames) {
+	let createToolButton = function(displayCharacters, toolNames) {
 		if (!Array.isArray(displayCharacters))
 			displayCharacters= [displayCharacters]
 		if (!Array.isArray(toolNames))
 			toolNames = [toolNames]
-		var nextTool = 0
-		var tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
+		let nextTool = 0
+		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
 		//makeUnsubmittableButton()
 		//tButton.textContent = displayCharacters[nextTool]
 		tButton.className = "toolButton"
 		tButton.addEventListener('click', function() {
 			//First, deselect ALL other buttons
-			var toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton")
-			for(var i = 0; i < toolButtons.length; i++) {
+			let toolButtons = document.querySelectorAll("#" + drawAreaID + " button.toolButton")
+			for(let i = 0; i < toolButtons.length; i++) {
 				if (toolButtons[i] != tButton) toolButtons[i].removeAttribute("data-selected")
 			}
 			
@@ -170,16 +170,16 @@ let LocalChatDraw = (function() {
 		return tButton
 	}
 	
-	var setupInterface2 = function() {
+	let setupInterface2 = function() {
 		try {
-			var messagePane = document.querySelector("#sendpane")
+			let messagePane = document.querySelector("#sendpane")
 			
-			var drawArea = document.createElement("draw-area")
-			var buttonArea = document.createElement("button-area")
+			let drawArea = document.createElement("draw-area")
+			let buttonArea = document.createElement("button-area")
 			drawIframe = document.createElement("iframe")
-			var toggleButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
-			var sendButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
-			var positionButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
+			let toggleButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
+			let sendButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
+			let positionButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			//These are the only elements that will be displayed if the drawing area
 			//goes hidden. CSS doesn't have to look at these, ofc.
@@ -225,26 +225,26 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var selectNextRadio = function() {
-		var index = animateFrames.GetSelectedFrameIndex()
+	let selectNextRadio = function() {
+		let index = animateFrames.GetSelectedFrameIndex()
 		if (index < animateFrames.GetFrameCount() - 1)
 			animateFrames.SelectFrameIndex(index + 1)
 	}
 	
-	var selectPreviousRadio = function() {
-		var index = animateFrames.GetSelectedFrameIndex()
+	let selectPreviousRadio = function() {
+		let index = animateFrames.GetSelectedFrameIndex()
 		if (index > 0) 
 			animateFrames.SelectFrameIndex(index - 1)
 	}
 	
-	var getButtonColorString = function() {
+	let getButtonColorString = function() {
 		return getColorString(getButtonColors())
 	}
 	
-	var getColorString = function(colors) {
-		var colorSet = ""
+	let getColorString = function(colors) {
+		let colorSet = ""
 		
-		for(var i = 0; i < colors.length; i++) {
+		for(let i = 0; i < colors.length; i++) {
 			colorSet += rgbToFillStyle(colors[i])
 			if (i !== colors.length - 1)
 				colorSet += "/"
@@ -253,20 +253,20 @@ let LocalChatDraw = (function() {
 		return colorSet
 	}
 	
-	var parseColorString = function(string) {
-		var colors = string.split("/")
-		var result = []
+	let parseColorString = function(string) {
+		let colors = string.split("/")
+		let result = []
 		
-		for(var i = 0; i < colors.length; i++)
+		for(let i = 0; i < colors.length; i++)
 			result.push(fillStyleToRgb(colors[i]))
 		
 		return result
 	}
 	
-	var setButtonColors = function(palette) {
-		var buttons = getColorButtons()
+	let setButtonColors = function(palette) {
+		let buttons = getColorButtons()
 		
-		for(var i = 0; i < palette.length; i++) {
+		for(let i = 0; i < palette.length; i++) {
 			if (i < buttons.length) {
 				buttons[i].style.color = palette[i].ToRGBString(); //colors[i]
 				
@@ -278,22 +278,22 @@ let LocalChatDraw = (function() {
 		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
 	}
 	
-	var widthToggle = function (widthButton) {
-		var width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
+	let widthToggle = function (widthButton) {
+		let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
 		widthButton.textContent = String(width)
 		widthButton.setAttribute("data-width", String(width))
 		drawer.lineWidth = width
 	}
 	
-	var getAnimations = function(callback, element) {
-		var formData = new FormData()
+	let getAnimations = function(callback, element) {
+		let formData = new FormData()
 		formData.append("list", "1")
 		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, function(json, statusElement) {
 			genericSuccess(json, element)
 			
-			var result = []
+			let result = []
 			
-			for(var i = 0; i < json.result.length; i++)
+			for(let i = 0; i < json.result.length; i++)
 				if (json.result[i].endsWith(animationTag))
 					result.push(json.result[i].slice(0, -animationTag.length))
 			
@@ -302,11 +302,11 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Once you have a compliant v2 object, this is the actual load function.
-	var loadAnimation = function(storeObject) {
+	let loadAnimation = function(storeObject) {
 		animationPlayer.FromStorageObject(storeObject)
 		animateFrames.ClearAllFrames()
 		
-		for(var i = 0; i < animationPlayer.frames.length; i++) {
+		for(let i = 0; i < animationPlayer.frames.length; i++) {
 			animateFrames.InsertNewFrame(i - 1)
 			animateFrames.SetFrame(animationPlayer.frames[i], i)
 		}
@@ -314,31 +314,31 @@ let LocalChatDraw = (function() {
 		animateFrames.SelectFrameIndex(0)
 	}
 	
-	var setupInterface = function(interfaceContainer, skipChatSetup) {
-		var messagePane = interfaceContainer || document.querySelector("#sendpane")
-		var i
+	let setupInterface = function(interfaceContainer, skipChatSetup) {
+		let messagePane = interfaceContainer || document.querySelector("#sendpane")
+		let i
 		
-		var drawArea = document.createElement("draw-area")
-		var canvasContainer = document.createElement("canvas-container")
-		var buttonArea = document.createElement("button-area")
-		var buttonArea2 = document.createElement("button-area")
-		var toggleButton = HTMLUtilities.CreateUnsubmittableButton()
-		var sendButton = HTMLUtilities.CreateUnsubmittableButton()
-		var widthButton = HTMLUtilities.CreateUnsubmittableButton()
-		var cSizeButton = HTMLUtilities.CreateUnsubmittableButton()
-		var undoButton = HTMLUtilities.CreateUnsubmittableButton()
-		var redoButton = HTMLUtilities.CreateUnsubmittableButton()
-		var clearButton = HTMLUtilities.CreateUnsubmittableButton()
-		var freehandButton = createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
-		var lineButton = createToolButton(["📏️","🔲️"], ["line", "square"])
-		var fillButton = createToolButton(["🪣️","❎️"], ["fill","clear"])
-		var moveButton = createToolButton(["↔️"], ["mover"])
-		var canvas = ChatDrawUtilities.CreateCanvas()
-		var lightbox = ChatDrawUtilities.CreateCanvas()
-		var colorPicker = document.createElement("input")
+		let drawArea = document.createElement("draw-area")
+		let canvasContainer = document.createElement("canvas-container")
+		let buttonArea = document.createElement("button-area")
+		let buttonArea2 = document.createElement("button-area")
+		let toggleButton = HTMLUtilities.CreateUnsubmittableButton()
+		let sendButton = HTMLUtilities.CreateUnsubmittableButton()
+		let widthButton = HTMLUtilities.CreateUnsubmittableButton()
+		let cSizeButton = HTMLUtilities.CreateUnsubmittableButton()
+		let undoButton = HTMLUtilities.CreateUnsubmittableButton()
+		let redoButton = HTMLUtilities.CreateUnsubmittableButton()
+		let clearButton = HTMLUtilities.CreateUnsubmittableButton()
+		let freehandButton = createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
+		let lineButton = createToolButton(["📏️","🔲️"], ["line", "square"])
+		let fillButton = createToolButton(["🪣️","❎️"], ["fill","clear"])
+		let moveButton = createToolButton(["↔️"], ["mover"])
+		let canvas = ChatDrawUtilities.CreateCanvas()
+		let lightbox = ChatDrawUtilities.CreateCanvas()
+		let colorPicker = document.createElement("input")
 		lightbox.className = "lightbox"
 		
-		var frameContainer = document.createElement("animate-frames")
+		let frameContainer = document.createElement("animate-frames")
 		animateFrames = new AnimatorFrameSet(frameContainer)
 		animateFrames.OnFrameSelected = function(data) {
 			setButtonColors(data.palette)
@@ -346,11 +346,11 @@ let LocalChatDraw = (function() {
 			drawer.ClearUndoBuffer()
 			drawer.Redraw()
 			
-			var lightboxFrames = []
-			var lightboxCount = Number(lightboxButton.textContent)
-			var selectedIndex = animateFrames.GetSelectedFrameIndex()
-			var totalFrames = animateFrames.GetFrameCount()
-			var i
+			let lightboxFrames = []
+			let lightboxCount = Number(lightboxButton.textContent)
+			let selectedIndex = animateFrames.GetSelectedFrameIndex()
+			let totalFrames = animateFrames.GetFrameCount()
+			let i
 			
 			if (lightboxCount > 0) {
 				for(i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
@@ -360,11 +360,11 @@ let LocalChatDraw = (function() {
 					lightboxFrames.push(animateFrames.GetFrame(i))
 			}
 			
-			var opacities = [0.03, 0.12, 0.25]
+			let opacities = [0.03, 0.12, 0.25]
 			ChatDrawUtilities.CreateLightbox(lightboxFrames, lightbox, opacities.slice(-lightboxFrames.length))
 		}
 		
-		var firstFrame = animateFrames.InsertNewFrame(0)
+		let firstFrame = animateFrames.InsertNewFrame(0)
 		
 		drawer = new CanvasDrawer()
 		drawer.Attach(canvas, [firstFrame.canvas], 5)
@@ -382,8 +382,8 @@ let LocalChatDraw = (function() {
 		colorPicker.style.width = "0"
 		colorPicker.style.height = "0"
 		colorPicker.addEventListener("change", function(event) {
-			var frame = animateFrames.GetFrame(); //GetSelectedFrame()
-			var newColor = StyleUtilities.GetColor(event.target.value)
+			let frame = animateFrames.GetFrame(); //GetSelectedFrame()
+			let newColor = StyleUtilities.GetColor(event.target.value)
 			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), 
 			                          StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
 			event.target.associatedButton.style.color = newColor.ToRGBString()
@@ -443,7 +443,7 @@ let LocalChatDraw = (function() {
 		
 		//Create the color picking buttons
 		for(i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
-			var colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
+			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			colorButton.textContent = "■"
 			colorButton.className = colorButtonClass
@@ -472,20 +472,20 @@ let LocalChatDraw = (function() {
 		drawArea.appendChild(colorPicker)
 		
 		//Before we finish entirely, set up the animation area.
-		var animateArea = document.createElement("animate-area")
-		var animateScroller = document.createElement("animate-scroller")
-		var animateControls = document.createElement("button-area")
-		var animateSave = document.createElement("button-area")
-		var newFrame = HTMLUtilities.CreateUnsubmittableButton("+")
-		var frameSkip = document.createElement("input")
-		var lightboxButton = HTMLUtilities.CreateUnsubmittableButton("0")
-		var repeatAnimation = HTMLUtilities.CreateUnsubmittableButton("→")
-		var exportAnimation = HTMLUtilities.CreateUnsubmittableButton("⛟")
-		var sendAnimation = HTMLUtilities.CreateUnsubmittableButton("➥")
-		var playPause = HTMLUtilities.CreateUnsubmittableButton("►")
-		var saveAnimationButton = HTMLUtilities.CreateUnsubmittableButton("📝")
-		var loadAnimationButton = HTMLUtilities.CreateUnsubmittableButton("☝")
-		var listAnimations = HTMLUtilities.CreateUnsubmittableButton("L")
+		let animateArea = document.createElement("animate-area")
+		let animateScroller = document.createElement("animate-scroller")
+		let animateControls = document.createElement("button-area")
+		let animateSave = document.createElement("button-area")
+		let newFrame = HTMLUtilities.CreateUnsubmittableButton("+")
+		let frameSkip = document.createElement("input")
+		let lightboxButton = HTMLUtilities.CreateUnsubmittableButton("0")
+		let repeatAnimation = HTMLUtilities.CreateUnsubmittableButton("→")
+		let exportAnimation = HTMLUtilities.CreateUnsubmittableButton("⛟")
+		let sendAnimation = HTMLUtilities.CreateUnsubmittableButton("➥")
+		let playPause = HTMLUtilities.CreateUnsubmittableButton("►")
+		let saveAnimationButton = HTMLUtilities.CreateUnsubmittableButton("📝")
+		let loadAnimationButton = HTMLUtilities.CreateUnsubmittableButton("☝")
+		let listAnimations = HTMLUtilities.CreateUnsubmittableButton("L")
 		saveInput = document.createElement("input")
 		saveInput.setAttribute("name", "name")
 		saveInput.setAttribute("placeholder", "Animation Name")
@@ -508,33 +508,33 @@ let LocalChatDraw = (function() {
 		frameSkip.value = 3
 		
 		lightboxButton.addEventListener("click", function(event) {
-			var next = Number(lightboxButton.textContent) + 1
+			let next = Number(lightboxButton.textContent) + 1
 			if (next > 3) next = -3
 			lightboxButton.textContent = String(next)
 			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex())
 		})
 		
-		var saveAnimationWrapper = function(name) {
+		let saveAnimationWrapper = function(name) {
 			UXUtilities.Toast("Saving... please wait")
 			animationPlayer.frames = animateFrames.GetAllFrames()
-			var object = animationPlayer.ToStorageObject()
+			let object = animationPlayer.ToStorageObject()
 			writePersistent(name + animationTag, object, function() {
 				UXUtilities.Toast("Saved animation '" + name + "'")
 			})
 		}
 		
-		var loadAnimationWrapper = function(name) {
+		let loadAnimationWrapper = function(name) {
 			readPersistent(name + animationTag, function(value) {
 				//Perform the version 1 conversion... eugh
 				if (!value.version || value.version < 2) {
-					var loadCount = 0
+					let loadCount = 0
 					value.times = value.frames
 					value.data = []
 					value.version = 2
 					
 					console.log("Loading an older animation")
 					
-					for(var i = 0; i < value.times.length; i++) {
+					for(let i = 0; i < value.times.length; i++) {
 						/* jshint ignore:start */
 						let index = i
 						readPersistent(name + animationTag + "_" + index, function(drawing) {
@@ -614,8 +614,8 @@ let LocalChatDraw = (function() {
 					return
 				UXUtilities.Toast("Uploading animation... please wait")
 				animationPlayer.frames = animateFrames.GetAllFrames()
-				var animation = animationPlayer.ToStorageObject()
-				var uploadData = new FormData()
+				let animation = animationPlayer.ToStorageObject()
+				let uploadData = new FormData()
 				uploadData.append("text", JSON.stringify(animation))
 				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", function(response) {
 					if (response.startsWith("http")) {
@@ -633,8 +633,8 @@ let LocalChatDraw = (function() {
 					return
 				UXUtilities.Toast("Exporting animation... please wait")
 				animationPlayer.frames = animateFrames.GetAllFrames()
-				var animation = animationPlayer.ToStorageObject(true)
-				var uploadData = new FormData()
+				let animation = animationPlayer.ToStorageObject(true)
+				let uploadData = new FormData()
 				uploadData.append("animation", JSON.stringify(animation))
 				uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations")
 				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadimage", function(response) {
@@ -733,7 +733,7 @@ let LocalChatDraw = (function() {
 			document.querySelector("#sendpane textarea").addEventListener("keyup", onKeyUp)
 	}
 	
-	var interfaceVisible = function() {
+	let interfaceVisible = function() {
 		try {
 			return !document.getElementById(drawAreaID).dataset.hidden
 		} catch(ex) {
@@ -741,9 +741,9 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var toggleInterface = function(event, allowResize) {
+	let toggleInterface = function(event, allowResize) {
 		try {
-			var container = document.getElementById(drawAreaID)
+			let container = document.getElementById(drawAreaID)
 			
 			if (container.dataset.hidden)
 				container.removeAttribute("data-hidden")
@@ -763,10 +763,10 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var dockInterface = function(dock, drawArea) {
+	let dockInterface = function(dock, drawArea) {
 		try {
 			drawArea = drawArea || document.getElementById(drawAreaID)
-			var positionButton = drawArea.querySelector("button.position")
+			let positionButton = drawArea.querySelector("button.position")
 			if (dock) {
 				drawArea.setAttribute("data-docked", "true")
 				positionButton.textContent = "◱"
@@ -781,13 +781,13 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var scaleInterface = function(event) {
+	let scaleInterface = function(event) {
 		try {
-			var container = document.getElementById(drawAreaID)
-			var rect = container.getBoundingClientRect()
+			let container = document.getElementById(drawAreaID)
+			let rect = container.getBoundingClientRect()
 			
-			var scale = Number(container.dataset.scale)
-			var originalWidth = rect.width / scale
+			let scale = Number(container.dataset.scale)
+			let originalWidth = rect.width / scale
 			
 			//Figure out the NEXT scale.
 			if (scale < maxScale && rect.right - originalWidth * (scale + 1) - 200 > 5)
@@ -803,12 +803,12 @@ let LocalChatDraw = (function() {
 	
 	//The function that is called when the given colorButton is selected. The
 	//canvas is also given so that colors may be swapped if necessary
-	var colorButtonSelect = function(colorButton, canvas) {
-		var alreadySelected = colorButton.dataset.selected
-		var buttons = getColorButtons()
+	let colorButtonSelect = function(colorButton, canvas) {
+		let alreadySelected = colorButton.dataset.selected
+		let buttons = getColorButtons()
 		
 		//Reset everything
-		for(var i = 0; i < buttons.length; i++) {
+		for(let i = 0; i < buttons.length; i++) {
 			buttons[i].removeAttribute("data-selected")
 		}
 		
@@ -817,7 +817,7 @@ let LocalChatDraw = (function() {
 		
 		//If this button was already selected, perform the color swap.
 		if (alreadySelected) {
-			var colorPicker = document.getElementById(colorPickerID)
+			let colorPicker = document.getElementById(colorPickerID)
 			colorPicker.associatedButton = colorButton
 			colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
 			colorPicker.focus()
@@ -828,9 +828,9 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Send the current drawing to the chat.
-	var sendDrawing = function(animationLink) {
+	let sendDrawing = function(animationLink) {
 		try {
-			var message = animateFrames.GetFrame().ToString()
+			let message = animateFrames.GetFrame().ToString()
 			if (animationLink) message = "(" + animationLink + ")" + message
 			sendMessage("/drawsubmit " + message, false)
 		} catch(ex) {
@@ -838,16 +838,16 @@ let LocalChatDraw = (function() {
 		}
 	}
 	
-	var sendDrawing2 = function() {
+	let sendDrawing2 = function() {
 		drawIframe.contentWindow.postMessage({uploadImage:true}, "*")
 	}
 	
 	//Get the colors from the drawing area buttons
-	var getButtonColors = function() {
-		var colors = []
-		var buttons = getColorButtons()
+	let getButtonColors = function() {
+		let colors = []
+		let buttons = getColorButtons()
 		
-		for(var i = 0; i < buttons.length; i++)
+		for(let i = 0; i < buttons.length; i++)
 			colors.push(fillStyleToRgb(buttons[i].style.color))
 		
 		return colors
@@ -855,13 +855,13 @@ let LocalChatDraw = (function() {
 	
 	//Get the color that is best suited to be a clearing color (the color that
 	//is closest to either white or black, whichever comes first)
-	var getClearColor = function() {
-		var colors = getButtonColors()
-		var max = 0
-		var clearColor = 0
+	let getClearColor = function() {
+		let colors = getButtonColors()
+		let max = 0
+		let clearColor = 0
 		
-		for(var i = 0; i < colors.length; i++) {
-			var full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2)
+		for(let i = 0; i < colors.length; i++) {
+			let full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2)
 			
 			if (full > max) {
 				max = full
@@ -873,13 +873,13 @@ let LocalChatDraw = (function() {
 	}
 	
 	//Get the buttons representing the color switching
-	var getColorButtons = function() {
+	let getColorButtons = function() {
 		return document.querySelectorAll("#" + drawAreaID + " button-area button." + colorButtonClass)
 	}
 	
-	var onKeyUp = function(event) {
+	let onKeyUp = function(event) {
 		try {
-			var drawArea = document.getElementById(drawAreaID)
+			let drawArea = document.getElementById(drawAreaID)
 			if (event.target.value.length > hideCharacters)
 				drawArea.style.visibility = "hidden"
 			else
@@ -907,7 +907,7 @@ let LocalChatDraw = (function() {
 })()
 
 //The legacy fixed palette, if you need it.
-var legacyPalette = [
+let legacyPalette = [
 	[255,255,255], 
 	[0,0,0],
 	[255,0,0],
@@ -921,20 +921,20 @@ function rgbToFillStyle(channels) {
 
 //Convert back from the rgba fill style to an array
 function fillStyleToRgb(fillStyle) {
-	var regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
-	var result = regex.exec(fillStyle)
+	let regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
+	let result = regex.exec(fillStyle)
 	return result ? [ Number(result[1]), Number(result[2]), Number(result[3]) ] : null
 }
 
 //Convert a hex color into RGB values
 function hexToRGB(hex) {
 	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-	var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
+	let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
 	hex = hex.replace(shorthandRegex, function(m, r, g, b) {
 		return r + r + g + g + b + b
 	})
 	
-	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+	let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
 	return result ? [
 		parseInt(result[1], 16),
 		parseInt(result[2], 16),
@@ -975,8 +975,8 @@ class AnimatorFrameSet {
 	}
 	
 	_GetIndexOfFrame(frame) {
-		var elements = this._GetAllFrameElements()
-		for(var i = 0; i < elements.length; i++) {
+		let elements = this._GetAllFrameElements()
+		for(let i = 0; i < elements.length; i++) {
 			if (elements[i].isSameNode(frame))
 				return i
 		}
@@ -988,10 +988,10 @@ class AnimatorFrameSet {
 	}
 	
 	_GetDataFromFrame(frameElement) {
-		var element = frameElement.querySelector('[' + this.FrameTimeAttribute + ']')
-		var time = Number(element.value)
+		let element = frameElement.querySelector('[' + this.FrameTimeAttribute + ']')
+		let time = Number(element.value)
 		
-		var frame = new AnimatorFrame(
+		let frame = new AnimatorFrame(
 			frameElement.querySelector("canvas"),
 			ChatDrawUtilities.StringToPalette(frameElement.getAttribute(this.FramePaletteAttribute)),
 			time <= this.FrameTimeMax && time >= this.FrameTimeMin ? time : 0
@@ -1006,7 +1006,7 @@ class AnimatorFrameSet {
 	_FillFrameWithData(frameElement, frameData) {
 		frameElement.setAttribute(this.FramePaletteAttribute, ChatDrawUtilities.PaletteToString(frameData.palette))
 		
-		var original = this._GetDataFromFrame(frameElement)
+		let original = this._GetDataFromFrame(frameElement)
 		
 		//Fill canvas IF it's not exactly the same canvas
 		if (!original.canvas.isSameNode(frameData.canvas))
@@ -1020,8 +1020,8 @@ class AnimatorFrameSet {
 	
 	_SelectFrame(frameElement) {
 		//First, get rid of all selected attributes
-		var selected = this._GetAllFrameElements(true)
-		var i
+		let selected = this._GetAllFrameElements(true)
+		let i
 		
 		for(i = 0; i < selected.length; i++)
 			selected[i].removeAttribute(this.SelectedAttribute)
@@ -1033,9 +1033,9 @@ class AnimatorFrameSet {
 	//Insert a new frame AFTER the given index. If index is negative or there are
 	//no frames, frame is inserted at beginning.
 	InsertNewFrame(index, selectNow) {
-		var palette
-		var canvas = ChatDrawUtilities.CreateCanvas()
-		var me = this
+		let palette
+		let canvas = ChatDrawUtilities.CreateCanvas()
+		let me = this
 		
 		try {
 			palette = this.GetFrame().palette
@@ -1045,14 +1045,14 @@ class AnimatorFrameSet {
 		
 		CanvasUtilities.Clear(canvas, ChatDrawUtilities.GetClearColor(palette).ToRGBString())
 		
-		var frameData = new AnimatorFrame(canvas, palette, 0)
+		let frameData = new AnimatorFrame(canvas, palette, 0)
 		
-		var frame = document.createElement(this.FrameTag)
-		var frameControls = document.createElement(this.FrameControlTag)
-		var frameTime = document.createElement("input")
-		var frameCopy = HTMLUtilities.CreateUnsubmittableButton("📋")
-		var framePaste = HTMLUtilities.CreateUnsubmittableButton("📤")
-		var frameDelete = HTMLUtilities.CreateUnsubmittableButton("✖")
+		let frame = document.createElement(this.FrameTag)
+		let frameControls = document.createElement(this.FrameControlTag)
+		let frameTime = document.createElement("input")
+		let frameCopy = HTMLUtilities.CreateUnsubmittableButton("📋")
+		let framePaste = HTMLUtilities.CreateUnsubmittableButton("📤")
+		let frameDelete = HTMLUtilities.CreateUnsubmittableButton("✖")
 		
 		frameTime.setAttribute(this.FrameTimeAttribute, "")
 		frameTime.className = "left"
@@ -1073,11 +1073,11 @@ class AnimatorFrameSet {
 		})
 		
 		framePaste.addEventListener("click", function(event) {
-			var clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
-			var myData = me._GetDataFromFrame(frame)
+			let clipboard = StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
+			let myData = me._GetDataFromFrame(frame)
 			
 			if (clipboard) {
-				var newFrame = ChatDrawUtilities.ChatDrawToFrame(clipboard)
+				let newFrame = ChatDrawUtilities.ChatDrawToFrame(clipboard)
 				newFrame.time = myData.time
 				me._FillFrameWithData(frame, newFrame)
 				
@@ -1096,7 +1096,7 @@ class AnimatorFrameSet {
 			
 			UXUtilities.Confirm("Are you sure you want to delete this frame?", function(c) {
 				if (c) {
-					var toSelect = frame.nextElementSibling || frame.previousElementSibling
+					let toSelect = frame.nextElementSibling || frame.previousElementSibling
 					
 					//If you're deleting the selected frame, select the "next" frame
 					if (me._IsSelected(frame)) 
@@ -1116,7 +1116,7 @@ class AnimatorFrameSet {
 		
 		this._FillFrameWithData(frame, frameData)
 		
-		var frames = this._GetAllFrameElements()
+		let frames = this._GetAllFrameElements()
 		
 		if (index >= frames.length)
 			index = frames.length - 1
@@ -1133,22 +1133,22 @@ class AnimatorFrameSet {
 	
 	GetFrame(index) {
 		if (index === undefined) index = this.GetSelectedFrameIndex()
-		var frames = this._GetAllFrameElements()
+		let frames = this._GetAllFrameElements()
 		return this._GetDataFromFrame(frames[index])
 	}
 	
 	SetFrame(frame, index) {
 		if (index === undefined) index = this.GetSelectedFrameIndex()
-		var frames = this._GetAllFrameElements()
+		let frames = this._GetAllFrameElements()
 		this._FillFrameWithData(frames[index], frame)
 		if (index === this.GetSelectedFrameIndex())
 			this.SelectFrameIndex(index)
 	}
 	
 	GetSelectedFrameIndex() {
-		var allFrames = this._GetAllFrameElements()
+		let allFrames = this._GetAllFrameElements()
 		
-		for(var i = 0; i < allFrames.length; i++) {
+		for(let i = 0; i < allFrames.length; i++) {
 			if (allFrames[i].hasAttribute(this.SelectedAttribute))
 				return i
 		}
@@ -1157,15 +1157,15 @@ class AnimatorFrameSet {
 	}
 	
 	SelectFrameIndex(index) {
-		var allFrames = this._GetAllFrameElements()
+		let allFrames = this._GetAllFrameElements()
 		this._SelectFrame(allFrames[index])
 	}
 	
 	GetAllFrames() {
-		var allFrames = []
-		var allElements = this._GetAllFrameElements()
+		let allFrames = []
+		let allElements = this._GetAllFrameElements()
 		
-		for(var i = 0; i < allElements.length; i++)
+		for(let i = 0; i < allElements.length; i++)
 			allFrames.push(this._GetDataFromFrame(allElements[i]))
 		
 		return allFrames
@@ -1191,7 +1191,7 @@ class AnimatorFrame {
 
 class AnimationPlayer {
 	constructor(canvas, frames, repeatFunction, defaultTimeFunction) {
-		var me = this
+		let me = this
 		
 		this.canvas = canvas
 		this.frames = frames
@@ -1226,7 +1226,7 @@ class AnimationPlayer {
 	
 	_Animate() {
 		if (this._playing) {
-			var skip = this.frames[this._currentFrame - 1] && this.frames[this._currentFrame - 1].time ? 
+			let skip = this.frames[this._currentFrame - 1] && this.frames[this._currentFrame - 1].time ? 
 				this.frames[this._currentFrame - 1].time : this.GetDefaultTime()
 			
 			if ((this._frameCount % skip) === 0) {
@@ -1278,7 +1278,7 @@ class AnimationPlayer {
 		
 		this.frames = []
 		
-		for(var i = 0; i < storeObject.data.length; i++) {
+		for(let i = 0; i < storeObject.data.length; i++) {
 			this.frames[i] = ChatDrawUtilities.ChatDrawToFrame(storeObject.data[i])
 			this.frames[i].time = storeObject.times[i]
 		}
@@ -1288,7 +1288,7 @@ class AnimationPlayer {
 	}
 	
 	ToStorageObject(pngs) {
-		var baseData = { 
+		let baseData = { 
 			version: 2,
 			defaultFrames: this.GetDefaultTime(), 
 			repeat: this.GetRepeat(),
@@ -1296,7 +1296,7 @@ class AnimationPlayer {
 			data: []
 		}
 		
-		for(var i = 0; i < this.frames.length; i++) {
+		for(let i = 0; i < this.frames.length; i++) {
 			if (this.frames[i].time)
 				baseData.times.push(this.frames[i].time)
 			else
@@ -1314,7 +1314,7 @@ class AnimationPlayer {
 	//To
 }
 
-var ChatDrawUtilities = {
+let ChatDrawUtilities = {
 	DefaultWidth: 200,
 	DefaultHeight: 100,
 	ClipboardKey: "chatdrawClipboard",
@@ -1336,9 +1336,9 @@ var ChatDrawUtilities = {
 	],
 	
 	PaletteToString: function(palette) {
-		var colorSet = ""
+		let colorSet = ""
 		
-		for(var i = 0; i < palette.length; i++) {
+		for(let i = 0; i < palette.length; i++) {
 			colorSet += palette[i].ToRGBString()
 			if (i !== palette.length - 1) colorSet += "/"
 		}
@@ -1346,21 +1346,21 @@ var ChatDrawUtilities = {
 		return colorSet
 	},
 	StringToPalette: function(string) {
-		var colors = string.split("/")
-		var result = []
+		let colors = string.split("/")
+		let result = []
 		
-		for(var i = 0; i < colors.length; i++)
+		for(let i = 0; i < colors.length; i++)
 			result.push(StyleUtilities.GetColor(colors[i]))
 		
 		return result
 	},
 	
 	GetClearColor: function(palette) {
-		var max = 0
-		var clearColor = 0
+		let max = 0
+		let clearColor = 0
 		
-		for(var i = 0; i < palette.length; i++) {
-			var full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2)
+		for(let i = 0; i < palette.length; i++) {
+			let full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2)
 			
 			if (full > max) {
 				max = full
@@ -1372,7 +1372,7 @@ var ChatDrawUtilities = {
 	},
 	
 	CreateCanvas: function() {
-		var canvas = document.createElement("canvas")
+		let canvas = document.createElement("canvas")
 		canvas.width = ChatDrawUtilities.DefaultWidth
 		canvas.height = ChatDrawUtilities.DefaultHeight
 		canvas.getContext("2d").imageSmoothingEnabled = false
@@ -1383,13 +1383,13 @@ var ChatDrawUtilities = {
 	CreateLightbox: function(frames, destination, opacities) {
 		CanvasUtilities.Clear(destination)
 		
-		var context = destination.getContext("2d")
+		let context = destination.getContext("2d")
 		
-		for(var i = 0; i < frames.length; i++) {
+		for(let i = 0; i < frames.length; i++) {
 			//This might be expensive! Make sure the browser doesn't slow down
 			//from all these created canvases!
-			var copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas)
-			var clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette)
+			let copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas)
+			let clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette)
 			CanvasUtilities.SwapColor(copy.getContext("2d"), clearColor, 
 			                          new Color(clearColor.r, clearColor.g, clearColor.b, 0), 0)
 			//context.globalAlpha = MathUtilities.Lerp(minAlpha, maxAlpha, (i + 1) / frames.length)
@@ -1399,23 +1399,23 @@ var ChatDrawUtilities = {
 	},
 	
 	FrameToChatDraw: function (frame) {
-		var time = performance.now()
+		let time = performance.now()
 		
-		var canvas = frame.canvas
-		var palette = frame.palette
+		let canvas = frame.canvas
+		let palette = frame.palette
 		
 		//Get that 2d context yo. Oh and also, the pixel data and whatever.
-		var context = canvas.getContext("2d")
-		var imageData = context.getImageData(0,0,canvas.width,canvas.height)
-		var pixelData = imageData.data
-		var bitsPerPixel = Math.ceil(Math.log2(palette.length))
-		var pixelsPerByte = Math.floor(8 / bitsPerPixel)
-		var currentPalette = 0
-		var currentByte = 0
-		var baseData = ""
-		var i = 0, j = 0, k = 0
+		let context = canvas.getContext("2d")
+		let imageData = context.getImageData(0,0,canvas.width,canvas.height)
+		let pixelData = imageData.data
+		let bitsPerPixel = Math.ceil(Math.log2(palette.length))
+		let pixelsPerByte = Math.floor(8 / bitsPerPixel)
+		let currentPalette = 0
+		let currentByte = 0
+		let baseData = ""
+		let i = 0, j = 0, k = 0
 		
-		var paletteArray = []
+		let paletteArray = []
 		
 		for(i = 0; i < palette.length; i++)
 			paletteArray.push(palette[i].ToArray())
@@ -1461,7 +1461,7 @@ var ChatDrawUtilities = {
 		
 		baseData += String.fromCharCode(paletteArray.length)
 		
-		var encodedString = LZString.compressToBase64(baseData)
+		let encodedString = LZString.compressToBase64(baseData)
 		
 		return encodedString
 	},
@@ -1469,11 +1469,11 @@ var ChatDrawUtilities = {
 	ChatDrawToFrame: function(string) {
 		//Legacy images need their original palette. The new images will have the
 		//palette encoded within them.
-		var width = ChatDrawUtilities.DefaultWidth
-		var height = ChatDrawUtilities.DefaultHeight
-		var palette = ChatDrawUtilities.LegacyColors; //ChatDrawUtilities.BaseColors; //legacyPalette.slice()
-		var realData = LZString.decompressFromBase64(string)
-		var i, j, k
+		let width = ChatDrawUtilities.DefaultWidth
+		let height = ChatDrawUtilities.DefaultHeight
+		let palette = ChatDrawUtilities.LegacyColors; //ChatDrawUtilities.BaseColors; //legacyPalette.slice()
+		let realData = LZString.decompressFromBase64(string)
+		let i, j, k
 		
 		//Fix up the palette data based on legacy support. If legacy is detected
 		//(ie we have less than or equal to the minimum amount of bytes necessary) 
@@ -1481,13 +1481,13 @@ var ChatDrawUtilities = {
 		//determines how the data is encoded.
 		if (realData.length > Math.ceil((width * height)/ 4)) {
 			//The very last byte tells us how many palette colors there are. 
-			var paletteCount = realData.charCodeAt(realData.length - 1)
+			let paletteCount = realData.charCodeAt(realData.length - 1)
 			
 			palette = []
 			
 			//Now read all the "apparent" palette bytes.
 			for(i = 0; i < paletteCount; i++) {
-				var color = []
+				let color = []
 				
 				//build color from 3 channels
 				for(j = 0; j < 3; j++)
@@ -1497,21 +1497,21 @@ var ChatDrawUtilities = {
 			}
 		}
 		
-		var canvas = document.createElement("canvas")
+		let canvas = document.createElement("canvas")
 		canvas.width = width
 		canvas.height = height
 		
-		var context = canvas.getContext("2d")
+		let context = canvas.getContext("2d")
 		
-		var imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-		var pixelData = imageData.data
-		var totalPixels = Math.floor(pixelData.length / 4)
+		let imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+		let pixelData = imageData.data
+		let totalPixels = Math.floor(pixelData.length / 4)
 		
-		var currentByte
-		var currentPalette
-		var currentPixel = 0
-		var bitsPerPixel = Math.ceil(Math.log2(palette.length))
-		var pixelsPerByte = Math.floor(8 / bitsPerPixel)
+		let currentByte
+		let currentPalette
+		let currentPixel = 0
+		let bitsPerPixel = Math.ceil(Math.log2(palette.length))
+		let pixelsPerByte = Math.floor(8 / bitsPerPixel)
 		
 		byte_loop: //loop over all the bytes.
 		for (i = 0; i < realData.length; i++) {

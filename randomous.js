@@ -30,8 +30,8 @@ window.addEventListener("DOMContentLoaded", function() {
 //Example: You want x.addEventListener("click", myfunc(i)) in a loop.
 //Do this: x.addEventListener("click", myfunc.callBind(i))
 Function.prototype.callBind = function() {
-	var fnc = this
-	var args = arguments
+	let fnc = this
+	let args = arguments
 	return function() {
 		return fnc.apply(this, args)
 	}
@@ -40,7 +40,7 @@ Function.prototype.callBind = function() {
 // --- HTMLUtilities ---
 // Encode or decode HTML entitities / generate unique IDs for elements / etc.
 
-var HTMLUtilities = {
+let HTMLUtilities = {
 	_nextID: 0,
 	MoveToEnd: function(element) {
 		element.parentNode.appendChild(element)
@@ -51,19 +51,19 @@ var HTMLUtilities = {
 	SimulateRadioSelect: function(selected, parent, selectedAttribute, selectedValue) {
 		selectedAttribute = selectedAttribute || "data-selected"
 		selectedValue = selectedValue || "true"
-		var fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
-		for(var i = 0; i < fakeRadios.length; i++)
+		let fakeRadios = parent.querySelectorAll("[" + selectedAttribute + "]")
+		for(let i = 0; i < fakeRadios.length; i++)
 			fakeRadios[i].removeAttribute(selectedAttribute)
 		selected.setAttribute(selectedAttribute, selectedValue)
 	},
 	CreateUnsubmittableButton: function(text) {
-		var button = document.createElement('button')
+		let button = document.createElement('button')
 		button.setAttribute("type", "button")
 		if (text) button.textContent = text
 		return button
 	},
 	CreateContainer: function(className, id) {
-		var container = document.createElement("div")
+		let container = document.createElement("div")
 		container.className = className
 		if (id)
 			container.id = id
@@ -71,10 +71,10 @@ var HTMLUtilities = {
 		return container
 	},
 	CreateSelect: function(options, name) {
-		var select = document.createElement("select")
+		let select = document.createElement("select")
 		if (name) select.setAttribute("name", name)
-		for (var i = 0; i < options.length; i++) {
-			var option = document.createElement("option")
+		for (let i = 0; i < options.length; i++) {
+			let option = document.createElement("option")
 			if (options[i].value && options[i].text) {
 				option.textContent = options[i].text
 				option.setAttribute("value", options[i].value)
@@ -87,8 +87,8 @@ var HTMLUtilities = {
 	},
 	SwapElements: function (obj1, obj2) {
 		// save the location of obj2
-		var parent2 = obj2.parentNode
-		var next2 = obj2.nextSibling
+		let parent2 = obj2.parentNode
+		let next2 = obj2.nextSibling
 		// special case for obj1 is the next sibling of obj2
 		if (next2 === obj1) {
 			// just put obj1 before obj2
@@ -148,7 +148,7 @@ class Toaster {
 		
 		duration = duration || MathUtilities.MinMax(text.length * 50, this.minDuration, this.maxDuration)
 		
-		var toast = document.createElement("div")
+		let toast = document.createElement("div")
 		toast.className = Toaster.ToastClass
 		toast.dataset.createdon = new Date().getTime()
 		toast.dataset.initialize = "true"
@@ -180,7 +180,7 @@ Toaster.ContainerClass = "randomousToastContainer"
 Toaster.StyleID = HTMLUtilities.GetUniqueID("toastStyle")
 
 Toaster.TrySetDefaultStyles = function() {
-	var style = StyleUtilities.TrySingleStyle(Toaster.StyleID)
+	let style = StyleUtilities.TrySingleStyle(Toaster.StyleID)
 	
 	if (style) {
 		console.log("Setting up Toast default styles for the first time")
@@ -233,7 +233,7 @@ Fader.FaderClass = "randomousFader"
 Fader.StyleID = HTMLUtilities.GetUniqueID("faderStyle")
 
 Fader.TrySetDefaultStyles = function() {
-	var style = StyleUtilities.TrySingleStyle(Fader.StyleID)
+	let style = StyleUtilities.TrySingleStyle(Fader.StyleID)
 	
 	if (style) {
 		console.log("Setting up Fader default styles for the first time")
@@ -247,7 +247,7 @@ Fader.TrySetDefaultStyles = function() {
 }
 
 Fader.CreateFadeElement = function() {
-	var element = document.createElement("div")
+	let element = document.createElement("div")
 	element.className = Fader.FaderClass
 	element.id = HTMLUtilities.GetUniqueID("fader")
 	return element
@@ -294,22 +294,22 @@ class DialogBox {
 	}
 	
 	Show(text, buttons) {
-		var dialog = HTMLUtilities.CreateContainer(DialogBox.DialogClass)
-		var dialogText = document.createElement("span")
-		var dialogButtons = HTMLUtilities.CreateContainer(DialogBox.ButtonContainerClass)
+		let dialog = HTMLUtilities.CreateContainer(DialogBox.DialogClass)
+		let dialogText = document.createElement("span")
+		let dialogButtons = HTMLUtilities.CreateContainer(DialogBox.ButtonContainerClass)
 		dialogText.innerHTML = text
 		dialogText.className = DialogBox.TextClass
 		dialog.appendChild(dialogText)
 		dialog.appendChild(dialogButtons)
 		
-		var i
-		var me = this
+		let i
+		let me = this
 		
 		for(i = 0; i < buttons.length; i++) {
-			var btext = buttons[i]
+			let btext = buttons[i]
 			if (buttons[i].text) btext = buttons[i].text
-			var callback = buttons[i].callback
-			var newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
+			let callback = buttons[i].callback
+			let newButton = HTMLUtilities.CreateUnsubmittableButton(btext)
 			
 			/* jshint ignore: start */
 			newButton.addEventListener("click", function(callback) {
@@ -338,7 +338,7 @@ DialogBox.ButtonContainerClass = "randomousDialogButtonContainer"
 DialogBox.StyleID = HTMLUtilities.GetUniqueID("dialogStyle")
 
 DialogBox.TrySetDefaultStyles = function() {
-	var style = StyleUtilities.TrySingleStyle(DialogBox.StyleID)
+	let style = StyleUtilities.TrySingleStyle(DialogBox.StyleID)
 	
 	if (style) {
 		console.log("Setting up DialogBox default styles for the first time")
@@ -368,7 +368,7 @@ DialogBox.TrySetDefaultStyles = function() {
 // Utilities specifically for User Experience. Things like custom alerts,
 // custom confirms, toast, etc. 
 
-var UXUtilities = {
+let UXUtilities = {
 	UtilitiesContainer: HTMLUtilities.CreateContainer("randomousUtilitiesContainer", HTMLUtilities.GetUniqueID("utilitiesContainer")),
 	_DefaultToaster: new Toaster(),
 	_ScreenFader: new Fader(),
@@ -402,44 +402,7 @@ var UXUtilities = {
 // Retrieve and store data put into browser storage (such as cookies,
 // localstorage, etc.
 
-var StorageUtilities = {
-	GetAllCookies: function() {
-		var cookies = {}
-		var cookieStrings = document.cookie.split(";")
-		
-		for(var i = 0; i < cookieStrings.length; i++) {
-			var matches = /([^=]+)=(.*)/.exec(cookieStrings[i])
-			
-			if (matches && matches.length >= 3)
-				cookies[matches[1].trim()] = matches[2].trim()
-		}
-		
-		return cookies
-	},
-	GetPHPSession: function() {
-		return StorageUtilities.GetAllCookies().PHPSESSID
-	},
-	WriteSafeCookie: function(name, value, expireDays) {
-		var expire = new Date()
-		var storeValue = btoa(JSON.stringify(value))
-		expireDays = expireDays || 356
-		expire.setTime(expire.getTime() + (expireDays * 24 * 60 * 60 * 1000))
-		document.cookie = name + "=" + storeValue + "; expires=" + expire.toUTCString()
-	},
-	ReadRawCookie: function(name) {
-		return StorageUtilities.GetAllCookies()[name]
-	},
-	ReadSafeCookie: function(name) {
-		var raw = StorageUtilities.ReadRawCookie(name)
-		
-		if (raw)
-			return JSON.parse(atob(raw))
-		
-		return null
-	},
-	HasCookie: function(name) {
-		return name in StorageUtilities.GetAllCookies()
-	},
+let StorageUtilities = {
 	WriteLocal: function(name, value) {
 		localStorage.setItem(name, JSON.stringify(value))
 	},
@@ -457,20 +420,20 @@ var StorageUtilities = {
 // --- URLUtilities ---
 // Functions for parsing/manipulating URLs and... stuff.
 
-var URLUtilities = {
+let URLUtilities = {
 	GetQueryString: function(url) {
-		var queryPart = url.match(/(\?[^#]*)/)
+		let queryPart = url.match(/(\?[^#]*)/)
 		if (!queryPart) return ""
 		return queryPart[1]
 	},
 	//Taken from Tarik on StackOverflow:
 	//http://stackoverflow.com/questions/2090551/parse-query-string-in-javascript
 	GetQueryVariable: function(variable, url) {
-		var query = url ? URLUtilities.GetQueryString(url) : window.location.search
-		var vars = query.substring(1).split('&')
+		let query = url ? URLUtilities.GetQueryString(url) : window.location.search
+		let vars = query.substring(1).split('&')
 		
-		for (var i = 0; i < vars.length; i++) {
-			var pair = vars[i].split('=')
+		for (let i = 0; i < vars.length; i++) {
+			let pair = vars[i].split('=')
 			
 			if (decodeURIComponent(pair[0]) == variable) 
 				return decodeURIComponent(pair[1])
@@ -489,7 +452,7 @@ var URLUtilities = {
 }
 
 //Special console logging
-var _loglevel = 0
+let _loglevel = 0
 console.debug = function() {}
 console.trace = function() {}
 
@@ -510,9 +473,9 @@ if (_loglevel >= 100) {
 // --- Request ---
 // Helpers for POST/GET requests
 
-var RequestUtilities = {
+let RequestUtilities = {
 	XHRSimple: function(page, callback, data, extraHeaders) {
-		var xhr = new XMLHttpRequest()
+		let xhr = new XMLHttpRequest()
 		
 		if (data)
 			xhr.open("POST", page)
@@ -520,7 +483,7 @@ var RequestUtilities = {
 			xhr.open("GET", page)
 		
 		if (extraHeaders) {
-			for(var key in extraHeaders) {
+			for(let key in extraHeaders) {
 				if (extraHeaders.hasOwnProperty(key))
 					xhr.setRequestHeader(key, extraHeaders[key])
 			}
@@ -564,8 +527,8 @@ class Color {
 	}
 	
 	ToRGBString() {
-		var pre = "rgb"
-		var vars = this.r + "," + this.g + "," + this.b
+		let pre = "rgb"
+		let vars = this.r + "," + this.g + "," + this.b
 		if (this.a !== 1) {
 			pre += "a"
 			vars += "," + this.a
@@ -574,7 +537,7 @@ class Color {
 	}
 	
 	ToHexString(includeAlpha) {
-		var string = "#" + this.r.toString(16).padStart(2, "0") + 
+		let string = "#" + this.r.toString(16).padStart(2, "0") + 
 			this.g.toString(16).padStart(2, "0") + 
 			this.b.toString(16).padStart(2, "0")
 		
@@ -598,17 +561,17 @@ class Color {
 // Functions for working with styles and colors. Some of these may have a poor
 // runtime
 
-var StyleUtilities = {
+let StyleUtilities = {
 	_cContext: document.createElement("canvas").getContext("2d"),
 	GetColor: function(input) {
 		this._cContext.clearRect(0,0,1,1)
 		this._cContext.fillStyle = input
 		this._cContext.fillRect(0,0,1,1)
-		var data = this._cContext.getImageData(0,0,1,1).data
+		let data = this._cContext.getImageData(0,0,1,1).data
 		return new Color(data[0], data[1], data[2], data[3] / 255)
 	},
 	_GetColorMath: function(f, func) {
-		var arr = [0,0,0]
+		let arr = [0,0,0]
 		func(f, arr)
 		return new Color(255 * arr[0], 255 * arr[1], 255 * arr[2], 1)
 	},
@@ -625,11 +588,11 @@ var StyleUtilities = {
 	//will be set. The style element returned will have extra functionality
 	//attached to it for easy style appending.
 	CreateStyleElement: function(id) {
-		var mStyle = document.createElement("style")
+		let mStyle = document.createElement("style")
 		mStyle.appendChild(document.createTextNode(""))
 		mStyle.nextInsert = 0
 		mStyle.Append = function(selectors, rules) {
-			var i, finalSelectors = []
+			let i, finalSelectors = []
 			if (!Array.isArray(selectors)) selectors = [ selectors ]
 			if (!Array.isArray(rules)) rules = [ rules ]
 			for(i = 0; i < selectors.length; i++) {
@@ -640,7 +603,7 @@ var StyleUtilities = {
 				finalSelectors.join(",") + "{" + rules.join(";") + "}", mStyle.nextInsert++)
 		}
 		mStyle.AppendClasses = function(classnames, rules) {
-			var i, j
+			let i, j
 			if (!Array.isArray(classnames)) classnames = [ classnames ]
 			for(i = 0; i < classnames.length; i++) {
 				if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ]
@@ -654,14 +617,14 @@ var StyleUtilities = {
 	},
 	InsertStylesAtTop: function(styles) {
 		if (!Array.isArray(styles)) styles = [ styles ]
-		for(var i = styles.length - 1; i >= 0; i--)
+		for (let i = styles.length - 1; i >= 0; i--)
 			document.head.insertBefore(styles[i], document.head.firstChild)
 	},
 	TrySingleStyle: function(id) {
 		if (document.getElementById(id))
 			return false
 		
-		var s = StyleUtilities.CreateStyleElement(id)
+		let s = StyleUtilities.CreateStyleElement(id)
 		StyleUtilities.InsertStylesAtTop(s)
 		return s
 	},
@@ -669,8 +632,8 @@ var StyleUtilities = {
 	//as close to it, anyway). Usefull mostly for canvases.
 	GetTrueRect: function(element) {
 		window.devicePixelRatio = window.devicePixelRatio || 1
-		var pixelRatio = 1
-		var rect = element.getBoundingClientRect()
+		let pixelRatio = 1
+		let rect = element.getBoundingClientRect()
 		rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / 
 			window.devicePixelRatio
 		rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / 
@@ -687,11 +650,11 @@ StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height =
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
-var CanvasUtilities = {
+let CanvasUtilities = {
 	//WARNING! This function breaks canvases without a style set width or height 
 	//on devices with a higher devicePixelRatio than 1 O_O
 	AutoSize: function(canvas) {
-		var rect = StyleUtilities.GetTrueRect(canvas)
+		let rect = StyleUtilities.GetTrueRect(canvas)
 		canvas.width = rect.width
 		canvas.height = rect.height
 	},
@@ -702,18 +665,18 @@ var CanvasUtilities = {
 		canvas.style.height = canvas.height + "px"
 	},
 	GetScaling: function(canvas) {
-		var rect = StyleUtilities.GetTrueRect(canvas)
+		let rect = StyleUtilities.GetTrueRect(canvas)
 		return [rect.width / canvas.width, rect.height / canvas.height]
 	},
 	//Set scaling of canvas. Alternatively, set the scaling of the given element
 	//(canvas will remain unaffected)
 	SetScaling: function(canvas, scale, element) {
 		if (!Array.isArray(scale)) scale = [scale, scale]
-		var oldWidth = canvas.style.width
-		var oldHeight = canvas.style.height
+		let oldWidth = canvas.style.width
+		let oldHeight = canvas.style.height
 		canvas.style.width = canvas.width + "px"
 		canvas.style.height = canvas.height + "px"
-		var rect = StyleUtilities.GetTrueRect(canvas)
+		let rect = StyleUtilities.GetTrueRect(canvas)
 		if (element) {
 			canvas.style.width = oldWidth || ""
 			canvas.style.height = oldHeight || ""
@@ -729,7 +692,7 @@ var CanvasUtilities = {
 		x = x || 0; y = y || 0
 		if (width === undefined) width = canvas.width
 		if (height === undefined) height = canvas.height
-		var newCanvas = document.createElement("canvas")
+		let newCanvas = document.createElement("canvas")
 		newCanvas.width = width
 		newCanvas.height = height
 		if (copyImage) CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
@@ -739,7 +702,7 @@ var CanvasUtilities = {
 		//x and y are the offset locations to place the copy into on the
 		//receiving canvas
 		x = x || 0; y = y || 0
-		var oldComposition = context.globalCompositeOperation
+		let oldComposition = context.globalCompositeOperation
 		context.globalCompositeOperation = "copy"
 		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y)
 		context.globalCompositeOperation = oldComposition
@@ -747,15 +710,15 @@ var CanvasUtilities = {
 	OptimizedDrawImage: function(context, image, x, y, scaleX, scaleY) {
 		scaleX = scaleX || image.width
 		scaleY = scaleY || image.height
-		var oldImageSmoothing = context.imageSmoothingEnabled
+		let oldImageSmoothing = context.imageSmoothingEnabled
 		context.imageSmoothingEnabled = false
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
 		context.imageSmoothingEnabled = oldImageSmoothing
 	},
 	Clear: function(canvas, color) {
-		var context = canvas.getContext("2d")
-		var oldStyle = context.fillStyle
-		var oldAlpha = context.globalAlpha
+		let context = canvas.getContext("2d")
+		let oldStyle = context.fillStyle
+		let oldAlpha = context.globalAlpha
 		if (color) {
 			context.globalAlpha = 1
 			context.fillStyle = color
@@ -778,11 +741,11 @@ var CanvasUtilities = {
 	},
 	DrawSolidEllipse: function(ctx, cx, cy, radius1, radius2, clear) {
 		radius2 = radius2 || radius1
-		var line = clear ? "clearRect" : "fillRect"
-		var rs1 = radius1 * radius1
-		var rs2 = radius2 * radius2
-		var rss = rs1 * rs2
-		var x, y
+		let line = clear ? "clearRect" : "fillRect"
+		let rs1 = radius1 * radius1
+		let rs2 = radius2 * radius2
+		let rss = rs1 * rs2
+		let x, y
 		cx -= 0.5; //A HACK OOPS
 		cy -= 0.5
 		
@@ -818,21 +781,21 @@ var CanvasUtilities = {
 	//Wraps the given "normal eraser" function in the necessary crap to get the
 	//eraser to function properly. Then you just have to fill wherever necessary.
 	PerformNormalEraser: function(ctx, func) {
-		var oldStyle = ctx.fillStyle
-		var oldComposition = ctx.globalCompositeOperation
+		let oldStyle = ctx.fillStyle
+		let oldComposition = ctx.globalCompositeOperation
 		ctx.fillStyle = "rgba(0,0,0,1)"
 		ctx.globalCompositeOperation = "destination-out"
-		var result = func()
+		let result = func()
 		ctx.fillStyle = oldStyle
 		ctx.globalCompositeOperation = oldComposition
 		return result
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw: function(ctx, sx, sy, tx, ty, width, clear, func) {
-		var dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
-		var ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
+		let dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
+		let ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
 		if (dist === 0) dist=0.001
-		for(var i=0;i<dist;i+=0.5) {
+		for (let i=0;i<dist;i+=0.5) {
 			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear)
 		}
 		//This is just an approximation and will most likely be larger than
@@ -897,9 +860,9 @@ var CanvasUtilities = {
 		        Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1]
 	},
 	ComputeTotalBoundingBox: function(boxes) {
-		var finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
+		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
 		
-		for(var i = 0; i < boxes.length; i++) {
+		for(let i = 0; i < boxes.length; i++) {
 			if (!boxes[i] || boxes[i].length < 4) return false
 			finalBox[0] = Math.min(boxes[0], finalBox[0])
 			finalBox[1] = Math.min(boxes[1], finalBox[1])
@@ -910,7 +873,7 @@ var CanvasUtilities = {
 		return finalBox
 	},
 	GetColor: function(context, x, y) {
-		var data = context.getImageData(x, y, 1, 1).data
+		let data = context.getImageData(x, y, 1, 1).data
 		return new Color(data[0], data[1], data[2], data[3] / 255)
 	},
 	GetColorFromData: function(data, i) {
@@ -930,12 +893,12 @@ var CanvasUtilities = {
 	},
 	GenericFlood: function(context, x, y, floodFunction) {
 		x = Math.floor(x); y = Math.floor(y)
-		var canvas = context.canvas
-		var iData = context.getImageData(0, 0, canvas.width, canvas.height)
-		var data = iData.data
-		var queueX = [], queueY = []
-		var west, east, row, column
-		var enqueue = function(qx, qy) {
+		let canvas = context.canvas
+		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
+		let data = iData.data
+		let queueX = [], queueY = []
+		let west, east, row, column
+		let enqueue = function(qx, qy) {
 			queueX.push(qx)
 			queueY.push(qy)
 		}
@@ -963,16 +926,16 @@ var CanvasUtilities = {
 		sx = Math.floor(sx); sy = Math.floor(sy)
 		console.debug("Flood filling starting from " + sx + ", " + sy)
 		threshold = threshold || 0
-		var originalColor = CanvasUtilities.GetColor(context, sx, sy)
-		var ocolorArray = originalColor.ToArray(true)
-		var colorArray = color.ToArray(true)
+		let originalColor = CanvasUtilities.GetColor(context, sx, sy)
+		let ocolorArray = originalColor.ToArray(true)
+		let colorArray = color.ToArray(true)
 		if (color.MaxDifference(originalColor) <= threshold)
 			return
-		var floodFunction = function(c, x, y, d) {
-			var i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-			var currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
+		let floodFunction = function(c, x, y, d) {
+			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
+			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
 			if (originalColor.MaxDifference(currentColor) <= threshold) {
-				for(var j = 0; j < 4; j++)
+				for(let j = 0; j < 4; j++)
 					d[i + j] = colorArray[j]
 				return true
 			} else {
@@ -982,14 +945,14 @@ var CanvasUtilities = {
 		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction)
 	},
 	SwapColor: function(context, original, newColor, threshold) {
-		var canvas = context.canvas
-		var iData = context.getImageData(0, 0, canvas.width, canvas.height)
-		var data = iData.data
-		var newArray = newColor.ToArray(true)
-		var i, j
+		let canvas = context.canvas
+		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
+		let data = iData.data
+		let newArray = newColor.ToArray(true)
+		let i, j
 		
 		for(i = 0; i < data.length; i+=4) {
-			var cCol = CanvasUtilities.GetColorFromData(data, i)
+			let cCol = CanvasUtilities.GetColorFromData(data, i)
 			
 			if (cCol.MaxDifference(original) <= threshold) {
 				for(j = 0; j < 4; j++)
@@ -1003,8 +966,8 @@ var CanvasUtilities = {
 		return canvas.toDataURL("image/png")
 	},
 	FromString: function(string) {
-		var canvas = document.createElement("canvas")
-		var image = new Image()
+		let canvas = document.createElement("canvas")
+		let image = new Image()
 		image.addEventListener("load", function(e) {
 			canvas.width = image.width
 			canvas.height = image.height
@@ -1017,7 +980,7 @@ var CanvasUtilities = {
 	DrawDataURL: function(string, canvas, x, y, callback) {
 		x = x || 0
 		y = y || 0
-		var image = new Image()
+		let image = new Image()
 		image.addEventListener("load", function(e) {
 			canvas.getContext("2d").drawImage(image, x, y)
 			if (callback) callback(canvas, image)
@@ -1029,7 +992,7 @@ var CanvasUtilities = {
 // --- Event Utilities ---
 // Functions to help with built-in events (such as the mouse event).
 
-var EventUtilities = {
+let EventUtilities = {
 	SignalCodes: { Cancel: 2, Run: 1, Wait: 0},
 	mButtonMap: [ 1, 4, 2, 8, 16 ],
 	MouseButtonToButtons: function(button) {
@@ -1039,7 +1002,7 @@ var EventUtilities = {
 	//performed later if the signal is in the "WAIT" phase.
 	ScheduleWaitingTask: function(signal, perform, interval) {
 		interval = interval || 100
-		var s = signal()
+		let s = signal()
 		if (s === EventUtilities.SignalCodes.Cancel)
 			return
 		else if (s === EventUtilities.SignalCodes.Run)
@@ -1055,7 +1018,7 @@ var EventUtilities = {
 // Functions to help with setting up or altering the screen (such as fullscreen
 // elements and whatever)
 
-var ScreenUtilities = {
+let ScreenUtilities = {
 	LaunchIntoFullscreen: function(element) {
 		if (element.requestFullscreen)
 			element.requestFullscreen()
@@ -1091,7 +1054,7 @@ var ScreenUtilities = {
 // --- Math Utilities ---
 // Functions which provide extra math functionality.
 
-var MathUtilities = {
+let MathUtilities = {
 	Distance: function(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
@@ -1100,7 +1063,7 @@ var MathUtilities = {
 	},
 	MinMax: function(value, min, max) {
 		if (min > max) {
-			var temp = min
+			let temp = min
 			min = max
 			max = temp
 		}
@@ -1113,7 +1076,7 @@ var MathUtilities = {
 		min = min || 0; //getOrDefault(min, 0)
 		
 		if (min > max) {
-			var temp = min
+			let temp = min
 			min = max
 			max = temp
 		}
@@ -1124,7 +1087,7 @@ var MathUtilities = {
 		return y1 + mu * (y2 - y1)
 	},
 	CosInterpolate: function (y1, y2, mu) {
-		var mu2 = (1 - Math.cos(mu * Math.PI)) / 2
+		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
 	},
 	NewGuid: function() {
@@ -1258,7 +1221,7 @@ function ConsoleEmulator() {
 	this.rawConsole = false
 	this.inputBuffer = false
 	this.cursor = false
-	var me = this
+	let me = this
 	
 	this.keyPress = function(e) {
 		if (!e.key || e.key.length > 1) return
@@ -1289,7 +1252,7 @@ ConsoleEmulator.prototype.TrySetDefaultStyles = function() {
 	
 	console.log("Setting up ConsoleEmulator default styles for the first time")
 	
-	var style = document.createElement("style")
+	let style = document.createElement("style")
 	style.appendChild(document.createTextNode(""))
 	style.id = ConsoleEmulator.StyleID
 	document.head.insertBefore(style, document.head.firstChild)
@@ -1309,7 +1272,7 @@ ConsoleEmulator.prototype.FixFloatingObjects = function() {
 }
 
 ConsoleEmulator.prototype.Write = function(output, color) {
-	var outputWrapper = document.createElement("span")
+	let outputWrapper = document.createElement("span")
 	outputWrapper.innerHTML = output
 	if (color) outputWrapper.className = color
 	this.rawConsole.appendChild(outputWrapper)
@@ -1345,10 +1308,10 @@ ConsoleEmulator.prototype.Generate = function() {
 //WARNING: this captures the ConsoleEmulator object and elements. It cannot be
 //detached or undone. Sorry!
 ConsoleEmulator.prototype.SetAsConsoleLog = function(colored) {
-	var log = console.log
-	var debug = console.debug
-	var trace = console.trace
-	var me = this
+	let log = console.log
+	let debug = console.debug
+	let trace = console.trace
+	let me = this
 	
 	console.log = function(object) { log(object); me.WriteLine(object);}
 	console.debug = function(object) { debug(object); me.WriteLine(object, colored ? "green": false);}
