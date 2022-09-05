@@ -38,56 +38,36 @@ return holder`
 
 class ChatDraw {
 	constructor() {
+		ChatDraw.template(this)
+		
 		this.width = 200
 		this.height = 100
 		
-		this.$root = document.createElement('chat-draw')
-		
-		this.drawArea = document.createElement("draw-area")
-		
 		this.drawer = new CanvasDrawer()
-		
-		this.colorPicker = document.createElement('input')
 		
 		this.maxLineWidth = 7
 		
 		let maxScale = 5
 		let defaultLineWidth = 2
 		
-		let canvasContainer = document.createElement("canvas-container")
-		let buttonArea = document.createElement("button-area")
-		let buttonArea2 = document.createElement("button-area")
-		let toggleButton = HTMLUtilities.CreateUnsubmittableButton()
-		let sendButton = HTMLUtilities.CreateUnsubmittableButton()
-		let widthButton = HTMLUtilities.CreateUnsubmittableButton()
-		let cSizeButton = HTMLUtilities.CreateUnsubmittableButton()
-		let undoButton = HTMLUtilities.CreateUnsubmittableButton()
-		let redoButton = HTMLUtilities.CreateUnsubmittableButton()
-		let clearButton = HTMLUtilities.CreateUnsubmittableButton()
+		this.tool_buttons = []
 		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
 		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
 		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
 		let moveButton = this.createToolButton(["↔️"], ["mover"])
 		this.canvas = this.CreateCanvas()
-		this.lightbox = this.CreateCanvas()
-		this.lightbox.className = "lightbox"
+		this.$container.append(this.canvas)
 		
 		this.drawer.Attach(this.canvas, [], 5)
 		this.drawer.OnUndoStateChange = ()=>{
-			undoButton.disabled = !this.drawer.CanUndo()
-			redoButton.disabled = !this.drawer.CanRedo()
+			this.$undo.disabled = !this.drawer.CanUndo()
+			this.$redo.disabled = !this.drawer.CanRedo()
 		}
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
 		//Set up the color picker
-		this.colorPicker.type = 'color'
-		this.colorPicker.style.position = "absolute"
-		this.colorPicker.style.left = "-10000px"
-		this.colorPicker.style.top = "-10000px"
-		this.colorPicker.style.width = "0"
-		this.colorPicker.style.height = "0"
-		this.colorPicker.onchange = event=>{
+		this.$color_picker.onchange = event=>{
 			let newColor = StyleUtilities.GetColor(event.target.value)
 			CanvasUtilities.SwapColor(this.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
 			event.target.associatedButton.style.color = newColor.ToRGBString()
@@ -97,35 +77,22 @@ class ChatDraw {
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
-		clearButton.textContent = "❌️"
-		clearButton.onclick = ev=>{
+		this.$clear.onclick = ev=>{
 			if (this.drawer.StrokeCount())
 				this.drawer.UpdateUndoBuffer()
 			CanvasUtilities.Clear(this.canvas, rgbToFillStyle(this.getClearColor()))
 			this.drawer.Redraw()
 		}
-		this.$root.setAttribute("tabindex", "-1")
-		widthButton.textContent = defaultLineWidth - 1
-		widthButton.dataset.width = defaultLineWidth - 1
-		widthButton.onclick = ev=>{ this.widthToggle(widthButton) }
-		sendButton.textContent = "➥"
-		sendButton.dataset.button = "sendDrawing"
-		sendButton.onclick = ev=>{ this.sendDrawing() }
-		toggleButton.textContent = "✎"
-		toggleButton.onclick = ev=>{this.toggleInterface()}
-		cSizeButton.textContent = "◲"
-		cSizeButton.onclick = ev=>{this.scaleInterface()}
-		undoButton.textContent = "↶"
-		undoButton.onclick = ev=>{
-			this.drawer.Undo()
-		}
-		redoButton.textContent = "↷"
-		redoButton.onclick = ev=>{
-			this.drawer.Redo()
-		}
+		this.$thickness.textContent = defaultLineWidth - 1
+		this.$thickness.dataset.width = defaultLineWidth - 1
+		this.$thickness.onclick = ev=>{ this.widthToggle() }
+		this.$send.onclick = ev=>{ this.sendDrawing() }
+		this.$toggle.onclick = ev=>{ this.toggleInterface() }
+		this.$zoom.onclick = ev=>{ this.scaleInterface() }
+		this.$undo.onclick = ev=>{ this.drawer.Undo() }
+		this.$redo.onclick = ev=>{ this.drawer.Redo() }
 		this.drawer.DoUndoStateChange()
-		
-		buttonArea.append(cSizeButton, undoButton, redoButton)
+		this.color_buttons = []
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
@@ -137,41 +104,22 @@ class ChatDraw {
 				this.colorButtonSelect(colorButton)
 			}
 			
-			buttonArea.append(colorButton)
+			this.color_buttons.push(colorButton)
 			
 			if (i == 1)
 				colorButton.click()
 		}
+		this.$color_p.replaceWith(...this.color_buttons)
 		
-		buttonArea.append(sendButton)
-		buttonArea2.append(
-			moveButton,
-			clearButton,
-			widthButton,
-			fillButton,
-			lineButton,
-			freehandButton,
-			toggleButton
-		)
-		canvasContainer.append(this.canvas, this.lightbox)
-		this.drawArea.append(
-			canvasContainer,
-			buttonArea,
-			buttonArea2,
-			this.colorPicker,
-		)
+		this.$tool1.replaceWith(moveButton)
+		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
 		
-		this.$root.attachShadow({mode: 'open'})
-		let shadow = this.$root.shadowRoot
+		let elem = document.createElement('chat-draw')
+		elem.attachShadow({mode: 'open'})
+		elem.shadowRoot.append(this.$root)
+		this.$root = elem
 		
-		let style = document.createElement('link')
-		style.rel = 'stylesheet'
-		style.href = 'chatdraw.css'
-		shadow.append(style)
-		
-		shadow.append(this.drawArea)
-		
-		widthButton.click()
+		this.$thickness.click()
 		freehandButton.click()
 		this.toggleInterface()
 		
@@ -183,7 +131,7 @@ class ChatDraw {
 	}
 	
 	setButtonColors(palette) {
-		let buttons = this.getColorButtons()
+		let buttons = this.color_buttons
 		
 		for (let i=0; i<palette.length; i++) {
 			if (i<buttons.length) {
@@ -206,10 +154,10 @@ class ChatDraw {
 		}
 	}
 	
-	widthToggle(widthButton) {
-		let width = (+widthButton.dataset.width % this.maxLineWidth) + 1
-		widthButton.textContent = width
-		widthButton.dataset.width = width
+	widthToggle() {
+		let width = (+this.$thickness.dataset.width % this.maxLineWidth) + 1
+		this.$thickness.textContent = width
+		this.$thickness.dataset.width = width
 		this.drawer.lineWidth = width
 	}
 	
@@ -235,7 +183,7 @@ class ChatDraw {
 	//The function that is called when the given colorButton is selected. The
 	colorButtonSelect(colorButton) {
 		let alreadySelected = colorButton.dataset.selected
-		let buttons = this.getColorButtons()
+		let buttons = this.color_buttons
 		
 		//Reset everything
 		for (let i = 0; i < buttons.length; i++) {
@@ -247,10 +195,10 @@ class ChatDraw {
 		
 		//If this button was already selected, perform the color swap.
 		if (alreadySelected) {
-			this.colorPicker.associatedButton = colorButton
-			this.colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
-			this.colorPicker.focus()
-			this.colorPicker.click()
+			// um   bad?
+			this.$color_picker.associatedButton = colorButton
+			this.$color_picker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
+			this.$color_picker.click()
 		} else {
 			this.drawer.color = colorButton.style.color
 		}
@@ -289,10 +237,11 @@ class ChatDraw {
 			toolNames = [toolNames]
 		let nextTool = 0
 		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
+		this.tool_buttons.push(tButton)
 		tButton.className = "toolButton"
 		tButton.onclick = ev=>{
 			//First, deselect ALL other buttons
-			let toolButtons = this.drawArea.querySelectorAll("button.toolButton")
+			let toolButtons = this.tool_buttons
 			for (let i = 0; i < toolButtons.length; i++) {
 				if (toolButtons[i] != tButton)
 					delete toolButtons[i].dataset.selected
@@ -310,15 +259,10 @@ class ChatDraw {
 		return tButton
 	}
 	
-	//Get the buttons representing the color switching
-	getColorButtons() {
-		return this.drawArea.querySelectorAll("button-area button.colorChange")
-	}
-	
 	//Get the colors from the drawing area buttons
 	getButtonColors() {
 		let colors = []
-		let buttons = this.getColorButtons()
+		let buttons = this.color_buttons
 		
 		for (let i=0; i<buttons.length; i++)
 			colors.push(fillStyleToRgb(buttons[i].style.color))
@@ -338,7 +282,90 @@ class ChatDraw {
 }
 
 ChatDraw.template = HTML`
-<chat-draw></chat-draw>
+<canvas-container $=container></canvas-container>
+<button-area>
+	<button $=zoom>◲</button>
+	<button $=undo>↶</button>
+	<button $=redo>↷</button>
+	<br $=color_p>
+	<button $=send data-button="sendDrawing">➥</button>
+</button-area>
+<button-area>
+	<br $=tool1>
+	<button $=clear>❌️</button>
+	<button $=thickness>0</button>
+	<br $=tool2>
+	<button $=toggle>✎</button>
+</button-area>
+<input $=color_picker type=color hidden>
+<style>
+:host {
+	display: flex;
+	flex-flow: column;
+	--scale: 1;
+	width: min-content;
+}
+
+canvas-container {
+	position: relative;
+}
+
+canvas {
+	display: inline-block;
+	margin: 0.0rem;
+	padding: 0;
+	box-sizing: content-box;
+	vertical-align: bottom;
+	image-rendering: -moz-crisp-edges;
+	image-rendering: crisp-edges;
+	image-rendering: optimizespeed;
+	image-rendering: pixelated;
+	border: 1px solid #BBB;
+	width: calc(var(--scale) * 200px);
+	cursor: crosshair;
+}
+
+.overlay {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+button-area {
+	display: flex;
+	justify-content: flex-end;
+	font-size: 0;
+	background: #E9E9E6;
+	border: 1px #BBB;
+	border-style: none solid;
+}
+
+button-area button {
+	flex: none;
+	appearance: none;
+	border: none;
+	border-radius: unset;
+	outline: none;
+	width: calc(var(--scale) * 25px);
+	height: calc(var(--scale) * 25px);
+	font-size: calc(var(--scale) * 14px);
+	cursor: pointer;
+}
+
+button-area button:hover {
+	background: #2929291A;
+}
+
+button-area button:disabled {
+	color: #666;
+	background: #2929291A;
+}
+
+button-area button[data-selected] {
+	color: #E9E9E6;
+	background: #666;
+}
+</style>
 `
 
 //Convert a 3 channel palette color into a fill style
@@ -368,7 +395,7 @@ let hexToRGB=(hex)=>{
 		parseInt(result[3], 16)
 	] : null
 }
-p
+
 let rgbToHex=(channels)=>{
 	return "#" + ((1 << 24) + (channels[0] << 16) + (channels[1] << 8) + channels[2]).toString(16).slice(1)
 }
