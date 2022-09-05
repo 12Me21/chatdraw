@@ -1,5 +1,37 @@
 'use strict'
 
+let HTML = ([html])=>{
+	let temp = document.createElement('template')
+	temp.innerHTML = html.replace(/\s*?\n\s*/g, "")
+	let content = temp.content
+	let root = content
+	if (root.childNodes.length==1)
+		root = root.firstChild
+	let get_path = (root, node)=>{
+		let path = ""
+		while (node!==root) {
+			let parent = node.parentNode
+			let pos = [].indexOf.call(parent.childNodes, node)
+			path = ".firstChild"+".nextSibling".repeat(pos) + path
+			node = parent
+		}
+		return path
+	}
+	let init = `const node=document.importNode(this, true)
+holder.$root=node`
+	for (let node of content.querySelectorAll("[\\$]")) {
+		let path = get_path(root, node)
+		let id = node.getAttribute('$')
+		node.removeAttribute('$')
+		init += `
+holder.$${id} = node${path}`
+	}
+	init += `
+return holder`
+	let c = new Function("holder={}", init).bind(root)
+	return c
+}
+
 //Carlos Sanchez - 2016
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
@@ -19,43 +51,8 @@ class ChatDraw {
 		
 		this.maxLineWidth = 7
 		
-		let hideCharacters = 20
 		let maxScale = 5
 		let defaultLineWidth = 2
-		let saveInput = false
-		
-		let copyDrawing = (string)=>{
-			StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, string)
-			UXUtilities.Toast("Copied drawing (chatdraw only!)")
-		}
-		
-		let getClipboardDrawing = ()=>{
-			return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
-		}
-		
-		let parseColorString = (string)=>{
-			let colors = string.split("/")
-			let result = []
-			
-			for (let i=0; i<colors.length; i++)
-				result.push(fillStyleToRgb(colors[i]))
-			
-			return result
-		}
-		
-		let setButtonColors = (palette)=>{
-			let buttons = this.getColorButtons()
-			
-			for (let i=0; i<palette.length; i++) {
-				if (i<buttons.length) {
-					buttons[i].style.color = palette[i].ToRGBString()
-					if (buttons[i].hasAttribute("data-selected"))
-						this.drawer.color = buttons[i].style.color
-				}
-			}
-			
-			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
-		}
 		
 		let canvasContainer = document.createElement("canvas-container")
 		let buttonArea = document.createElement("button-area")
@@ -108,14 +105,6 @@ class ChatDraw {
 			this.drawer.Redraw()
 		}
 		this.$root.setAttribute("tabindex", "-1")
-		this.$root.addEventListener("keydown", ev=>{
-			if (this.drawArea.dataset.hidden)
-				return
-			if (ev.key === 'ArrowUp')
-				this.selectNextRadio()
-			if (ev.key === 'ArrowDown')
-				this.selectPreviousRadio()
-		})
 		widthButton.textContent = defaultLineWidth - 1
 		widthButton.dataset.width = defaultLineWidth - 1
 		widthButton.onclick = ev=>{ this.widthToggle(widthButton) }
@@ -136,15 +125,10 @@ class ChatDraw {
 		}
 		this.drawer.DoUndoStateChange()
 		
-		//These are the only elements that will be displayed if the drawing area
-		//goes hidden. CSS doesn't have to look at these, ofc.
-		toggleButton.dataset.keep = true
-		buttonArea2.dataset.keep = true
-		
 		buttonArea.append(cSizeButton, undoButton, redoButton)
 		
 		//Create the color picking buttons
-		for (let i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
+		for (let i=0; i<BaseColors.length; i++) {
 			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
 			
 			colorButton.textContent = "■"
@@ -194,23 +178,22 @@ class ChatDraw {
 		let scale = Math.floor((window.screen.width - 200) / 200)
 		this.$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
-		setButtonColors(ChatDrawUtilities.BaseColors)
+		this.setButtonColors(BaseColors)
 		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
 	}
 	
-	getButtonColorString() {
-		let getColorString = (colors)=>{
-			let colorSet = ""
-			
-			for (let i = 0; i < colors.length; i++) {
-				colorSet += rgbToFillStyle(colors[i])
-				if (i !== colors.length - 1)
-					colorSet += "/"
+	setButtonColors(palette) {
+		let buttons = this.getColorButtons()
+		
+		for (let i=0; i<palette.length; i++) {
+			if (i<buttons.length) {
+				buttons[i].style.color = palette[i].ToRGBString()
+				if (buttons[i].hasAttribute("data-selected"))
+					this.drawer.color = buttons[i].style.color
 			}
-			
-			return colorSet
 		}
-		return getColorString(this.getButtonColors())
+		
+		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
 	}
 	
 	//Send the current drawing to the chat.
@@ -354,13 +337,9 @@ class ChatDraw {
 	}
 }
 
-//The legacy fixed palette, if you need it.
-let legacyPalette = [
-	[255,255,255], 
-	[0,0,0],
-	[255,0,0],
-	[0,0,255],
-]
+ChatDraw.template = HTML`
+<chat-draw></chat-draw>
+`
 
 //Convert a 3 channel palette color into a fill style
 let rgbToFillStyle=(channels)=>{
@@ -371,7 +350,7 @@ let rgbToFillStyle=(channels)=>{
 let fillStyleToRgb=(fillStyle)=>{
 	let regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
 	let result = regex.exec(fillStyle)
-	return result ? [ Number(result[1]), Number(result[2]), Number(result[3]) ] : null
+	return result ? [+result[1], +result[2], +result[3]] : null
 }
 
 //Convert a hex color into RGB values
@@ -389,63 +368,14 @@ let hexToRGB=(hex)=>{
 		parseInt(result[3], 16)
 	] : null
 }
-
+p
 let rgbToHex=(channels)=>{
 	return "#" + ((1 << 24) + (channels[0] << 16) + (channels[1] << 8) + channels[2]).toString(16).slice(1)
 }
 
-let ChatDrawUtilities = {
-	ClipboardKey: "chatdrawClipboard",
-	ExportBucket: ()=>{
-		return "chatDrawAnimations"
-	},
-	
-	BaseColors: [
-		new Color(255,255,255),
-		new Color(0, 0, 0),
-		new Color(255, 0, 0),
-		new Color(0, 0, 255)
-	],
-	LegacyColors: [
-		new Color(255,255,255),
-		new Color(0, 0, 0),
-		new Color(255, 0, 0),
-		new Color(0, 0, 255)
-	],
-	
-	PaletteToString(palette) {
-		let colorSet = ""
-		
-		for (let i = 0; i < palette.length; i++) {
-			colorSet += palette[i].ToRGBString()
-			if (i !== palette.length - 1) colorSet += "/"
-		}
-		
-		return colorSet
-	},
-	StringToPalette(string) {
-		let colors = string.split("/")
-		let result = []
-		
-		for (let i = 0; i < colors.length; i++)
-			result.push(StyleUtilities.GetColor(colors[i]))
-		
-		return result
-	},
-	
-	GetClearColor(palette) {
-		let max = 0
-		let clearColor = 0
-		
-		for (let i = 0; i < palette.length; i++) {
-			let full = Math.pow((palette[i].r + palette[i].g + palette[i].b - (255 * 3 / 2 - 0.1)), 2)
-			
-			if (full > max) {
-				max = full
-				clearColor = i
-			}
-		}
-		
-		return palette[clearColor]
-	},
-}
+let BaseColors = [
+	new Color(255,255,255),
+	new Color(0, 0, 0),
+	new Color(255, 0, 0),
+	new Color(0, 0, 255)
+]

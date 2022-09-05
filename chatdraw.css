@@ -1,14 +1,6 @@
-#sendpane > draw-area{
-	position: relative;
-	z-index: 1000;
-	position: absolute;
-	bottom: 0;
-	right: 0;
-	background-color: #F5F5F5CC;
-}
-
 :host {
 	display: flex;
+	--scale: 1;
 }
 
 draw-area {
@@ -31,23 +23,14 @@ canvas {
 	image-rendering: optimizespeed;
 	image-rendering: pixelated;
 	border: 1px solid #BBB;
-}
-
-canvas.lightbox {
-	pointer-events:none;
-	position: absolute;
-	left: 0;
-	top: 0;
+	width: calc(var(--scale) * 200px);
+	cursor: crosshair;
 }
 
 .overlay {
 	position: absolute;
 	left: 0;
 	top: 0;
-}
-
-canvas {
-	cursor: crosshair;
 }
 
 button-area {
@@ -65,6 +48,10 @@ button-area button {
 	border: none;
 	border-radius: unset;
 	outline: none;
+	width: calc(var(--scale) * 25px);
+	height: calc(var(--scale) * 25px);
+	font-size: calc(var(--scale) * 14px);
+	cursor: pointer;
 }
 
 button-area button:hover {
@@ -81,147 +68,6 @@ button-area button[data-selected] {
 	background: #666;
 }
 
-chatdraw-controlcontainer {
-	width: 1.1rem;
-	display: inline-block;
-}
-
-chatdraw-controlcontainer > a {
-	padding: 0 0.2em;
-	text-decoration: none !important;
-	display: inline-block;
-	font-size: 0.8rem;
-	cursor: pointer;
-}
-
-chatdraw-controlcontainer .chatdrawplay {
-	font-size: 1.0rem;
-}
-
-animate-area {
-	order: -1;
-	display: flex;
-	flex-flow: column;
-	width: 200px;
-	flex: none;
-	background-color: rgba(245,245,245,0.80);
-	border-left: 1px solid #BBB;
-	border-top: 1px solid #BBB;
-	border-bottom: 1px solid #BBB;
-}
-
-animate-area animate-frames {
-	flex: 1;
-}
-
-animate-area animate-frame {
-	display: block;
-	position: relative;
-	padding: 2px 7px;
-	margin: 0;
-}
-
-animate-area animate-frame[data-selected] {
-	background-color: #666;
-}
-
-animate-area animate-frames canvas {
-	width: 100% !important;
-	box-sizing: border-box !important;
-	cursor: pointer;
-}
-
-animate-area animate-frame frame-controls {
-	display: flex;
-	position: absolute;
-	left: 9px;
-	bottom: 4px;
-	width: -webkit-calc(100% - 18px);
-	width: calc(100% - 18px);
-	vertical-align: bottom;
-	/*font-size: 8px;*/
-}
-
-animate-area animate-frame frame-controls > * {
-	flex: none;
-	height: 11px;
-	font-size: 9px;
-	padding: 0;
-	margin: 0;
-	border-radius: 0;
-}
-
-animate-area animate-frame frame-controls button {
-	border: none;
-	background-color: transparent;
-	margin: 0;
-	padding: 0;
-	margin-left: 2px;
-}
-
-animate-area animate-frame frame-controls input {
-	width: 30px;
-	box-sizing: border-box;
-	border: 1px solid #BBB;
-	background-color: #E9E9E6;
-}
-
-animate-area animate-frame frame-controls .left {
-	margin-left: 0px;
-	margin-right: 2px;
-}
-
-animate-area button-area input {
-	height: 25px;
-	box-sizing: border-box;
-	border-radius: 0;
-	border: 1px solid #BBB;
-	background-color: #E9E9E6;
-}
-
-animate-area button-area input[type="number"] {
-	width: 50px;
-}
-
-animate-area button-area input[name="name"] {
-	width: 125px;
-}
-
-button {
-	cursor: pointer;
-}
-
 spacer {
 	flex: 1 !important;
 }
-
-:host {
-	--scale: 1;
-}
-animate-area {
-	--scale: 1;
-}
-canvas {
-	width: calc(var(--scale) * 200px);
-}
-button-area button {
-	width: calc(var(--scale) * 25px);
-	height: calc(var(--scale) * 25px);
-	font-size: calc(var(--scale) * 14px);
-}
-animate-area animate-scroller {
-	flex: 1;
-}
-
-/*@media(min-width: 700px) {
-	draw-area canvas
-	{
-		width: 400px;
-	}
-	draw-area:not([data-hidden]) button-area button
-	{
-		height: 50px;
-		width: 50px;
-		font-size: 28px;
-	}
-}*/
