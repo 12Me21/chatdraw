@@ -46,12 +46,12 @@ class ChatDraw {
 		this.drawer = new CanvasDrawer()
 		
 		this.maxLineWidth = 7
-		
-		let maxScale = 5
 		let defaultLineWidth = 2
 		
+		let maxScale = 5
+		
 		this.tool_buttons = []
-		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
+		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"])
 		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
 		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
 		let moveButton = this.createToolButton(["↔️"], ["mover"])
@@ -68,8 +68,15 @@ class ChatDraw {
 		
 		//Set up the color picker
 		this.$color_picker.onchange = event=>{
-			let newColor = StyleUtilities.GetColor(event.target.value)
-			CanvasUtilities.SwapColor(this.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
+			let newColor = Color.from_input(event.target.value)
+			console.log(newColor, StyleUtilities.GetColor(event.target.associatedButton.style.color))
+			
+			CanvasUtilities.SwapColor(
+				this.canvas.getContext("2d"),
+				StyleUtilities.GetColor(event.target.associatedButton.style.color),
+				newColor,
+				0
+			)
 			event.target.associatedButton.style.color = newColor.ToRGBString()
 			this.drawer.color = newColor.ToRGBString()
 			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
@@ -96,7 +103,7 @@ class ChatDraw {
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
-			let colorButton = HTMLUtilities.CreateUnsubmittableButton(); //makeUnsubmittableButton()
+			let colorButton = HTMLUtilities.CreateUnsubmittableButton()
 			
 			colorButton.textContent = "■"
 			colorButton.className = 'colorChange'
@@ -367,7 +374,7 @@ button-area button[data-selected] {
 }
 </style>
 `
-
+//#A7E258
 //Convert a 3 channel palette color into a fill style
 let rgbToFillStyle=(channels)=>{
 	return "rgb(" + channels[0] + "," + channels[1] + "," + channels[2] + ")"

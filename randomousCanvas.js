@@ -1008,8 +1008,9 @@ class CanvasDrawer extends CanvasPerformer {
 			//layer's colors and shapes, not the current layer. If this is not
 			//desireable, replace this fill function with the generic one from
 			//CanvasUtilities.
-			let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
-			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
+			//let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
+			//drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
+			let canvasCopy = drawer._canvas
 			let copyContext = canvasCopy.getContext("2d")
 			let copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data
 			

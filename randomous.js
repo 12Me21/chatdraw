@@ -461,6 +461,11 @@ class Color {
 			Math.abs(this.b - compareColor.b), 
 			Math.abs(this.a - compareColor.a) * 255)
 	}
+	
+	static from_input(value) {
+		let num = parseInt(value.slice(1), 16)
+		return new this(num>>16&255, num>>8&255, num&255)
+	}
 }
 
 // --- StyleUtilities ---
