@@ -6,14 +6,39 @@
 
 class ChatDraw {
 	constructor() {
+		this.width = 200
+		this.height = 100
+		
 		this.$root = document.createElement('chat-draw')
+		
 		this.drawArea = document.createElement("draw-area")
-		this.drawer = null
-		this.animateFrames = null
-		this.animationPlayer = null
-		this.colorPicker = null
+		
+		this.drawer = new CanvasDrawer()
+		
+		let frameContainer = document.createElement("animate-frames")
+		this.animateFrames = new AnimatorFrameSet(this, frameContainer)
+		
+		let repeatAnimation = HTMLUtilities.CreateUnsubmittableButton("→")
+		let frameSkip = document.createElement("input")
+		this.animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{
+			let rep = repeatAnimation.hasAttribute("data-repeat")
+			if (newValue === undefined) {
+				return rep
+			} else if (newValue != rep) {
+				repeatAnimation.click()
+			}
+		}, (newValue)=>{ 
+			if (newValue === undefined)
+				return frameSkip.value
+			else
+				frameSkip.value = newValue
+		})
+		
+		this.colorPicker = document.createElement('input')
+		
+		this.maxLineWidth = 7
+		
 		let hideCharacters = 20
-		let maxLineWidth = 7
 		let maxScale = 5
 		let defaultLineWidth = 2
 		let saveInput = false
@@ -29,39 +54,11 @@ class ChatDraw {
 			return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
 		}
 		
-		let selectNextRadio = ()=>{
-			let index = this.animateFrames.GetSelectedFrameIndex()
-			if (index < this.animateFrames.GetFrameCount() - 1)
-				this.animateFrames.SelectFrameIndex(index + 1)
-		}
-		
-		let selectPreviousRadio = ()=>{
-			let index = this.animateFrames.GetSelectedFrameIndex()
-			if (index > 0) 
-				this.animateFrames.SelectFrameIndex(index - 1)
-		}
-		
-		let getButtonColorString = ()=>{
-			return getColorString(this.getButtonColors())
-		}
-		
-		let getColorString = (colors)=>{
-			let colorSet = ""
-			
-			for (let i = 0; i < colors.length; i++) {
-				colorSet += rgbToFillStyle(colors[i])
-				if (i !== colors.length - 1)
-					colorSet += "/"
-			}
-			
-			return colorSet
-		}
-		
 		let parseColorString = (string)=>{
 			let colors = string.split("/")
 			let result = []
 			
-			for (let i = 0; i < colors.length; i++)
+			for (let i=0; i<colors.length; i++)
 				result.push(fillStyleToRgb(colors[i]))
 			
 			return result
@@ -70,23 +67,15 @@ class ChatDraw {
 		let setButtonColors = (palette)=>{
 			let buttons = this.getColorButtons()
 			
-			for (let i = 0; i < palette.length; i++) {
-				if (i < buttons.length) {
-					buttons[i].style.color = palette[i].ToRGBString(); //colors[i]
-					
+			for (let i=0; i<palette.length; i++) {
+				if (i<buttons.length) {
+					buttons[i].style.color = palette[i].ToRGBString()
 					if (buttons[i].hasAttribute("data-selected"))
 						this.drawer.color = buttons[i].style.color
 				}
 			}
 			
 			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
-		}
-		
-		let widthToggle = (widthButton)=>{
-			let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
-			widthButton.textContent = width
-			widthButton.dataset.width = width
-			this.drawer.lineWidth = width
 		}
 		
 		let getAnimations = (callback, element)=>{
@@ -119,13 +108,10 @@ class ChatDraw {
 		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
 		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
 		let moveButton = this.createToolButton(["↔️"], ["mover"])
-		let canvas = ChatDrawUtilities.CreateCanvas()
-		let lightbox = ChatDrawUtilities.CreateCanvas()
-		this.colorPicker = document.createElement("input")
-		lightbox.className = "lightbox"
+		let canvas = this.CreateCanvas()
+		this.lightbox = this.CreateCanvas()
+		this.lightbox.className = "lightbox"
 		
-		let frameContainer = document.createElement("animate-frames")
-		this.animateFrames = new AnimatorFrameSet(frameContainer)
 		this.animateFrames.OnFrameSelected = (data)=>{
 			setButtonColors(data.palette)
 			this.drawer.buffers[0].canvas = data.canvas
@@ -146,12 +132,11 @@ class ChatDraw {
 			}
 			
 			let opacities = [0.03, 0.12, 0.25]
-			ChatDrawUtilities.CreateLightbox(lightboxFrames, lightbox, opacities.slice(-lightboxFrames.length))
+			this.CreateLightbox(lightboxFrames, opacities.slice(-lightboxFrames.length))
 		}
 		
 		let firstFrame = this.animateFrames.InsertNewFrame(0)
 		
-		this.drawer = new CanvasDrawer()
 		this.drawer.Attach(canvas, [firstFrame.canvas], 5)
 		this.drawer.OnUndoStateChange = ()=>{
 			undoButton.disabled = !this.drawer.CanUndo()
@@ -197,20 +182,16 @@ class ChatDraw {
 			if (this.drawArea.dataset.hidden)
 				return
 			if (ev.key === 'ArrowUp')
-				selectNextRadio()
+				this.selectNextRadio()
 			if (ev.key === 'ArrowDown')
-				selectPreviousRadio()
+				this.selectPreviousRadio()
 		})
 		widthButton.textContent = defaultLineWidth - 1
 		widthButton.dataset.width = defaultLineWidth - 1
-		widthButton.onclick = ev=>{
-			widthToggle(widthButton)
-		}
+		widthButton.onclick = ev=>{ this.widthToggle(widthButton) }
 		sendButton.textContent = "➥"
 		sendButton.dataset.button = "sendDrawing"
-		sendButton.onclick = ev=>{
-			sendDrawing()
-		}
+		sendButton.onclick = ev=>{ this.sendDrawing() }
 		toggleButton.textContent = "✎"
 		toggleButton.onclick = ev=>{this.toggleInterface()}
 		cSizeButton.textContent = "◲"
@@ -258,7 +239,7 @@ class ChatDraw {
 			freehandButton,
 			toggleButton
 		)
-		canvasContainer.append(canvas, lightbox)
+		canvasContainer.append(canvas, this.lightbox)
 		this.drawArea.append(
 			canvasContainer,
 			buttonArea,
@@ -272,9 +253,8 @@ class ChatDraw {
 		let animateControls = document.createElement("button-area")
 		let animateSave = document.createElement("button-area")
 		let newFrame = HTMLUtilities.CreateUnsubmittableButton("+")
-		let frameSkip = document.createElement("input")
 		let lightboxButton = HTMLUtilities.CreateUnsubmittableButton("0")
-		let repeatAnimation = HTMLUtilities.CreateUnsubmittableButton("→")
+		
 		let exportAnimation = HTMLUtilities.CreateUnsubmittableButton("⛟")
 		let sendAnimation = HTMLUtilities.CreateUnsubmittableButton("➥")
 		let playPause = HTMLUtilities.CreateUnsubmittableButton("►")
@@ -415,7 +395,7 @@ class ChatDraw {
 				uploadData.append("text", JSON.stringify(animation))
 				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", (response)=>{
 					if (response.startsWith("http")) {
-						sendDrawing(response)
+						this.sendDrawing(response)
 					} else {
 						UXUtilities.Toast("The animation failed to upload! " + response)
 					}
@@ -444,19 +424,7 @@ class ChatDraw {
 			})
 		}
 		
-		this.animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{ 
-			if (newValue === undefined) {
-				return repeatAnimation.hasAttribute("data-repeat")
-			} else {
-				if (newValue != repeatAnimation.hasAttribute("data-repeat"))
-					repeatAnimation.click()
-			}
-		}, (newValue)=>{ 
-			if (newValue === undefined)
-				return frameSkip.value
-			else
-				frameSkip.value = newValue
-		})
+		this.animationPlayer = 
 		
 		this.animationPlayer.OnPlay = (player)=>{
 			if (!frameSkip.value) {
@@ -471,7 +439,7 @@ class ChatDraw {
 			newFrame.disabled = true
 			buttonArea.disabled = true
 			playPause.textContent = "■"
-			lightbox.style.display = "none"
+			this.lightbox.style.display = "none"
 		}
 		
 		this.animationPlayer.OnStop = (player)=>{
@@ -480,7 +448,7 @@ class ChatDraw {
 			newFrame.disabled = false
 			buttonArea.disabled = false
 			this.drawer.Redraw()
-			lightbox.style.display = ""
+			this.lightbox.style.display = ""
 		}
 		
 		playPause.onclick = event=>{
@@ -536,24 +504,54 @@ class ChatDraw {
 		this.$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
 		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
-		
-		let interfaceVisible = ()=>{
-			return !this.$root.dataset.hidden
-		}
-		
-		//Send the current drawing to the chat.
-		let sendDrawing = (animationLink)=>{
-			try {
-				let message = this.animateFrames.GetFrame().ToString()
-				if (animationLink)
-					message = "(" + animationLink + ")" + message
-				sendMessage("/drawsubmit " + message, false)
-			} catch(ex) {
-				console.error("Error while sending drawing: " + ex)
+	}
+	
+	getButtonColorString() {
+		let getColorString = (colors)=>{
+			let colorSet = ""
+			
+			for (let i = 0; i < colors.length; i++) {
+				colorSet += rgbToFillStyle(colors[i])
+				if (i !== colors.length - 1)
+					colorSet += "/"
 			}
+			
+			return colorSet
+		}
+		return getColorString(this.getButtonColors())
+	}
+	
+	//Send the current drawing to the chat.
+	sendDrawing(animationLink) {
+		try {
+			let message = this.animateFrames.GetFrame().ToString()
+			if (animationLink)
+				message = "(" + animationLink + ")" + message
+			sendMessage("/drawsubmit " + message, false)
+		} catch(ex) {
+			console.error("Error while sending drawing: " + ex)
 		}
 	}
 	
+	widthToggle(widthButton) {
+		let width = (+widthButton.dataset.width % this.maxLineWidth) + 1
+		widthButton.textContent = width
+		widthButton.dataset.width = width
+		this.drawer.lineWidth = width
+	}
+	
+	selectNextRadio() {
+		let index = this.animateFrames.GetSelectedFrameIndex()
+		if (index < this.animateFrames.GetFrameCount() - 1)
+			this.animateFrames.SelectFrameIndex(index + 1)
+	}
+	
+	selectPreviousRadio() {
+		let index = this.animateFrames.GetSelectedFrameIndex()
+		if (index > 0)
+			this.animateFrames.SelectFrameIndex(index - 1)
+	}
+		
 	//Get the color that is best suited to be a clearing color (the color that
 	//is closest to either white or black, whichever comes first)
 	getClearColor() {
@@ -585,7 +583,7 @@ class ChatDraw {
 		}
 		
 		//Set current button to this one.
-		colorButton.dataset.selected = "true"
+		colorButton.dataset.selected = true
 		
 		//If this button was already selected, perform the color swap.
 		if (alreadySelected) {
@@ -629,8 +627,8 @@ class ChatDraw {
 		this.animationPlayer.FromStorageObject(storeObject)
 		this.animateFrames.ClearAllFrames()
 		
-		for (let i = 0; i < this.animationPlayer.frames.length; i++) {
-			this.animateFrames.InsertNewFrame(i - 1)
+		for (let i=0; i<this.animationPlayer.frames.length; i++) {
+			this.animateFrames.InsertNewFrame(i-1)
 			this.animateFrames.SetFrame(this.animationPlayer.frames[i], i)
 		}
 		
@@ -639,7 +637,7 @@ class ChatDraw {
 	
 	createToolButton(displayCharacters, toolNames) {
 		if (!Array.isArray(displayCharacters))
-			displayCharacters= [displayCharacters]
+			displayCharacters = [displayCharacters]
 		if (!Array.isArray(toolNames))
 			toolNames = [toolNames]
 		let nextTool = 0
@@ -679,6 +677,32 @@ class ChatDraw {
 			colors.push(fillStyleToRgb(buttons[i].style.color))
 		
 		return colors
+	}
+	
+	CreateCanvas() {
+		let canvas = document.createElement('canvas')
+		canvas.width = this.width
+		canvas.height = this.height
+		canvas.getContext("2d").imageSmoothingEnabled = false
+		return canvas
+	}
+	
+	
+	//First canvas is bottom
+	CreateLightbox(frames, opacities) {
+		CanvasUtilities.Clear(this.lightbox)
+		
+		let context = this.lightbox.getContext('2d')
+		
+		for (let i=0; i<frames.length; i++) {
+			//This might be expensive! Make sure the browser doesn't slow down
+			//from all these created canvases!
+			let copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas)
+			let clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette)
+			CanvasUtilities.SwapColor(copy.getContext("2d"), clearColor, new Color(clearColor.r, clearColor.g, clearColor.b, 0), 0)
+			context.globalAlpha = opacities[i]
+			context.drawImage(copy, 0, 0)
+		}
 	}
 }
 
@@ -723,8 +747,9 @@ let rgbToHex=(channels)=>{
 }
 
 class AnimatorFrameSet {
-	constructor(container) {
+	constructor(chatdraw, container) {
 		this.container = container
+		this.chatdraw = chatdraw
 		
 		this.FrameTag = "animate-frame"
 		this.FrameControlTag = "frame-controls"
@@ -810,7 +835,7 @@ class AnimatorFrameSet {
 	//no frames, frame is inserted at beginning.
 	InsertNewFrame(index, selectNow) {
 		let palette
-		let canvas = ChatDrawUtilities.CreateCanvas()
+		let canvas = this.chatdraw.CreateCanvas()
 		let me = this
 		
 		try {
@@ -1089,8 +1114,6 @@ class AnimationPlayer {
 }
 
 let ChatDrawUtilities = {
-	DefaultWidth: 200,
-	DefaultHeight: 100,
 	ClipboardKey: "chatdrawClipboard",
 	ExportBucket: ()=>{
 		return "chatDrawAnimations"
@@ -1143,32 +1166,5 @@ let ChatDrawUtilities = {
 		}
 		
 		return palette[clearColor]
-	},
-	
-	CreateCanvas() {
-		let canvas = document.createElement("canvas")
-		canvas.width = ChatDrawUtilities.DefaultWidth
-		canvas.height = ChatDrawUtilities.DefaultHeight
-		canvas.getContext("2d").imageSmoothingEnabled = false
-		return canvas
-	},
-	
-	//First canvas is bottom
-	CreateLightbox(frames, destination, opacities) {
-		CanvasUtilities.Clear(destination)
-		
-		let context = destination.getContext("2d")
-		
-		for (let i = 0; i < frames.length; i++) {
-			//This might be expensive! Make sure the browser doesn't slow down
-			//from all these created canvases!
-			let copy = CanvasUtilities.CreateCopy(frames[i].canvas, frames[i].canvas)
-			let clearColor = ChatDrawUtilities.GetClearColor(frames[i].palette)
-			CanvasUtilities.SwapColor(copy.getContext("2d"), clearColor, 
-			                          new Color(clearColor.r, clearColor.g, clearColor.b, 0), 0)
-			//context.globalAlpha = MathUtilities.Lerp(minAlpha, maxAlpha, (i + 1) / frames.length)
-			context.globalAlpha = opacities[i]
-			context.drawImage(copy,0,0)
-		}
 	},
 }
