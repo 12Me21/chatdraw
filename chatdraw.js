@@ -4,158 +4,107 @@
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
 
-let LocalChatDraw = (()=>{
-	
-	//The chatdraw canvas's expected width and height
-	let chatDrawCanvasWidth = 200
-	let chatDrawCanvasHeight = 100
-	
-	let colorPicker = null
-	let drawArea = null
-	let $root = document.createElement('chat-draw')
-	let hideCharacters = 20
-	let maxLineWidth = 7
-	let maxScale = 5
-	let defaultLineWidth = 2
-	let drawer = false
-	let animateFrames = false
-	let animationPlayer = false
-	
-	let saveInput = false
-	
-	let animationTag = "_chdran"
-	let allowAnimation = true
-	
-	let copyDrawing = (string)=>{
-		StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, string)
-		UXUtilities.Toast("Copied drawing (chatdraw only!)")
-	}
-	
-	let getClipboardDrawing = ()=>{
-		return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
-	}
-	
-	let createToolButton = (displayCharacters, toolNames)=>{
-		if (!Array.isArray(displayCharacters))
-			displayCharacters= [displayCharacters]
-		if (!Array.isArray(toolNames))
-			toolNames = [toolNames]
-		let nextTool = 0
-		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
-		tButton.className = "toolButton"
-		tButton.onclick = ev=>{
-			//First, deselect ALL other buttons
-			let toolButtons = drawArea.querySelectorAll("button.toolButton")
-			for (let i = 0; i < toolButtons.length; i++) {
-				if (toolButtons[i] != tButton)
-					delete toolButtons[i].dataset.selected
+class ChatDraw {
+	constructor() {
+		this.$root = document.createElement('chat-draw')
+		this.drawArea = document.createElement("draw-area")
+		this.drawer = null
+		this.animateFrames = null
+		this.animationPlayer = null
+		this.colorPicker = null
+		let hideCharacters = 20
+		let maxLineWidth = 7
+		let maxScale = 5
+		let defaultLineWidth = 2
+		let saveInput = false
+		let animationTag = "_chdran"
+		let allowAnimation = true
+		
+		let copyDrawing = (string)=>{
+			StorageUtilities.WriteLocal(ChatDrawUtilities.ClipboardKey, string)
+			UXUtilities.Toast("Copied drawing (chatdraw only!)")
+		}
+		
+		let getClipboardDrawing = ()=>{
+			return StorageUtilities.ReadLocal(ChatDrawUtilities.ClipboardKey)
+		}
+		
+		let selectNextRadio = ()=>{
+			let index = this.animateFrames.GetSelectedFrameIndex()
+			if (index < this.animateFrames.GetFrameCount() - 1)
+				this.animateFrames.SelectFrameIndex(index + 1)
+		}
+		
+		let selectPreviousRadio = ()=>{
+			let index = this.animateFrames.GetSelectedFrameIndex()
+			if (index > 0) 
+				this.animateFrames.SelectFrameIndex(index - 1)
+		}
+		
+		let getButtonColorString = ()=>{
+			return getColorString(this.getButtonColors())
+		}
+		
+		let getColorString = (colors)=>{
+			let colorSet = ""
+			
+			for (let i = 0; i < colors.length; i++) {
+				colorSet += rgbToFillStyle(colors[i])
+				if (i !== colors.length - 1)
+					colorSet += "/"
 			}
 			
-			//Now figure out if we're just selecting this button or cycling
-			//through the available tools
-			if (tButton.getAttribute("data-selected"))
-				nextTool = (nextTool + 1) % toolNames.length
-			
-			tButton.textContent = displayCharacters[nextTool]
-			tButton.dataset.selected = true
-			drawer.currentTool = toolNames[nextTool]
-		}
-		return tButton
-	}
-	
-	let selectNextRadio = ()=>{
-		let index = animateFrames.GetSelectedFrameIndex()
-		if (index < animateFrames.GetFrameCount() - 1)
-			animateFrames.SelectFrameIndex(index + 1)
-	}
-	
-	let selectPreviousRadio = ()=>{
-		let index = animateFrames.GetSelectedFrameIndex()
-		if (index > 0) 
-			animateFrames.SelectFrameIndex(index - 1)
-	}
-	
-	let getButtonColorString = ()=>{
-		return getColorString(getButtonColors())
-	}
-	
-	let getColorString = (colors)=>{
-		let colorSet = ""
-		
-		for (let i = 0; i < colors.length; i++) {
-			colorSet += rgbToFillStyle(colors[i])
-			if (i !== colors.length - 1)
-				colorSet += "/"
+			return colorSet
 		}
 		
-		return colorSet
-	}
-	
-	let parseColorString = (string)=>{
-		let colors = string.split("/")
-		let result = []
-		
-		for (let i = 0; i < colors.length; i++)
-			result.push(fillStyleToRgb(colors[i]))
-		
-		return result
-	}
-	
-	let setButtonColors = (palette)=>{
-		let buttons = getColorButtons()
-		
-		for (let i = 0; i < palette.length; i++) {
-			if (i < buttons.length) {
-				buttons[i].style.color = palette[i].ToRGBString(); //colors[i]
-				
-				if (buttons[i].hasAttribute("data-selected"))
-					drawer.color = buttons[i].style.color
-			}
-		}
-		
-		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
-	}
-	
-	let widthToggle = (widthButton)=>{
-		let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
-		widthButton.textContent = width
-		widthButton.dataset.width = width
-		drawer.lineWidth = width
-	}
-	
-	let getAnimations = (callback, element)=>{
-		let formData = new FormData()
-		formData.append("list", "1")
-		fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, (json, statusElement)=>{
-			genericSuccess(json, element)
-			
+		let parseColorString = (string)=>{
+			let colors = string.split("/")
 			let result = []
 			
-			for (let i = 0; i < json.result.length; i++)
-				if (json.result[i].endsWith(animationTag))
-					result.push(json.result[i].slice(0, -animationTag.length))
+			for (let i = 0; i < colors.length; i++)
+				result.push(fillStyleToRgb(colors[i]))
 			
-			callback(result)
-		})
-	}
-	
-	//Once you have a compliant v2 object, this is the actual load function.
-	let loadAnimation = (storeObject)=>{
-		animationPlayer.FromStorageObject(storeObject)
-		animateFrames.ClearAllFrames()
-		
-		for (let i = 0; i < animationPlayer.frames.length; i++) {
-			animateFrames.InsertNewFrame(i - 1)
-			animateFrames.SetFrame(animationPlayer.frames[i], i)
+			return result
 		}
 		
-		animateFrames.SelectFrameIndex(0)
-	}
-	
-	let setupInterface = (interfaceContainer)=>{
-		let messagePane = interfaceContainer
+		let setButtonColors = (palette)=>{
+			let buttons = this.getColorButtons()
+			
+			for (let i = 0; i < palette.length; i++) {
+				if (i < buttons.length) {
+					buttons[i].style.color = palette[i].ToRGBString(); //colors[i]
+					
+					if (buttons[i].hasAttribute("data-selected"))
+						this.drawer.color = buttons[i].style.color
+				}
+			}
+			
+			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
+		}
 		
-		drawArea = document.createElement("draw-area")
+		let widthToggle = (widthButton)=>{
+			let width = (Number(widthButton.dataset.width) % maxLineWidth) + 1
+			widthButton.textContent = width
+			widthButton.dataset.width = width
+			this.drawer.lineWidth = width
+		}
+		
+		let getAnimations = (callback, element)=>{
+			let formData = new FormData()
+			formData.append("list", "1")
+			fullGenericXHR("/query/submit/varstore?session=" + StorageUtilities.GetPHPSession(), formData, element, (json, statusElement)=>{
+				genericSuccess(json, element)
+				
+				let result = []
+				
+				for (let i = 0; i < json.result.length; i++)
+					if (json.result[i].endsWith(animationTag))
+						result.push(json.result[i].slice(0, -animationTag.length))
+				
+				callback(result)
+			})
+		}
+		
 		let canvasContainer = document.createElement("canvas-container")
 		let buttonArea = document.createElement("button-area")
 		let buttonArea2 = document.createElement("button-area")
@@ -166,86 +115,87 @@ let LocalChatDraw = (()=>{
 		let undoButton = HTMLUtilities.CreateUnsubmittableButton()
 		let redoButton = HTMLUtilities.CreateUnsubmittableButton()
 		let clearButton = HTMLUtilities.CreateUnsubmittableButton()
-		let freehandButton = createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
-		let lineButton = createToolButton(["📏️","🔲️"], ["line", "square"])
-		let fillButton = createToolButton(["🪣️","❎️"], ["fill","clear"])
-		let moveButton = createToolButton(["↔️"], ["mover"])
+		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"]); //["✏","✒"], 
+		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
+		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
+		let moveButton = this.createToolButton(["↔️"], ["mover"])
 		let canvas = ChatDrawUtilities.CreateCanvas()
 		let lightbox = ChatDrawUtilities.CreateCanvas()
-		colorPicker = document.createElement("input")
+		this.colorPicker = document.createElement("input")
 		lightbox.className = "lightbox"
 		
 		let frameContainer = document.createElement("animate-frames")
-		animateFrames = new AnimatorFrameSet(frameContainer)
-		animateFrames.OnFrameSelected = (data)=>{
+		this.animateFrames = new AnimatorFrameSet(frameContainer)
+		this.animateFrames.OnFrameSelected = (data)=>{
 			setButtonColors(data.palette)
-			drawer.buffers[0].canvas = data.canvas
-			drawer.ClearUndoBuffer()
-			drawer.Redraw()
+			this.drawer.buffers[0].canvas = data.canvas
+			this.drawer.ClearUndoBuffer()
+			this.drawer.Redraw()
 			
 			let lightboxFrames = []
 			let lightboxCount = Number(lightboxButton.textContent)
-			let selectedIndex = animateFrames.GetSelectedFrameIndex()
-			let totalFrames = animateFrames.GetFrameCount()
+			let selectedIndex = this.animateFrames.GetSelectedFrameIndex()
+			let totalFrames = this.animateFrames.GetFrameCount()
 			
 			if (lightboxCount > 0) {
 				for (let i = Math.max(0, selectedIndex - lightboxCount); i < selectedIndex; i++)
-					lightboxFrames.push(animateFrames.GetFrame(i))
+					lightboxFrames.push(this.animateFrames.GetFrame(i))
 			} else {
 				for (let i = Math.min(totalFrames - 1, selectedIndex - lightboxCount); i > selectedIndex; i--)
-					lightboxFrames.push(animateFrames.GetFrame(i))
+					lightboxFrames.push(this.animateFrames.GetFrame(i))
 			}
 			
 			let opacities = [0.03, 0.12, 0.25]
 			ChatDrawUtilities.CreateLightbox(lightboxFrames, lightbox, opacities.slice(-lightboxFrames.length))
 		}
 		
-		let firstFrame = animateFrames.InsertNewFrame(0)
+		let firstFrame = this.animateFrames.InsertNewFrame(0)
 		
-		drawer = new CanvasDrawer()
-		drawer.Attach(canvas, [firstFrame.canvas], 5)
-		drawer.OnUndoStateChange = ()=>{
-			undoButton.disabled = !drawer.CanUndo()
-			redoButton.disabled = !drawer.CanRedo()
+		this.drawer = new CanvasDrawer()
+		this.drawer.Attach(canvas, [firstFrame.canvas], 5)
+		this.drawer.OnUndoStateChange = ()=>{
+			undoButton.disabled = !this.drawer.CanUndo()
+			redoButton.disabled = !this.drawer.CanRedo()
 		}
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
 		//Set up the color picker
-		colorPicker.type = 'color'
-		colorPicker.style.position = "absolute"
-		colorPicker.style.left = "-10000px"
-		colorPicker.style.top = "-10000px"
-		colorPicker.style.width = "0"
-		colorPicker.style.height = "0"
-		colorPicker.onchange = event=>{
-			let frame = animateFrames.GetFrame(); //GetSelectedFrame()
+		this.colorPicker.type = 'color'
+		this.colorPicker.style.position = "absolute"
+		this.colorPicker.style.left = "-10000px"
+		this.colorPicker.style.top = "-10000px"
+		this.colorPicker.style.width = "0"
+		this.colorPicker.style.height = "0"
+		this.colorPicker.onchange = event=>{
+			let frame = this.animateFrames.GetFrame(); //GetSelectedFrame()
 			let newColor = StyleUtilities.GetColor(event.target.value)
 			CanvasUtilities.SwapColor(frame.canvas.getContext("2d"), StyleUtilities.GetColor(event.target.associatedButton.style.color), newColor, 0)
 			event.target.associatedButton.style.color = newColor.ToRGBString()
-			drawer.color = newColor.ToRGBString()
-			drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
-			drawer.Redraw()
+			this.drawer.color = newColor.ToRGBString()
+			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
+			this.drawer.Redraw()
 			
 			//TODO: Fix this later! Buttons should only be proxies for the real
 			//colors stored in each frame! Don't set the palette based on the
 			//buttons, set the palette when the user changes the color and ping
 			//the palette back to the buttons (maybe with a call to "select" again)
-			frame.palette = ChatDrawUtilities.StringToPalette(getButtonColorString())
-			animateFrames.SetFrame(frame)
+			frame.palette = ChatDrawUtilities.StringToPalette(this.getButtonColorString())
+			this.animateFrames.SetFrame(frame)
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		clearButton.textContent = "❌️"
 		clearButton.onclick = ev=>{
-			if (drawer.StrokeCount())
-				drawer.UpdateUndoBuffer()
-			CanvasUtilities.Clear(animateFrames.GetFrame().canvas, rgbToFillStyle(getClearColor()))
-			drawer.Redraw()
+			if (this.drawer.StrokeCount())
+				this.drawer.UpdateUndoBuffer()
+			CanvasUtilities.Clear(this.animateFrames.GetFrame().canvas, rgbToFillStyle(this.getClearColor()))
+			this.drawer.Redraw()
 		}
-		$root.setAttribute("tabindex", "-1")
-		$root.addEventListener("keydown", ev=>{
-			if (drawArea.dataset.hidden) return
+		this.$root.setAttribute("tabindex", "-1")
+		this.$root.addEventListener("keydown", ev=>{
+			if (this.drawArea.dataset.hidden)
+				return
 			if (ev.key === 'ArrowUp')
 				selectNextRadio()
 			if (ev.key === 'ArrowDown')
@@ -262,27 +212,25 @@ let LocalChatDraw = (()=>{
 			sendDrawing()
 		}
 		toggleButton.textContent = "✎"
-		toggleButton.onclick = toggleInterface
+		toggleButton.onclick = ev=>{this.toggleInterface()}
 		cSizeButton.textContent = "◲"
-		cSizeButton.onclick = scaleInterface
+		cSizeButton.onclick = ev=>{this.scaleInterface()}
 		undoButton.textContent = "↶"
 		undoButton.onclick = ev=>{
-			drawer.Undo()
+			this.drawer.Undo()
 		}
 		redoButton.textContent = "↷"
 		redoButton.onclick = ev=>{
-			drawer.Redo()
+			this.drawer.Redo()
 		}
-		drawer.DoUndoStateChange()
+		this.drawer.DoUndoStateChange()
 		
 		//These are the only elements that will be displayed if the drawing area
 		//goes hidden. CSS doesn't have to look at these, ofc.
 		toggleButton.dataset.keep = true
 		buttonArea2.dataset.keep = true
 		
-		buttonArea.appendChild(cSizeButton)
-		buttonArea.appendChild(undoButton)
-		buttonArea.appendChild(redoButton)
+		buttonArea.append(cSizeButton, undoButton, redoButton)
 		
 		//Create the color picking buttons
 		for (let i = 0; i < ChatDrawUtilities.BaseColors.length; i++) {
@@ -291,30 +239,32 @@ let LocalChatDraw = (()=>{
 			colorButton.textContent = "■"
 			colorButton.className = 'colorChange'
 			colorButton.onclick = ev=>{
-				colorButtonSelect(colorButton, canvas)
+				this.colorButtonSelect(colorButton, canvas)
 			}
 			
-			buttonArea.appendChild(colorButton)
+			buttonArea.append(colorButton)
 			
 			if (i == 1)
 				colorButton.click()
 		}
 		
-		buttonArea.appendChild(sendButton)
-		
-		buttonArea2.appendChild(moveButton)
-		buttonArea2.appendChild(clearButton)
-		buttonArea2.appendChild(widthButton)
-		buttonArea2.appendChild(fillButton)
-		buttonArea2.appendChild(lineButton)
-		buttonArea2.appendChild(freehandButton)
-		buttonArea2.appendChild(toggleButton)
-		canvasContainer.appendChild(canvas)
-		canvasContainer.appendChild(lightbox)
-		drawArea.appendChild(canvasContainer)
-		drawArea.appendChild(buttonArea)
-		drawArea.appendChild(buttonArea2)
-		drawArea.appendChild(colorPicker)
+		buttonArea.append(sendButton)
+		buttonArea2.append(
+			moveButton,
+			clearButton,
+			widthButton,
+			fillButton,
+			lineButton,
+			freehandButton,
+			toggleButton
+		)
+		canvasContainer.append(canvas, lightbox)
+		this.drawArea.append(
+			canvasContainer,
+			buttonArea,
+			buttonArea2,
+			this.colorPicker,
+		)
 		
 		//Before we finish entirely, set up the animation area.
 		let animateArea = document.createElement("animate-area")
@@ -357,13 +307,13 @@ let LocalChatDraw = (()=>{
 			if (next > 3)
 				next = -3
 			lightboxButton.textContent = next
-			animateFrames.SelectFrameIndex(animateFrames.GetSelectedFrameIndex())
+			this.animateFrames.SelectFrameIndex(this.animateFrames.GetSelectedFrameIndex())
 		}
 		
 		let saveAnimationWrapper = (name)=>{
 			UXUtilities.Toast("Saving... please wait")
-			animationPlayer.frames = animateFrames.GetAllFrames()
-			let object = animationPlayer.ToStorageObject()
+			this.animationPlayer.frames = this.animateFrames.GetAllFrames()
+			let object = this.animationPlayer.ToStorageObject()
 			writePersistent(name + animationTag, object, ()=>{
 				UXUtilities.Toast("Saved animation '" + name + "'")
 			})
@@ -388,14 +338,14 @@ let LocalChatDraw = (()=>{
 							loadCount++
 							
 							if (loadCount === value.times.length) {
-								loadAnimation(value)
+								this.loadAnimation(value)
 								UXUtilities.Toast("Loaded animation '" + name + "'")
 							}
 						})
 						/* jshint ignore:end */
 					}
 				} else {
-					loadAnimation(value)
+					this.loadAnimation(value)
 					UXUtilities.Toast("Loaded animation '" + name + "'")
 				}
 			})
@@ -441,7 +391,7 @@ let LocalChatDraw = (()=>{
 		}
 		
 		newFrame.onclick = event=>{
-			animateFrames.InsertNewFrame(animateFrames.GetSelectedFrameIndex(), true)
+			this.animateFrames.InsertNewFrame(this.animateFrames.GetSelectedFrameIndex(), true)
 		}
 		
 		repeatAnimation.onclick = event=>{
@@ -459,8 +409,8 @@ let LocalChatDraw = (()=>{
 				if (!confirmed)
 					return
 				UXUtilities.Toast("Uploading animation... please wait")
-				animationPlayer.frames = animateFrames.GetAllFrames()
-				let animation = animationPlayer.ToStorageObject()
+				this.animationPlayer.frames = this.animateFrames.GetAllFrames()
+				let animation = this.animationPlayer.ToStorageObject()
 				let uploadData = new FormData()
 				uploadData.append("text", JSON.stringify(animation))
 				RequestUtilities.XHRSimple(location.protocol + "//kland.smilebasicsource.com/uploadtext", (response)=>{
@@ -478,8 +428,8 @@ let LocalChatDraw = (()=>{
 				if (!confirmed)
 					return
 				UXUtilities.Toast("Exporting animation... please wait")
-				animationPlayer.frames = animateFrames.GetAllFrames()
-				let animation = animationPlayer.ToStorageObject(true)
+				this.animationPlayer.frames = this.animateFrames.GetAllFrames()
+				let animation = this.animationPlayer.ToStorageObject(true)
 				let uploadData = new FormData()
 				uploadData.append("animation", JSON.stringify(animation))
 				uploadData.append("bucket", ChatDrawUtilities.ExportBucket()); //"chatDrawAnimations")
@@ -494,7 +444,7 @@ let LocalChatDraw = (()=>{
 			})
 		}
 		
-		animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{ 
+		this.animationPlayer = new AnimationPlayer(canvas, false, (newValue)=>{ 
 			if (newValue === undefined) {
 				return repeatAnimation.hasAttribute("data-repeat")
 			} else {
@@ -508,166 +458,110 @@ let LocalChatDraw = (()=>{
 				frameSkip.value = newValue
 		})
 		
-		animationPlayer.OnPlay = (player)=>{
+		this.animationPlayer.OnPlay = (player)=>{
 			if (!frameSkip.value) {
 				UXUtilities.Toast("Invalid frametime value")
 				return false
 			}
 			
-			player.frames = animateFrames.GetAllFrames()
+			player.frames = this.animateFrames.GetAllFrames()
 			
-			player.disabledAction = drawer.OnAction
-			drawer.OnAction = ()=>{}
+			player.disabledAction = this.drawer.OnAction
+			this.drawer.OnAction = ()=>{}
 			newFrame.disabled = true
 			buttonArea.disabled = true
 			playPause.textContent = "■"
 			lightbox.style.display = "none"
 		}
 		
-		animationPlayer.OnStop = (player)=>{
+		this.animationPlayer.OnStop = (player)=>{
 			playPause.textContent = "►"
-			drawer.OnAction = player.disabledAction
+			this.drawer.OnAction = player.disabledAction
 			newFrame.disabled = false
 			buttonArea.disabled = false
-			drawer.Redraw()
+			this.drawer.Redraw()
 			lightbox.style.display = ""
 		}
 		
 		playPause.onclick = event=>{
-			if (animationPlayer.IsPlaying())
-				animationPlayer.Stop()
+			if (this.animationPlayer.IsPlaying())
+				this.animationPlayer.Stop()
 			else
-				animationPlayer.Play(animateFrames.GetSelectedFrameIndex())
+				this.animationPlayer.Play(this.animateFrames.GetSelectedFrameIndex())
 		}
 		
-		animateControls.appendChild(newFrame)
-		animateControls.appendChild(frameSkip)
-		animateControls.appendChild(lightboxButton)
-		animateControls.appendChild(repeatAnimation)
-		animateControls.appendChild(exportAnimation)
-		animateControls.appendChild(sendAnimation)
-		animateControls.appendChild(playPause)
-		animateScroller.appendChild(frameContainer); //animateFrames)
-		animateSave.appendChild(saveInput)
-		animateSave.appendChild(saveAnimationButton)
-		animateSave.appendChild(loadAnimationButton)
-		animateSave.appendChild(listAnimations)
-		animateArea.appendChild(animateControls)
-		animateArea.appendChild(animateScroller)
-		animateArea.appendChild(animateSave)
+		animateControls.append(
+			newFrame,
+			frameSkip,
+			lightboxButton,
+			repeatAnimation,
+			exportAnimation,
+			sendAnimation,
+			playPause
+		)
+		animateScroller.append(
+			frameContainer
+		)
+		animateSave.append(
+			saveInput,
+			saveAnimationButton,
+			loadAnimationButton,
+			listAnimations
+		)
+		animateArea.append(
+			animateControls,
+			animateScroller,
+			animateSave
+		)
 		
-		$root.attachShadow({mode: 'open'})
-		let shadow = $root.shadowRoot
+		this.$root.attachShadow({mode: 'open'})
+		let shadow = this.$root.shadowRoot
 		
 		let style = document.createElement('link')
 		style.rel = 'stylesheet'
 		style.href = 'chatdraw.css'
 		shadow.append(style)
 		
-		shadow.append(drawArea)
+		shadow.append(this.drawArea)
 		if (allowAnimation)
 			shadow.append(animateArea)
 		
-		messagePane.append($root)
-		
 		//Make sure the interface is hidden, since we create it exposed.
-		animateFrames.SelectFrameIndex(0)
+		this.animateFrames.SelectFrameIndex(0)
 		widthButton.click()
 		freehandButton.click()
-		toggleInterface({target: toggleButton})
+		this.toggleInterface()
 		
-		let scale = Math.floor((document.body.getBoundingClientRect().right - 200) / 200)
-		$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
+		let scale = Math.floor((window.screen.width - 200) / 200)
+		this.$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
-		drawer.moveToolClearColor = rgbToFillStyle(getClearColor())
-	}
-	
-	let interfaceVisible = ()=>{
-		return !$root.dataset.hidden
-	}
-	
-	let toggleInterface = (event, allowResize)=>{
-		if ($root.dataset.hidden)
-			delete $root.dataset.hidden
-		else
-			$root.dataset.hidden = true
-	}
-	
-	let scaleInterface = (event)=>{
-		try {
-			let rect = $root.getBoundingClientRect()
-			
-			let scale = +$root.style.getPropertyValue('--scale') || 1
-			let originalWidth = rect.width / scale
-			
-			//Figure out the NEXT scale.
-			if (scale < maxScale && document.body.getBoundingClientRect().right - (originalWidth) * (scale + 1) - 200 > 5)
-				scale++
-			else
-				scale = 1
-			
-			$root.style.setProperty('--scale', scale)
-		} catch(ex) {
-			console.error("Error while scaling drawing interface: " + ex)
-		}
-	}
-	
-	//The function that is called when the given colorButton is selected. The
-	//canvas is also given so that colors may be swapped if necessary
-	let colorButtonSelect = (colorButton, canvas)=>{
-		let alreadySelected = colorButton.dataset.selected
-		let buttons = getColorButtons()
+		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
 		
-		//Reset everything
-		for (let i = 0; i < buttons.length; i++) {
-			delete buttons[i].dataset.selected
+		let interfaceVisible = ()=>{
+			return !this.$root.dataset.hidden
 		}
 		
-		//Set current button to this one.
-		colorButton.dataset.selected = "true"
-		
-		//If this button was already selected, perform the color swap.
-		if (alreadySelected) {
-			colorPicker.associatedButton = colorButton
-			colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
-			colorPicker.focus()
-			colorPicker.click()
-		} else {
-			drawer.color = colorButton.style.color
+		//Send the current drawing to the chat.
+		let sendDrawing = (animationLink)=>{
+			try {
+				let message = this.animateFrames.GetFrame().ToString()
+				if (animationLink)
+					message = "(" + animationLink + ")" + message
+				sendMessage("/drawsubmit " + message, false)
+			} catch(ex) {
+				console.error("Error while sending drawing: " + ex)
+			}
 		}
-	}
-	
-	//Send the current drawing to the chat.
-	let sendDrawing = (animationLink)=>{
-		try {
-			let message = animateFrames.GetFrame().ToString()
-			if (animationLink)
-				message = "(" + animationLink + ")" + message
-			sendMessage("/drawsubmit " + message, false)
-		} catch(ex) {
-			console.error("Error while sending drawing: " + ex)
-		}
-	}
-	
-	//Get the colors from the drawing area buttons
-	let getButtonColors = ()=>{
-		let colors = []
-		let buttons = getColorButtons()
-		
-		for (let i = 0; i < buttons.length; i++)
-			colors.push(fillStyleToRgb(buttons[i].style.color))
-		
-		return colors
 	}
 	
 	//Get the color that is best suited to be a clearing color (the color that
 	//is closest to either white or black, whichever comes first)
-	let getClearColor = ()=>{
-		let colors = getButtonColors()
+	getClearColor() {
+		let colors = this.getButtonColors()
 		let max = 0
 		let clearColor = 0
 		
-		for (let i = 0; i < colors.length; i++) {
+		for (let i=0; i<colors.length; i++) {
 			let full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2)
 			
 			if (full > max) {
@@ -679,26 +573,114 @@ let LocalChatDraw = (()=>{
 		return colors[clearColor]
 	}
 	
+	//The function that is called when the given colorButton is selected. The
+	//canvas is also given so that colors may be swapped if necessary
+	colorButtonSelect(colorButton, canvas) {
+		let alreadySelected = colorButton.dataset.selected
+		let buttons = this.getColorButtons()
+		
+		//Reset everything
+		for (let i = 0; i < buttons.length; i++) {
+			delete buttons[i].dataset.selected
+		}
+		
+		//Set current button to this one.
+		colorButton.dataset.selected = "true"
+		
+		//If this button was already selected, perform the color swap.
+		if (alreadySelected) {
+			this.colorPicker.associatedButton = colorButton
+			this.colorPicker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
+			this.colorPicker.focus()
+			this.colorPicker.click()
+		} else {
+			this.drawer.color = colorButton.style.color
+		}
+	}
+		
+	toggleInterface() {
+		if (this.$root.dataset.hidden)
+			delete this.$root.dataset.hidden
+		else
+			this.$root.dataset.hidden = true
+	}
+	
+	scaleInterface() {
+		try {
+			let rect = this.$root.getBoundingClientRect()
+			
+			let scale = +this.$root.style.getPropertyValue('--scale') || 1
+			let originalWidth = rect.width / scale
+			
+			//Figure out the NEXT scale.
+			if (scale < maxScale && window.screen.width - (originalWidth) * (scale + 1) - 200 > 5)
+				scale++
+			else
+				scale = 1
+			
+			this.$root.style.setProperty('--scale', scale)
+		} catch(ex) {
+			console.error("Error while scaling drawing interface: " + ex)
+		}
+	}
+	
+	//Once you have a compliant v2 object, this is the actual load function.
+	loadAnimation(storeObject) {
+		this.animationPlayer.FromStorageObject(storeObject)
+		this.animateFrames.ClearAllFrames()
+		
+		for (let i = 0; i < this.animationPlayer.frames.length; i++) {
+			this.animateFrames.InsertNewFrame(i - 1)
+			this.animateFrames.SetFrame(this.animationPlayer.frames[i], i)
+		}
+		
+		this.animateFrames.SelectFrameIndex(0)
+	}
+	
+	createToolButton(displayCharacters, toolNames) {
+		if (!Array.isArray(displayCharacters))
+			displayCharacters= [displayCharacters]
+		if (!Array.isArray(toolNames))
+			toolNames = [toolNames]
+		let nextTool = 0
+		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
+		tButton.className = "toolButton"
+		tButton.onclick = ev=>{
+			//First, deselect ALL other buttons
+			let toolButtons = this.drawArea.querySelectorAll("button.toolButton")
+			for (let i = 0; i < toolButtons.length; i++) {
+				if (toolButtons[i] != tButton)
+					delete toolButtons[i].dataset.selected
+			}
+			
+			//Now figure out if we're just selecting this button or cycling
+			//through the available tools
+			if (tButton.getAttribute("data-selected"))
+				nextTool = (nextTool + 1) % toolNames.length
+			
+			tButton.textContent = displayCharacters[nextTool]
+			tButton.dataset.selected = true
+			this.drawer.currentTool = toolNames[nextTool]
+		}
+		return tButton
+	}
+	
 	//Get the buttons representing the color switching
-	let getColorButtons = ()=>{
-		return drawArea.querySelectorAll("button-area button.colorChange")
+	getColorButtons() {
+		return this.drawArea.querySelectorAll("button-area button.colorChange")
 	}
 	
-	return {
-		"getColorButtons": getColorButtons,
-		"checkMessageForDrawing": checkMessageForDrawing,
-		"setupInterface": setupInterface,
-		"getButtonColors": getButtonColors,
-		"drawingWidth": chatDrawCanvasWidth,
-		"drawingHeight": chatDrawCanvasHeight,
-		"createToolButton": createToolButton,
-		"getDrawer": ()=>drawer,
-		"getAnimateFrames": ()=>animateFrames,
-		"getAnimationPlayer": ()=>animationPlayer,
-		"loadAnimation": loadAnimation
+	//Get the colors from the drawing area buttons
+	getButtonColors() {
+		let colors = []
+		let buttons = this.getColorButtons()
+		
+		for (let i=0; i<buttons.length; i++)
+			colors.push(fillStyleToRgb(buttons[i].style.color))
+		
+		return colors
 	}
-	
-})()
+}
 
 //The legacy fixed palette, if you need it.
 let legacyPalette = [
@@ -845,10 +827,10 @@ class AnimatorFrameSet {
 		frame.onclick = ev=>{
 			me._SelectFrame(frame)
 		}
-		frame.appendChild(canvas)
+		frame.append(canvas)
 		
 		let frameControls = document.createElement(this.FrameControlTag)
-		frame.appendChild(frameControls)
+		frame.append(frameControls)
 		
 		let frameTime = document.createElement("input")
 		frameTime.setAttribute(this.FrameTimeAttribute, "")
@@ -882,7 +864,7 @@ class AnimatorFrameSet {
 				UXUtilities.Toast("No chatdraw on clipboard")
 			}
 		}
-		frameControls.appendChild(framePaste)
+		frameControls.append(framePaste)
 		
 		let frameDelete = HTMLUtilities.CreateUnsubmittableButton("✖")
 		frameDelete.className = "alerthover"
