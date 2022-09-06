@@ -58,7 +58,7 @@ class ChatDraw {
 		this.canvas = this.CreateCanvas()
 		this.$container.append(this.canvas)
 		
-		this.drawer.Attach(this.canvas, [], 5)
+		this.drawer.Attach(this.canvas, 5, true)
 		this.drawer.OnUndoStateChange = ()=>{
 			this.$undo.disabled = !this.drawer.CanUndo()
 			this.$redo.disabled = !this.drawer.CanRedo()
@@ -99,24 +99,27 @@ class ChatDraw {
 		this.$undo.onclick = ev=>{ this.drawer.Undo() }
 		this.$redo.onclick = ev=>{ this.drawer.Redo() }
 		this.drawer.DoUndoStateChange()
+		
 		this.color_buttons = []
+		this.palette = []
+		this.current_color = -1
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
-			let colorButton = HTMLUtilities.CreateUnsubmittableButton()
+			let btn = HTMLUtilities.CreateUnsubmittableButton()
 			
-			colorButton.textContent = "■"
-			colorButton.className = 'colorChange'
-			colorButton.onclick = ev=>{
-				this.colorButtonSelect(colorButton)
+			btn.textContent = "■"
+			btn.className = 'colorChange'
+			btn.onclick = ev=>{
+				this.colorButtonSelect(ev.target.dataset.index)
 			}
 			
-			this.color_buttons.push(colorButton)
-			
-			if (i == 1)
-				colorButton.click()
+			btn.dataset.index = i
+			this.color_buttons.push(btn)
+			this.palette.push(BaseColors[i])
 		}
 		this.$color_p.replaceWith(...this.color_buttons)
+		this.colorButtonSelect(1)
 		
 		this.$tool1.replaceWith(moveButton)
 		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
@@ -133,7 +136,6 @@ class ChatDraw {
 		let scale = Math.floor((window.screen.width - 200) / 200)
 		this.$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 		
-		this.setButtonColors(BaseColors)
 		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
 	}
 	
@@ -171,7 +173,7 @@ class ChatDraw {
 	//Get the color that is best suited to be a clearing color (the color that
 	//is closest to either white or black, whichever comes first)
 	getClearColor() {
-		let colors = this.getButtonColors()
+		let colors = this.palette
 		let max = 0
 		let clearColor = 0
 		
@@ -187,28 +189,21 @@ class ChatDraw {
 		return colors[clearColor]
 	}
 	
-	//The function that is called when the given colorButton is selected. The
-	colorButtonSelect(colorButton) {
-		let alreadySelected = colorButton.dataset.selected
-		let buttons = this.color_buttons
-		
-		//Reset everything
-		for (let i = 0; i < buttons.length; i++) {
-			delete buttons[i].dataset.selected
+	colorButtonSelect(index) {
+		for (let i=0; i<this.palette.length; i++) {
+			let btn = this.color_buttons[i]
+			if (i==index) {
+				if (btn.hasAttribute('aria-selected')) {
+					this.$color_picker.associatedButton = btn
+					this.$color_picker.value = this.palette[i].ToHexString()
+					this.$color_picker.click()
+				} else {
+					btn.setAttribute('aria-selected', true)
+				}
+			} else
+				btn.removeAttribute('aria-selected')
 		}
-		
-		//Set current button to this one.
-		colorButton.dataset.selected = true
-		
-		//If this button was already selected, perform the color swap.
-		if (alreadySelected) {
-			// um   bad?
-			this.$color_picker.associatedButton = colorButton
-			this.$color_picker.value = rgbToHex(fillStyleToRgb(colorButton.style.color))
-			this.$color_picker.click()
-		} else {
-			this.drawer.color = colorButton.style.color
-		}
+		this.drawer.color = this.palette[index].ToHexString()
 	}
 		
 	toggleInterface() {
@@ -264,19 +259,6 @@ class ChatDraw {
 			this.drawer.currentTool = toolNames[nextTool]
 		}
 		return tButton
-	}
-	
-	//Get the colors from the drawing area buttons
-	getButtonColors() {
-		let colors = []
-		let buttons = this.color_buttons
-		
-		for (let i=0; i<buttons.length; i++)
-			colors.push(fillStyleToRgb(buttons[i].style.color))
-		
-		console.log('btn colors',buttons, colors)
-		
-		return colors
 	}
 	
 	CreateCanvas() {
@@ -368,7 +350,7 @@ button-area button:disabled {
 	background: #2929291A;
 }
 
-button-area button[data-selected] {
+button-area button[aria-selected] {
 	color: #E9E9E6;
 	background: #666;
 }
@@ -385,22 +367,6 @@ let fillStyleToRgb=(fillStyle)=>{
 	let regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
 	let result = regex.exec(fillStyle)
 	return result ? [+result[1], +result[2], +result[3]] : null
-}
-
-//Convert a hex color into RGB values
-let hexToRGB=(hex)=>{
-	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-	let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
-	hex = hex.replace(shorthandRegex, (m, r, g, b)=>{
-		return r + r + g + g + b + b
-	})
-	
-	let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-	return result ? [
-		parseInt(result[1], 16),
-		parseInt(result[2], 16),
-		parseInt(result[3], 16)
-	] : null
 }
 
 let rgbToHex=(channels)=>{

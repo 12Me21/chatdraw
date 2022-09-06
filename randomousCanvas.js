@@ -27,11 +27,11 @@ class CursorActionData {
 }
 
 const CursorActions = {
-	Start: 1, End: 2, Drag: 4, Zoom: 8, Pan: 16, Interrupt: 32
+	Start: 1, End: 2, Drag: 4, Zoom: 8, Pan: 16, Interrupt: 32,
 }
 
 const CursorModifiers = {
-	Ctrl: 1, Alt: 2
+	Ctrl: 1, Alt: 2,
 }
 
 // --- CanvasPerformer ---
@@ -252,16 +252,6 @@ class CanvasPerformer {
 		
 		if (e && this.ShouldCapture(cursorData)) {
 			e.preventDefault()
-			//e.preventDefault()
-			//e.stopPropagation()
-			//console.log("STOP PROP: " + cursorData.Action)
-			//canvas.focus()
-			//if (cursorData.action & CursorActions.End) 
-			//{
-			//   document.body.focus()
-			//   //canvas.parentNode.focus()
-			//   console.log("FUCUSING")
-			//}
 		}
 		
 		if (this.OnAction) this.OnAction(cursorData, context)
@@ -296,7 +286,6 @@ class CanvasDrawer extends CanvasPerformer {
 	constructor() {
 		super()
 		
-		this.buffers = []
 		this.frameActions = []
 		this.undoBuffer = false
 		this.tools = {
@@ -410,7 +399,7 @@ class CanvasDrawer extends CanvasPerformer {
 			//the tool and the reportInterval are valid, there even WAS a lastAction
 			//which had Drag but not Start/End, and it's far enough away from the
 			//last stationary report.
-			else if (this.CheckToolValidity("stationaryReportInterval") && this.CheckToolValidity("tool") &&  this.lastAction && (this.lastAction.action & CursorActions.Drag) && !(this.lastAction.action & (CursorActions.End)) && (frameCount % this.tools[this.currentTool].stationaryReportInterval) === 0) {
+			else if (this.CheckToolValidity("stationaryReportInterval") && this.CheckToolValidity("tool") && this.lastAction && (this.lastAction.action & CursorActions.Drag) && !(this.lastAction.action & (CursorActions.End)) && (frameCount % this.tools[this.currentTool].stationaryReportInterval) === 0) {
 				this.PerformDrawAction(this.lastAction, this.GetCurrentCanvas().getContext("2d"))
 			}
 			
@@ -418,26 +407,8 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 	}
 	
-	Buffered() {
-		return this.buffers.length > 0
-	}
-	
-	//Convert layer ID (which can be anything) to actual index into layer buffer.
-	//Only works if there is actually a buffer.
-	LayerIDToBufferIndex(id) {
-		for (let i = 0; i < this.buffers.length; i++)
-			if (this.buffers[i].id === id)
-				return i
-		
-		return -1
-	}
-	
 	CurrentLayerIndex() {
 		return this.LayerIDToBufferIndex(this.currentLayer)
-	}
-	
-	GetLayerByID(id) {
-		return this.buffers[this.LayerIDToBufferIndex(id)]
 	}
 	
 	//Only works if it's buffered. Otherwise, you'll actually get an error.
@@ -447,19 +418,12 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	//Get the canvas that the user should currently be drawing on. 
 	GetCurrentCanvas() {
-		if (this.Buffered())
-			return this.GetCurrentLayer().canvas
-		else
-			return this._canvas
+		return this._canvas
 	}
 	
 	ClearLayer(layer) {
 		this.UpdateUndoBuffer()
-		if (layer !== undefined && this.Buffered())
-			CanvasUtilities.Clear(this.GetLayerByID(layer).canvas, false)
-		else
-			CanvasUtilities.Clear(this.GetCurrentCanvas(), false)
-		this.Redraw()
+		CanvasUtilities.Clear(this.GetCurrentCanvas(), false)
 	}
 	
 	CheckToolValidity(field) { 
@@ -515,7 +479,6 @@ class CanvasDrawer extends CanvasPerformer {
 		//Now we simply put our current drawing into the buffer and apply the bufferr's state
 		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
 		CanvasUtilities.CopyInto(this.GetCurrentCanvas().getContext("2d"), nextState.canvas)
-		this.Redraw()
 		this.DoLayerChange()
 		this.DoUndoStateChange()
 	}
@@ -545,64 +508,6 @@ class CanvasDrawer extends CanvasPerformer {
 		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
 		this.undoBuffer.Add(currentState)
 		this.DoUndoStateChange()
-	}
-	
-	//Draw all layers and whatever into the given canvas. Note that this function
-	//simply doesn't work if the drawer doesn't support layers.
-	DrawIntoCanvas(bounding, canvas) {
-		//We can't DO anything if there are no buffers; redrawing the overlay would
-		//make us lose the drawing itself!
-		if (!this.Buffered() || bounding === false) return
-		
-		let context = canvas.getContext("2d")
-		let oldComposition = context.globalCompositeOperation
-		let oldAlpha = context.globalAlpha
-		context.globalCompositeOperation = "source-over"
-		if (!bounding) bounding = [0,0,canvas.width,canvas.height]
-		bounding[0] = MathUtilities.MinMax(Math.floor(bounding[0]), 0, canvas.width - 1)
-		bounding[1] = MathUtilities.MinMax(Math.floor(bounding[1]), 0, canvas.height - 1)
-		//bounding[2] = MathUtilities.MinMax(Math.ceil(bounding[2]), 0, canvas.width - 1)
-		//bounding[3] = MathUtilities.MinMax(Math.ceil(bounding[3]), 0, canvas.height - 1)
-		bounding[2] = Math.ceil(bounding[2])
-		bounding[3] = Math.ceil(bounding[3])
-		if (bounding[0] + bounding[2] > canvas.width)
-			bounding[2] = canvas.width - bounding[0]
-		if (bounding[1] + bounding[3] > canvas.height)
-			bounding[3] = canvas.height - bounding[1]
-		//alert("new version")
-		//alert("new version")
-		//console.debug(bounding)
-		//This stuff may be unnecessary, but apparently some canvases don't like
-		//weird or undoable crops
-		/*if (bounding[0] < 0)
-		  {
-		  bounding[2] += bounding[0]
-		  bounding[0] = 0
-		  }
-		  if (bounding[0] + bounding[2] >= this._canvas.width) 
-		  bounding[2] = */
-		//context.clearRect(bounding[0] + offsetX, bounding[1] + offsetY, bounding[2] * zoom, bounding[3] * zoom)
-		context.clearRect(bounding[0], bounding[1], bounding[2], bounding[3])
-		if (this.overlay.active) this.buffers.splice(this.CurrentLayerIndex() + 1, 0, this.overlay)
-		for (let i = 0; i < this.buffers.length; i++) {
-			context.globalAlpha = this.buffers[i].opacity
-			//context.drawImage(this.buffers[i].canvas, 
-			//   bounding[0], bounding[1], bounding[2], bounding[3],
-			//   bounding[0] + offsetX, bounding[1] + offsetY, bounding[2] * zoom, bounding[3] * zoom)
-			//CanvasUtilities.OptimizedDrawImage(context, this.buffers[i].canvas, bounding[0], bounding[1])
-			//This is... optimized??? IDK
-			context.drawImage(
-				this.buffers[i].canvas, 
-				bounding[0], bounding[1], bounding[2], bounding[3],
-				bounding[0], bounding[1], bounding[2], bounding[3])
-		}
-		if (this.overlay.active) this.buffers.splice(this.CurrentLayerIndex() + 1, 1)
-		context.globalAlpha = oldAlpha
-		context.globalCompositeOperation = oldComposition
-	}
-	
-	Redraw(bounding) {
-		this.DrawIntoCanvas(bounding, this._canvas)
 	}
 	
 	PerformDrawAction(data, context) {
@@ -638,8 +543,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//A special case: The last stroke that was valid was interrupted, so we need
 		//to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && (data.action & this.constants.endInterrupt) ===
-		    this.constants.endInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
+		if (!this.ignoreCurrentStroke && (data.action & this.constants.endInterrupt) === this.constants.endInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
@@ -658,11 +562,6 @@ class CanvasDrawer extends CanvasPerformer {
 				overlayContext.clearRect(0, 0, this.overlay.canvas.width, this.overlay.canvas.height)
 				this.overlay.active = (overlay(data, overlayContext, this) !== false)
 			}
-			
-			if (this.overlay.active)
-				this.Redraw()
-			else
-				this.Redraw(bounding)
 		}
 		
 		if (data.action & CursorActions.End) {
@@ -687,7 +586,7 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
 	//overlays will be the same size as mainCanvas.
-	Attach(mainCanvas, layers, undoCount, useToolOverlay) {
+	Attach(mainCanvas, undoCount, useToolOverlay) {
 		let i
 		
 		if (undoCount === undefined)
@@ -699,11 +598,6 @@ class CanvasDrawer extends CanvasPerformer {
 			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas), -1)
 		else
 			this.overlay = new CanvasDrawerLayer(false, -1)
-		
-		this.buffers = []
-		
-		for (i = 0; i < layers.length; i++)
-			this.buffers.push(new CanvasDrawerLayer(layers[i], i))
 		
 		if (undoCount)
 			this.ResetUndoBuffer(undoCount, mainCanvas)
@@ -718,7 +612,6 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	Detach() {
 		this.undoBuffer = false
-		this.buffers = false
 		this.overlay = false
 		super.Detach()
 	}
@@ -735,18 +628,11 @@ class CanvasDrawer extends CanvasPerformer {
 			}
 		}
 		
-		if (this.Buffered()) {
-			object.buffered = true
-			for (let i = 0; i < this.buffers.length; i++) {
-				layers.push(layerToObject(this.buffers[i]))
-			}
-		} else {
-			object.buffered = false
-			layers.push({
-				canvas:CanvasUtilities.ToString(this._canvas),
-				opacity:1.0
-			})
-		}
+		object.buffered = false
+		layers.push({
+			canvas:CanvasUtilities.ToString(this._canvas),
+			opacity:1.0
+		})
 		
 		object.layers = layers
 		
@@ -759,7 +645,6 @@ class CanvasDrawer extends CanvasPerformer {
 		//Version 1 stuff. May be used in other versions as well.
 		let version1LoadComplete = ()=>{
 			this.ResetUndoBuffer()
-			this.Redraw();     
 			if (callback)
 				callback(this, object)
 		}
