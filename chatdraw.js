@@ -39,14 +39,18 @@ return holder`
 class ChatDraw extends HTMLElement {
 	constructor() {
 		super()
-		ChatDraw.template(this)
+		new.target.template(this)
 		this.attachShadow({mode: 'open'})
 		this.shadowRoot.append(this.$root)
 		
 		this.width = 200
 		this.height = 100
 		
+		this.canvas = this.CreateCanvas()
+		this.$container.append(this.canvas)
+		
 		this.drawer = new CanvasDrawer()
+		this.drawer.Attach(this.canvas, 5, true)
 		
 		this.maxLineWidth = 7
 		let defaultLineWidth = 2
@@ -58,10 +62,7 @@ class ChatDraw extends HTMLElement {
 		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
 		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
 		let moveButton = this.createToolButton(["↔️"], ["mover"])
-		this.canvas = this.CreateCanvas()
-		this.$container.append(this.canvas)
 		
-		this.drawer.Attach(this.canvas, 5, true)
 		this.drawer.OnUndoStateChange = ()=>{
 			this.$undo.disabled = !this.drawer.CanUndo()
 			this.$redo.disabled = !this.drawer.CanRedo()
@@ -69,7 +70,6 @@ class ChatDraw extends HTMLElement {
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
-		//Set up the color picker
 		this.$color_picker.onchange = event=>{
 			let e = event.currentTarget
 			let index = +e.dataset.index
@@ -78,14 +78,14 @@ class ChatDraw extends HTMLElement {
 			
 			CanvasUtilities.SwapColor(this.canvas.getContext("2d"), oldColor, newColor, 0)
 			this.setButtonColor(index, newColor)
-			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
+			this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		this.$clear.onclick = ev=>{
 			if (this.drawer.StrokeCount())
 				this.drawer.UpdateUndoBuffer()
-			CanvasUtilities.Clear(this.canvas, rgbToFillStyle(this.getClearColor()))
+			CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
 			this.drawer.Redraw()
 		}
 		this.$thickness.textContent = defaultLineWidth - 1
@@ -125,26 +125,12 @@ class ChatDraw extends HTMLElement {
 		
 		this.$thickness.click()
 		freehandButton.click()
-		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
+		this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
 	}
 	
 	connectedCallback() {
 		let scale = Math.floor((window.screen.width - 200) / 200)
 		this.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
-	}
-	
-	setButtonColors(palette) {
-		let buttons = this.color_buttons
-		
-		for (let i=0; i<palette.length; i++) {
-			if (i<buttons.length) {
-				buttons[i].style.color = palette[i].ToRGBString()
-				if (buttons[i].hasAttribute("data-selected"))
-					this.drawer.color = buttons[i].style.color
-			}
-		}
-		
-		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
 	}
 	
 	//Send the current drawing to the chat.
@@ -227,40 +213,36 @@ class ChatDraw extends HTMLElement {
 		}
 	}
 	
-	createToolButton(displayCharacters, toolNames) {
-		if (!Array.isArray(displayCharacters))
-			displayCharacters = [displayCharacters]
-		if (!Array.isArray(toolNames))
-			toolNames = [toolNames]
+	createToolButton(labels, toolNames) {
 		let nextTool = 0
-		let tButton = HTMLUtilities.CreateUnsubmittableButton(displayCharacters[nextTool])
-		this.tool_buttons.push(tButton)
-		tButton.className = "toolButton"
-		tButton.onclick = ev=>{
+		let btn = HTMLUtilities.CreateUnsubmittableButton(labels[nextTool])
+		this.tool_buttons.push(btn)
+		btn.className = "toolButton"
+		btn.onclick = ev=>{
 			//First, deselect ALL other buttons
 			let toolButtons = this.tool_buttons
-			for (let i = 0; i < toolButtons.length; i++) {
-				if (toolButtons[i] != tButton)
-					delete toolButtons[i].dataset.selected
+			for (let i=0; i<toolButtons.length; i++) {
+				if (toolButtons[i]!==btn) {
+					btn.removeAttribute("aria-selected")
+				}
 			}
-			
 			//Now figure out if we're just selecting this button or cycling
 			//through the available tools
-			if (tButton.getAttribute("data-selected"))
+			if (btn.hasAttribute("aria-selected"))
 				nextTool = (nextTool + 1) % toolNames.length
 			
-			tButton.textContent = displayCharacters[nextTool]
-			tButton.dataset.selected = true
+			btn.textContent = labels[nextTool]
+			btn.setAttribute('aria-selected', true)
 			this.drawer.currentTool = toolNames[nextTool]
 		}
-		return tButton
+		return btn
 	}
 	
 	CreateCanvas() {
 		let canvas = document.createElement('canvas')
 		canvas.width = this.width
 		canvas.height = this.height
-		canvas.getContext("2d").imageSmoothingEnabled = false
+		canvas.getContext('2d').imageSmoothingEnabled = false
 		return canvas
 	}
 }
@@ -352,21 +334,6 @@ button-area button[aria-selected] {
 </style>
 `
 //#A7E258
-//Convert a 3 channel palette color into a fill style
-let rgbToFillStyle=(channels)=>{
-	return "rgb(" + channels[0] + "," + channels[1] + "," + channels[2] + ")"
-}
-
-//Convert back from the rgba fill style to an array
-let fillStyleToRgb=(fillStyle)=>{
-	let regex = /^\s*rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\)\s*$/i
-	let result = regex.exec(fillStyle)
-	return result ? [+result[1], +result[2], +result[3]] : null
-}
-
-let rgbToHex=(channels)=>{
-	return "#" + ((1 << 24) + (channels[0] << 16) + (channels[1] << 8) + channels[2]).toString(16).slice(1)
-}
 
 let BaseColors = [
 	new Color(255,255,255),
