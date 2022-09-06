@@ -362,3 +362,5 @@ let BaseColors = [
 customElements.define('chat-draw', ChatDraw)
 
 // todo: why don't we just use radio buttons for tools and colors?
+
+// erode/dilate tool would be neat

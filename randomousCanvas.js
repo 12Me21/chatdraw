@@ -859,36 +859,30 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	static FillTool(data, context, drawer) {
 		if (data.action & CursorActions.End) {
-			if (drawer.floodThreshold === undefined)
-				drawer.floodThreshold = 0
-			
 			let sx = Math.floor(data.x)
 			let sy = Math.floor(data.y)
 			console.debug("Flood filling starting from " + sx + ", " + sy)
 			
-			let canvasCopy = drawer._canvas
-			let copyContext = canvasCopy.getContext("2d")
-			let copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data
-			
-			let originalColor = CanvasUtilities.GetColor(copyContext, sx, sy)
+			let originalColor = CanvasUtilities.GetColor(context, sx, sy)
 			let color = Color.from_input(data.color)
 			let ocolorArray = originalColor.ToArray(true)
 			let colorArray = color.ToArray(true)
-			if (color.MaxDifference(originalColor) <= drawer.floodThreshold)
+			
+			check: {
+				for (let j=0; j<4; j++)
+					if (colorArray[j] != ocolorArray[j])
+						break check
 				return
+			}
 			
 			CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
 				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-				let currentColor = new Color(copyData[i], copyData[i+1], copyData[i+2], copyData[i+3]/255)
-				if (originalColor.MaxDifference(currentColor) <= drawer.floodThreshold) {
-					for (let j = 0; j < 4; j++) {
-						d[i + j] = colorArray[j]
-						copyData[i + j] = colorArray[j]
-					}
-					return true
-				} else {
-					return false
-				}
+				for (let j=0; j<4; j++)
+					if (d[i+j] != ocolorArray[j])
+						return false
+				for (let j = 0; j < 4; j++)
+					d[i+j] = colorArray[j]
+				return true
 			})
 		}
 	}

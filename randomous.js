@@ -279,29 +279,6 @@ let CanvasUtilities = {
 		}
 		context.putImageData(iData, 0, 0)
 	},
-	FloodFill(context, sx, sy, color, threshold) {
-		sx = Math.floor(sx)
-		sy = Math.floor(sy)
-		console.debug("Flood filling starting from " + sx + ", " + sy)
-		threshold = threshold || 0
-		let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-		let ocolorArray = originalColor.ToArray(true)
-		let colorArray = color.ToArray(true)
-		if (color.MaxDifference(originalColor) <= threshold)
-			return
-		let floodFunction = (c, x, y, d)=>{
-			let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-			let currentColor = new Color(d[i], d[i+1], d[i+2], d[i+3]/255)
-			if (originalColor.MaxDifference(currentColor) <= threshold) {
-				for (let j = 0; j < 4; j++)
-					d[i + j] = colorArray[j]
-				return true
-			} else {
-				return false
-			}
-		}
-		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction)
-	},
 	ToString(canvas) {
 		return canvas.toDataURL("image/png")
 	},
