@@ -338,58 +338,58 @@ let MathUtilities = {
 // Basically all undo buffers work the same, so here's a generic object you can use for all your undo needs
 
 class UndoBuffer {
-	constructor(maxSize, maxVirtualIndex) {
-		this.maxSize = maxSize || 5
-		this.maxVirtualIndex = maxVirtualIndex || this.maxSize
+	constructor(maxSize=5) {
+		this.maxSize = maxSize
+		this.OnUndoStateChange = null
 		this.Clear()
 	}
 	
 	Clear() {
-		this.undoBuffer = []
-		this.redoBuffer = []
-		this.virtualIndex = 0
-	}
-	
-	_ShiftVirtualIndex(amount) {
-		this.virtualIndex += amount
-		while(this.virtualIndex < 0)
-			this.virtualIndex += this.maxVirtualIndex
-		this.virtualIndex = this.virtualIndex % this.maxVirtualIndex
+		this.buffer = [[],[]] // undo, redo
+		this.DoUndoStateChange()
 	}
 	
 	UndoCount() {
-		return this.undoBuffer.length
+		return this.buffer[0].length
 	}
 	RedoCount() {
-		return this.redoBuffer.length
+		return this.buffer[1].length
 	}
 	
-	Add(currentState) {
-		this.undoBuffer.push(currentState)
-		this.redoBuffer = []
-		this._ShiftVirtualIndex(1)
-		while (this.undoBuffer.length > this.maxSize)
-			this.undoBuffer.shift()
-		return this.UndoCount()
+	Add(current) {
+		let undo = this.buffer[0]
+		this.buffer[0].push(current)
+		this.buffer[1] = []
+		while (undo.length > this.maxSize)
+			undo.shift()
+		this.DoUndoStateChange()
+		return undo.length
 	}
 	
-	Undo(currentState) {
-		if (this.UndoCount() <= 0)
-			return
-		this.redoBuffer.push(currentState)
-		this._ShiftVirtualIndex(-1)
-		return this.undoBuffer.pop()
+	_do(current, redo) {
+		if (!this.buffer[redo?1:0].length)
+			return null
+		this.buffer[redo?0:1].push(current)
+		let data = this.buffer[redo?1:0].pop()
+		this.DoUndoStateChange()
+		return data
 	}
 	
-	Redo(currentState) {
-		if (this.RedoCount() <= 0)
-			return
-		this.undoBuffer.push(currentState)
-		this._ShiftVirtualIndex(1)
-		return this.redoBuffer.pop()
+	Undo(current) {
+		return this._do(current, false)
+	}
+	
+	Redo(current) {
+		return this._do(current, true)
 	}
 	
 	ClearRedos() {
-		this.redoBuffer = []
+		this.buffer[1] = []
+		this.DoUndoStateChange()
+	}
+	
+	DoUndoStateChange() {
+		if (this.OnUndoStateChange)
+			this.OnUndoStateChange()
 	}
 }

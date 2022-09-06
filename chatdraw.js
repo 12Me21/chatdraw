@@ -56,11 +56,11 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer = new CanvasDrawer()
 		this.drawer.Attach(this.canvas, 5, true)
-		this.drawer.OnUndoStateChange = ()=>{
+		this.drawer.undoBuffer.OnUndoStateChange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
 		}
-		this.drawer.DoUndoStateChange()
+		this.drawer.undoBuffer.DoUndoStateChange()
 		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false

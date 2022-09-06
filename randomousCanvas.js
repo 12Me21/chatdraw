@@ -550,11 +550,6 @@ class CanvasDrawer extends CanvasPerformer {
 		return this.SupportsUndo() && this.undoBuffer.RedoCount() > 0
 	}
 	
-	DoUndoStateChange() {
-		if (this.OnUndoStateChange)
-			this.OnUndoStateChange()
-	}
-	
 	get_state_data() {
 		let data = CanvasUtilities.GetAllData(this.context)
 		return {data}
@@ -564,10 +559,8 @@ class CanvasDrawer extends CanvasPerformer {
 	_PerformUndoRedoSwap(which) {
 		let current = this.get_state_data()
 		let next = this.undoBuffer[which](current)
-		if (next && next.data) {
+		if (next && next.data)
 			this.context.putImageData(next.data, 0, 0)
-		}
-		this.DoUndoStateChange()
 	}
 	
 	Undo() {
@@ -584,7 +577,6 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	ClearUndoBuffer() {
 		this.undoBuffer.Clear()
-		this.DoUndoStateChange()
 	}
 	
 	UpdateUndoBuffer(extra=null) {
@@ -592,7 +584,6 @@ class CanvasDrawer extends CanvasPerformer {
 			return
 		console.trace("Updating undo buffer")
 		this.undoBuffer.Add(this.get_state_data())
-		this.DoUndoStateChange()
 	}
 	
 	PerformDrawAction(data, context) {
@@ -627,7 +618,6 @@ class CanvasDrawer extends CanvasPerformer {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
-			this.DoUndoStateChange()
 		}
 		
 		//Now actually perform the action.
