@@ -1,31 +1,8 @@
 <!doctype html><html lang=en-QS><meta charset=utf-8><meta name=viewport content="width=device-width, height=device-height, initial-scale=1" id=$meta_viewport>
 <title>chatdraw test</title>
 
-<style>
-	* {
-		margin: 0;
-	}
-	#sendpane {
-		display: block;
-		width: 100%;
-		height: 100vh;
-	}
-</style>
-
 <script src=randomous.js></script>
 <script src=randomousCanvas.js></script>
 <script src=chatdraw.js></script>
 
-<div id=sendpane>
-	<chat-draw></chat-draw>
-</div>
-
-<script>
-	function make_cursor(size=1) {
-		document.querySelector('#chatdraw canvas').style.cursor = `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="${size/2+0.5}" y="${size/2+0.5}" width="1" height="1"/><rect x="0.5" y="0.5" width="${size+1}" height="${size+1}" fill="none" stroke="red"/></svg>') ${size/2+0.5} ${size/2+0.5}, none`
-	}
-	
-	//let x = new ChatDraw()
-	//sendpane.append(x.$root)
-</script>
-
+<chat-draw></chat-draw>
