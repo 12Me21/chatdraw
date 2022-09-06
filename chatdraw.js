@@ -32,6 +32,10 @@ return holder`
 	return c
 }
 
+/*let endian=()=>{
+	return new Uint8Array(new Uint32Array([1]).buffer)[0]
+}*/
+
 //Carlos Sanchez - 2016
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
@@ -43,7 +47,7 @@ class ChatDraw extends HTMLElement {
 		this.attachShadow({mode: 'open'})
 		this.shadowRoot.append(this.$root)
 		
-		this.width = 200
+		this.width = 100
 		this.height = 100
 		
 		this.canvas = this.CreateCanvas()
@@ -75,12 +79,35 @@ class ChatDraw extends HTMLElement {
 		this.$color_picker.onchange = event=>{
 			let e = event.currentTarget
 			let index = +e.dataset.index
-			let oldColor = this.palette[index]
+			
 			let newColor = Color.from_hex(e.value)
 			
-			this.SwapColor(oldColor, newColor)
-			this.setButtonColor(index, newColor)
+			this.set_color(index, newColor)
 			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
+		}
+		let selected_color
+		let selected_tool
+		this.$form.onchange = ev=>{
+			if (ev.target.name=='color') {
+				selected_color = ev.target
+				this.colorButtonSelect(+ev.target.dataset.index)
+			}
+			if (ev.target.name=='tool') {
+				selected_tool = ev.target
+				this.drawer.currentTool = ev.target.dataset.tool
+			}
+		}
+		this.$form.onclick = ev=>{
+			if (ev.target.name=='color') {
+				if (ev.target === selected_color) {
+					this.show_picker(+ev.target.dataset.index)
+				}
+			}
+			if (ev.target.name=='tool') {
+				if (ev.target === selected_tool) {
+					this.cycle_tool(ev.target)
+				}
+			}
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
@@ -104,34 +131,53 @@ class ChatDraw extends HTMLElement {
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
-			let btn = document.createElement('button')
+			let btn = document.createElement('input')
+			btn.type = 'radio'
+			btn.name = 'color'
 			
 			btn.textContent = "■"
 			btn.className = 'colorChange'
-			btn.onclick = ev=>{
-				this.colorButtonSelect(ev.target.dataset.index)
-			}
 			
 			btn.dataset.index = i
 			this.color_buttons.push(btn)
 			this.palette.push(null)
-			this.setButtonColor(i, BaseColors[i])
+			this.set_color(i, BaseColors[i])
 		}
-		this.$color_p.replaceWith(...this.color_buttons)
-		this.colorButtonSelect(1)
+		this.$colors.replaceWith(...this.color_buttons)
 		
 		this.$tool1.replaceWith(moveButton)
 		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
 		
+		this.color_buttons[1].click()
 		this.$thickness.click()
 		freehandButton.click()
 		this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 		CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 	}
 	
+	set_color(index, color) {
+		let oldColor = this.palette[index]
+		if (oldColor)
+			this.SwapColor(oldColor, newColor)
+		this.palette[index] = color
+		let btn = this.color_buttons[index]
+		btn.style.color = color.to_hex()
+		btn.value = color.to_hex()
+		if (btn.checked)
+			this.drawer.color = color.to_hex()
+	}
+	
+	show_picker(index) {
+		this.$color_picker.dataset.index = index
+		this.$color_picker.value = this.palette[index].to_hex()
+		this.$color_picker.click()
+	}
+	
 	SwapColor(original, newColor) {
 		let iData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
 		let data = iData.data
+		let q = new UInt32Array(data.buffer)
+		console.log(q)
 		
 		for (let i=0; i<data.length; i+=4) {
 			if (original.compare_data(data, i))
@@ -142,8 +188,10 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	connectedCallback() {
-		let scale = Math.floor((window.screen.width - 200) / 200)
+		let scale = Math.floor((window.screen.width - this.width) / this.width)
 		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
+		this.style.setProperty('--width', this.width)
+		this.style.setProperty('--height', this.height)
 	}
 	
 	//Send the current drawing to the chat.
@@ -182,28 +230,7 @@ class ChatDraw extends HTMLElement {
 		return colors[clearColor]
 	}
 	
-	setButtonColor(index, color) {
-		this.palette[index] = color
-		let btn = this.color_buttons[index]
-		btn.style.color = color.to_hex()
-		if (btn.hasAttribute('aria-selected'))
-			this.drawer.color = color.to_hex()
-	}
-	
 	colorButtonSelect(index) {
-		for (let i=0; i<this.palette.length; i++) {
-			let btn = this.color_buttons[i]
-			if (i==index) {
-				if (btn.hasAttribute('aria-selected')) {
-					this.$color_picker.dataset.index = i
-					this.$color_picker.value = this.palette[i].to_hex()
-					this.$color_picker.click()
-				} else {
-					btn.setAttribute('aria-selected', true)
-				}
-			} else
-				btn.removeAttribute('aria-selected')
-		}
 		this.drawer.color = this.palette[index].to_hex()
 	}
 	
@@ -215,7 +242,7 @@ class ChatDraw extends HTMLElement {
 			let originalWidth = rect.width / scale
 			
 			//Figure out the NEXT scale.
-			if (scale < maxScale && window.screen.width - (originalWidth) * (scale + 1) - 200 > 5)
+			if (scale < maxScale && window.screen.width - (originalWidth) * (scale + 1) - this.width > 5)
 				scale++
 			else
 				scale = 1
@@ -228,29 +255,27 @@ class ChatDraw extends HTMLElement {
 	
 	createToolButton(labels, toolNames) {
 		let nextTool = 0
-		let btn = document.createElement('button')
+		let btn = document.createElement('input')
+		btn.type = 'radio'
+		btn.name = 'tool'
+		
+		btn.dataset.tools = toolNames.join(",")
+		btn.dataset.labels = labels.join(",")
+		btn.dataset.tool = toolNames[nextTool]
 		btn.textContent = labels[nextTool]
 		
-		this.tool_buttons.push(btn)
-		btn.className = "toolButton"
-		btn.onclick = ev=>{
-			//First, deselect ALL other buttons
-			let toolButtons = this.tool_buttons
-			for (let i=0; i<toolButtons.length; i++) {
-				if (toolButtons[i]!==btn) {
-					toolButtons[i].removeAttribute("aria-selected")
-				}
-			}
-			//Now figure out if we're just selecting this button or cycling
-			//through the available tools
-			if (btn.hasAttribute("aria-selected"))
-				nextTool = (nextTool + 1) % toolNames.length
-			
-			btn.textContent = labels[nextTool]
-			btn.setAttribute('aria-selected', true)
-			this.drawer.currentTool = toolNames[nextTool]
-		}
 		return btn
+	}
+	
+	cycle_tool(btn) {
+		let tools = btn.dataset.tools.split(",")
+		let labels = btn.dataset.labels.split(",")
+		let tool = btn.dataset.tool
+		let index = tools.indexOf(tool)
+		index = (index+1) % tools.length
+		btn.dataset.tool = tools[index]
+		btn.textContent = labels[index]
+		this.drawer.currentTool = btn.dataset.tool
 	}
 	
 	CreateCanvas() {
@@ -264,20 +289,22 @@ class ChatDraw extends HTMLElement {
 
 ChatDraw.template = HTML`
 <canvas-container $=container></canvas-container>
-<button-area>
-	<button $=zoom>◲</button>
-	<button $=undo>↶</button>
-	<button $=redo>↷</button>
-	<br $=color_p>
-	<button $=send data-button="sendDrawing">➥</button>
-</button-area>
-<button-area>
-	<br $=tool1>
-	<button $=clear>❌️</button>
-	<button $=thickness>0</button>
-	<br $=tool2>
-	<button $=toggle>✎</button>
-</button-area>
+<form $=form>
+	<fieldset>
+		<button type=button $=zoom>◲</button>
+		<button type=button $=undo>↶</button>
+		<button type=button $=redo>↷</button>
+		<br $=colors>
+		<button type=button $=send data-button="sendDrawing">➥</button>
+	</fieldset>
+	<fieldset>
+		<br $=tool1>
+		<button type=button $=clear>❌️</button>
+		<button type=button $=thickness>0</button>
+		<br $=tool2>
+		<button type=button $=toggle>✎</button>
+	</fieldset>
+</form>
 <input $=color_picker type=color hidden>
 
 <style>
@@ -295,8 +322,8 @@ canvas-container {
 	margin-bottom: 1px;
 	cursor: crosshair;
 	box-sizing: content-box;
-	width: calc(var(--scale) * 200px);
-	height: calc(var(--scale) * 100px);
+	width: calc(var(--scale) * var(--width) * 1px);
+	height: calc(var(--scale) * var(--height) * 1px);
 }
 
 canvas {
@@ -312,13 +339,20 @@ canvas {
 	image-rendering: pixelated;
 }
 
-button-area {
+form {
+	display: contents;
+}
+
+fieldset {
+	border: none;
+	margin: 0;
+	padding: 0;
 	display: flex;
 	justify-content: flex-end;
 	background: #E9E9E6;
 }
 
-button-area button {
+button, input {
 	flex: none;
 	appearance: none;
 	border: none;
@@ -333,16 +367,16 @@ button-area button {
 	cursor: pointer;
 }
 
-button-area button:hover {
+button:hover, input:hover {
 	background: #2929291A;
 }
 
-button-area button:disabled {
+button:disabled, input:disabled {
 	color: #666;
 	background: #2929291A;
 }
 
-button-area button[aria-selected] {
+button[aria-selected], input:checked {
 	color: #E9E9E6;
 	background: #666;
 }
