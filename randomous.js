@@ -48,26 +48,27 @@ let CanvasUtilities = {
 		let newCanvas = document.createElement('canvas')
 		newCanvas.width = width
 		newCanvas.height = height
+		let context = newCanvas.getContext('2d')
 		if (copyImage)
-			CanvasUtilities.CopyInto(newCanvas.getContext("2d"), canvas, -x, -y)
-		return newCanvas
+			CanvasUtilities.CopyInto(context, canvas, -x, -y)
+		return context
 	},
-	CopyInto(context, canvas, x, y) {
+	GetAllData(context) {
+		let {width, height} = context.canvas
+		return context.getImageData(0, 0, width, height)
+	},
+	CopyInto(context, source, x=0, y=0) {
 		//x and y are the offset locations to place the copy into on the receiving canvas
-		x = x || 0
-		y = y || 0
-		let oldComposition = context.globalCompositeOperation
-		context.globalCompositeOperation = "copy"
-		CanvasUtilities.OptimizedDrawImage(context, canvas, x, y)
-		context.globalCompositeOperation = oldComposition
+		context.save()
+		context.globalCompositeOperation = 'copy'
+		context.drawImage(source, x, y)
+		context.load()
 	},
-	OptimizedDrawImage(context, image, x, y, scaleX, scaleY) {
-		scaleX = scaleX || image.width
-		scaleY = scaleY || image.height
-		let oldImageSmoothing = context.imageSmoothingEnabled
+	OptimizedDrawImage(context, image, x, y, scaleX=image.width, scaleY=image.width) {
+		context.save()
 		context.imageSmoothingEnabled = false
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
-		context.imageSmoothingEnabled = oldImageSmoothing
+		context.load()
 	},
 	Clear(canvas, color) {
 		let context = canvas.getContext("2d")
@@ -261,6 +262,17 @@ let CanvasUtilities = {
 		}
 		context.putImageData(iData, 0, 0)
 	},
+	SwapColor(context, original, newColor) {
+		for (let undo of this.undoBuffer.staticBuffer) {
+			let iData = context.getImageData(0, 0, context.canvas.width, context.canvas.height)
+			let data = iData.data
+			for (let i=0; i<data.length; i+=4) {
+				if (original.compare_data(data, i))
+					newColor.write_data(data, i)
+			}
+			context.putImageData(iData, 0, 0)
+		}
+	}
 }
 
 // --- Math Utilities ---

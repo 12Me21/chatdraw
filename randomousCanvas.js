@@ -312,12 +312,12 @@ CanvasDrawerTool.tools = {
 		tool(data, context, drawer) {
 			if (data.Start) {
 				drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
-				drawer.moveToolOffset = [0,0]
+				drawer.moveToolOffset = [0, 0]
 				CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
 				return true; //just redraw everything. No point optimizing
 			} else if (data.End) {
-				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
-				drawer.moveToolLayer = false
+				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+				drawer.moveToolLayer = null
 				return true; //just redraw everything. No point optimizing.
 			} else {
 				drawer.moveToolOffset[0] += (data.x - data.oldX)
@@ -327,7 +327,7 @@ CanvasDrawerTool.tools = {
 		}
 		overlay(data, context, drawer) {
 			if (!data.End) {
-				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
 				return true
 			} else {
 				return false
@@ -335,7 +335,7 @@ CanvasDrawerTool.tools = {
 		}
 		interrupt(data, context, drawer) {
 			//Just put the layer back.
-			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer)
+			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas)
 			return true
 		}
 	},
@@ -412,30 +412,16 @@ CanvasDrawerTool.tools = {
 			}
 		}
 	},
-	dropper: class extends CanvasDrawerTool {
-		tool(data, context, drawer) {
-			if (data.End) {
-				let sx = Math.floor(data.x)
-				let sy = Math.floor(data.y)
-				let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
-				drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
-				let copyContext = canvasCopy.getContext('2d')
-				let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-				drawer.SetColor(pickupColor.to_hex())
-			}
-		}
-	},
 }
 CanvasDrawerTool.tools.slow.prototype.stationaryReportInterval = 1
 CanvasDrawerTool.tools.slow.prototype.frameLock = true
 CanvasDrawerTool.tools.spray.prototype.stationaryReportInterval = 1
 CanvasDrawerTool.tools.spray.prototype.frameLock = true
-CanvasDrawerTool.tools.dropper.prototype.updateUndoBuffer = false
 
 
 class CanvasDrawerLayer {
-	constructor(canvas) {
-		this.canvas = canvas
+	constructor(context) {
+		this.context = context
 		this.opacity = 1.0
 		this.id = 0
 	}
@@ -448,7 +434,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.frameActions = []
 		this.undoBuffer = null
 		this.tools = {}
-		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover']) {
+		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','mover']) {
 			this.tools[tool] = new CanvasDrawerTool.tools[tool]()
 		}
 		
@@ -543,6 +529,10 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 	}
 	
+	SwapColor(original, newColor) {
+		CanvasUtilities.SwapColor(this.context, original, newColor)
+	}
+	
 	tool_has(field) { 
 		let curr = this.tools[this.currentTool]
 		return curr && (!field || curr[field])
@@ -565,28 +555,18 @@ class CanvasDrawer extends CanvasPerformer {
 			this.OnUndoStateChange()
 	}
 	
-	DoColorChange() {
-		if (this.OnColorChange)
-			this.OnColorChange(this.color)
-	}
-	
-	SetColor(color) {
-		this.color= color
-		this.DoColorChange()
+	get_state_data() {
+		let data = CanvasUtilities.GetAllData(this.context)
+		return {data}
 	}
 	
 	//This is for both undos and redos
 	_PerformUndoRedoSwap(which) {
-		//Figure out which static canvas we're going to use to store our current state.
-		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
-		//Perform the actual action with a non-filled current state (just to get it in there)
-		let nextState = this.undoBuffer[which](currentState)
-		//The reason we don't fill in currentState until now is because we need the nextState data
-		currentState.id = nextState.id
-		this.currentLayer = nextState.id
-		//Now we simply put our current drawing into the buffer and apply the bufferr's state
-		CanvasUtilities.CopyInto(currentState.canvas.getContext('2d'), this._canvas)
-		CanvasUtilities.CopyInto(this.context, nextState.canvas)
+		let current = this.get_state_data()
+		let next = this.undoBuffer[which](current)
+		if (next && next.data) {
+			this.context.putImageData(next.data, 0, 0)
+		}
 		this.DoUndoStateChange()
 	}
 	
@@ -607,14 +587,11 @@ class CanvasDrawer extends CanvasPerformer {
 		this.DoUndoStateChange()
 	}
 	
-	UpdateUndoBuffer() {
+	UpdateUndoBuffer(extra=null) {
 		if (!this.SupportsUndo())
 			return
 		console.trace("Updating undo buffer")
-		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
-		currentState.id = this.currentLayer
-		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this._canvas)
-		this.undoBuffer.Add(currentState)
+		this.undoBuffer.Add(this.get_state_data())
 		this.DoUndoStateChange()
 	}
 	
@@ -631,7 +608,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let interruptHandler = this.tool_has("interrupt")
 			if (interruptHandler)
 				interruptHandler(data, this.context, this)
-			//CanvasUtilities.Clear(this.overlay.canvas)
+			//CanvasUtilities.Clear(this.overlay.context.canvas)
 			//UXUtilities.Toast("Disabling overlay")
 		}
 		
@@ -658,11 +635,11 @@ class CanvasDrawer extends CanvasPerformer {
 			let bounding = this.tools[this.currentTool].tool(data, this.context, this)
 			let overlay = this.tool_has('overlay')
 			
-			if (overlay && this.overlay.canvas) {
-				let overlayContext = this.overlay.canvas.getContext('2d')
+			if (overlay && this.overlay.context) {
+				let overlayContext = this.overlay.context
 				overlayContext.fillStyle = this.color
 				overlayContext.globalAlpha = this.opacity
-				overlayContext.clearRect(0, 0, this.overlay.canvas.width, this.overlay.canvas.height)
+				overlayContext.clearRect(0, 0, this.overlay.context.canvas.width, this.overlay.context.canvas.height)
 				this.overlay.active = (overlay(data, overlayContext, this) !== false)
 			}
 		}
@@ -676,27 +653,20 @@ class CanvasDrawer extends CanvasPerformer {
 		this.lastAction = data
 	}
 	
-	ResetUndoBuffer(size, canvasBlueprint=this._canvas) {
-		size = size || (this.undoBuffer.staticBuffer.length-1)
+	ResetUndoBuffer(size) {
 		this.undoBuffer = new UndoBuffer(size, size+1)
-		this.undoBuffer.staticBuffer = []
-		for (let i=0; i<size+1; i++) {
-			let layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint))
-			this.undoBuffer.staticBuffer.push(layer)
-		}
 	}
 	
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
 	//overlays will be the same size as mainCanvas.
 	Attach(mainCanvas, undoCount=5, useToolOverlay=true) {
-		let i
 		if (useToolOverlay)
 			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas))
 		else
 			this.overlay = new CanvasDrawerLayer(null)
 		
 		if (undoCount)
-			this.ResetUndoBuffer(undoCount, mainCanvas)
+			this.ResetUndoBuffer(undoCount)
 		else
 			this.undoBuffer = false
 		
@@ -713,8 +683,8 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	Detach() {
-		this.undoBuffer = false
-		this.overlay = false
+		this.undoBuffer = null
+		this.overlay = null
 		super.Detach()
 	}
 }

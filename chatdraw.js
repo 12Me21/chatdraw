@@ -155,8 +155,12 @@ class ChatDraw extends HTMLElement {
 	
 	set_color(index, color, init) {
 		let oldColor = this.palette[index]
+		color.color[0] &= ~1
+		color.color[0] |= (index>>1&1)
+		color.color[2] &= ~1 
+		color.color[2] |= (index&1)
 		if (oldColor)
-			this.SwapColor(oldColor, color)
+			this.drawer.SwapColor(oldColor, color)
 		this.palette[index] = color
 		let btn = this.color_buttons[index]
 		btn.style.color = color.to_hex()
@@ -171,20 +175,6 @@ class ChatDraw extends HTMLElement {
 		this.$color_picker.dataset.index = index
 		this.$color_picker.value = this.palette[index].to_hex()
 		this.$color_picker.click()
-	}
-	
-	SwapColor(original, newColor) {
-		let iData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
-		let data = iData.data
-		//let q = new UInt32Array(data.buffer)
-		//console.log(q)
-		
-		for (let i=0; i<data.length; i+=4) {
-			if (original.compare_data(data, i))
-				newColor.write_data(data, i)
-		}
-		
-		this.context.putImageData(iData, 0, 0)
 	}
 	
 	connectedCallback() {
