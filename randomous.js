@@ -6,6 +6,11 @@ class Color {
 		this.color = [r,g,b,a]
 	}
 	
+	clear_score() { //idk
+		let col = this.color
+		return Math.pow((col[0] + col[1] + col[2] - (255 * 3 / 2 - 0.1)), 2)
+	}
+	
 	ToArray() {
 		return this.color
 	}
@@ -329,6 +334,18 @@ let MathUtilities = {
 	IsPointInSquare(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
+	FindBest(list, func) {
+		let best = -Infinity
+		let besti = 0
+		for (let i=0; i<list.length; i++) {
+			let score = func(list[i], i, list)
+			if (score > best) {
+				best = score
+				besti = i
+			}
+		}
+		return [list[besti], besti]
+	}
 }
 
 // --- UndoBuffer ---

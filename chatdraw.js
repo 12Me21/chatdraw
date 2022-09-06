@@ -60,17 +60,17 @@ class ChatDraw extends HTMLElement {
 		this.maxLineWidth = 7
 		let defaultLineWidth = 2
 		
-		let maxScale = 5
-		
 		this.tool_buttons = []
 		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"])
 		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
 		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
 		let moveButton = this.createToolButton(["↔️"], ["mover"])
+		this.$tool1.replaceWith(moveButton)
+		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
 		
 		this.drawer.OnUndoStateChange = ()=>{
-			this.$undo.disabled = !this.drawer.CanUndo()
-			this.$redo.disabled = !this.drawer.CanRedo()
+			this.$form.undo.disabled = !this.drawer.CanUndo()
+			this.$form.redo.disabled = !this.drawer.CanRedo()
 		}
 		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
@@ -87,43 +87,46 @@ class ChatDraw extends HTMLElement {
 		}
 		let selected_color
 		let selected_tool
+		
 		this.$form.onchange = ev=>{
 			if (ev.target.name=='color') {
 				selected_color = ev.target
 				this.colorButtonSelect(+ev.target.dataset.index)
-			}
-			if (ev.target.name=='tool') {
+			} else if (ev.target.name=='tool') {
 				selected_tool = ev.target
 				this.drawer.currentTool = ev.target.dataset.tool
 			}
 		}
 		this.$form.onclick = ev=>{
-			if (ev.target.name=='color') {
+			let name = ev.target.name
+			if (name=='color') {
 				if (ev.target === selected_color) {
 					this.show_picker(+ev.target.dataset.index)
 				}
-			}
-			if (ev.target.name=='tool') {
+			} else if (name=='tool') {
 				if (ev.target === selected_tool) {
 					this.cycle_tool(ev.target)
 				}
+			} else if (name=='thickness') {
+				this.widthToggle(ev.target)
+			} else if (name=='send') {
+				this.sendDrawing()
+			} else if (name=='zoom') {
+				this.scaleInterface()
+			} else if (name=='undo') {
+				this.drawer.Undo()
+			} else if (name=='redo') {
+				this.drawer.Redo()
+			} else if (name=='clear') {
+				if (this.drawer.StrokeCount())
+					this.drawer.UpdateUndoBuffer()
+				CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 			}
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
-		this.$clear.onclick = ev=>{
-			if (this.drawer.StrokeCount())
-				this.drawer.UpdateUndoBuffer()
-			CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
-		}
 		this.$thickness.value = defaultLineWidth - 1
 		this.$thickness.dataset.width = defaultLineWidth - 1
-		this.$thickness.onclick = ev=>{ this.widthToggle() }
-		this.$send.onclick = ev=>{ this.sendDrawing() }
-		/*this.$toggle.onclick = ev=>{ this.toggleInterface() }*/
-		this.$zoom.onclick = ev=>{ this.scaleInterface() }
-		this.$undo.onclick = ev=>{ this.drawer.Undo() }
-		this.$redo.onclick = ev=>{ this.drawer.Redo() }
 		this.drawer.DoUndoStateChange()
 		
 		this.color_buttons = []
@@ -145,9 +148,6 @@ class ChatDraw extends HTMLElement {
 		}
 		this.$colors.replaceWith(...this.color_buttons)
 		
-		this.$tool1.replaceWith(moveButton)
-		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
-		
 		this.color_buttons[1].click()
 		this.$thickness.click()
 		freehandButton.click()
@@ -158,7 +158,7 @@ class ChatDraw extends HTMLElement {
 	set_color(index, color) {
 		let oldColor = this.palette[index]
 		if (oldColor)
-			this.SwapColor(oldColor, newColor)
+			this.SwapColor(oldColor, color)
 		this.palette[index] = color
 		let btn = this.color_buttons[index]
 		btn.style.color = color.to_hex()
@@ -176,8 +176,8 @@ class ChatDraw extends HTMLElement {
 	SwapColor(original, newColor) {
 		let iData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
 		let data = iData.data
-		let q = new UInt32Array(data.buffer)
-		console.log(q)
+		//let q = new UInt32Array(data.buffer)
+		//console.log(q)
 		
 		for (let i=0; i<data.length; i+=4) {
 			if (original.compare_data(data, i))
@@ -204,30 +204,19 @@ class ChatDraw extends HTMLElement {
 		}
 	}
 	
-	widthToggle() {
-		let width = (+this.$thickness.dataset.width % this.maxLineWidth) + 1
-		this.$thickness.value = width
-		this.$thickness.dataset.width = width
+	widthToggle(button) {
+		let width = (+button.dataset.width % this.maxLineWidth) + 1
+		button.value = width
+		button.dataset.width = width
 		this.drawer.lineWidth = width
 	}
 	
-	//Get the color that is best suited to be a clearing color (the color that
-	//is closest to either white or black, whichever comes first)
+	//Get the color that is best suited to be a clearing color (the color that is closest to either white or black, whichever comes first)
 	getClearColor() {
-		let colors = this.palette
-		let max = 0
-		let clearColor = 0
-		
-		for (let i=0; i<colors.length; i++) {
-			let full = Math.pow((colors[i][0] + colors[i][1] + colors[i][2] - (255 * 3 / 2 - 0.1)), 2)
-			
-			if (full > max) {
-				max = full
-				clearColor = i
-			}
-		}
-		
-		return colors[clearColor]
+		let [col] = MathUtilities.FindBest(this.palette, (col)=>{
+			return col.clear_score()
+		})
+		return col
 	}
 	
 	colorButtonSelect(index) {
@@ -235,22 +224,19 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	scaleInterface() {
-		try {
-			let rect = super.getBoundingClientRect()
-			
-			let scale = +super.style.getPropertyValue('--scale') || 1
-			let originalWidth = rect.width / scale
-			
-			//Figure out the NEXT scale.
-			if (scale < maxScale && window.screen.width - (originalWidth) * (scale + 1) - this.width > 5)
-				scale++
-			else
-				scale = 1
-			
-			super.style.setProperty('--scale', scale)
-		} catch(ex) {
-			console.error("Error while scaling drawing interface: " + ex)
-		}
+		let rect = super.getBoundingClientRect()
+		
+		let scale = +super.style.getPropertyValue('--scale') || 1
+		let originalWidth = rect.width / scale
+		
+		let maxScale = 5
+		//Figure out the NEXT scale.
+		if (scale < maxScale && window.screen.width - (originalWidth) * (scale + 1) - this.width > 5)
+			scale++
+		else
+			scale = 1
+		
+		super.style.setProperty('--scale', scale)
 	}
 	
 	createToolButton(labels, toolNames) {
@@ -289,20 +275,20 @@ class ChatDraw extends HTMLElement {
 
 ChatDraw.template = HTML`
 <canvas-container $=container></canvas-container>
-<form $=form>
+<form $=form class=controls>
 	<fieldset>
-		<input type=button $=zoom value="◲">
-		<input type=button $=undo value="↶">
-		<input type=button $=redo value="↷">
+		<input type=button name=zoom value="◲">
+		<input type=button name=undo value="↶">
+		<input type=button name=redo value="↷">
 		<br $=colors>
-		<input type=button $=send value="➥">
+		<input type=button name=send value="➥">
 	</fieldset>
 	<fieldset>
 		<br $=tool1>
-		<input type=button $=clear value="❌️">
-		<input type=button $=thickness value="0">
+		<input type=button name=clear value="❌️">
+		<input type=button name=thickness value="0" $=thickness>
 		<br $=tool2>
-		<input type=button $=toggle value="✎">
+		<input type=button name=toggle value="✎">
 	</fieldset>
 </form>
 <input $=color_picker type=color hidden>
@@ -326,7 +312,7 @@ canvas-container {
 	height: calc(var(--scale) * var(--height) * 1px);
 }
 
-canvas {
+canvas-container canvas {
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -339,11 +325,11 @@ canvas {
 	image-rendering: pixelated;
 }
 
-form {
+.controls {
 	display: contents;
 }
 
-fieldset {
+.controls fieldset {
 	border: none;
 	margin: 0;
 	padding: 0;
@@ -352,7 +338,7 @@ fieldset {
 	background: #E9E9E6;
 }
 
-input {
+.controls input {
 	flex: none;
 	appearance: none;
 	border: none;
@@ -366,18 +352,19 @@ input {
 	font-size: calc(var(--scale) * 14px);
 	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
+	background: ButtonFace;
 }
 
-input:hover {
+.controls input:hover {
 	background: #2929291A;
 }
 
-input:disabled {
+.controls input:disabled {
 	color: #666;
 	background: #2929291A;
 }
 
-input:checked {
+.controls input:checked {
 	color: #E9E9E6;
 	background: #666;
 }
