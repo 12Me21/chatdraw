@@ -74,10 +74,6 @@ class ChatDraw extends HTMLElement {
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
-		this.$color_picker.onchange = ev=>{
-			let e = ev.target
-			this.set_color(+e.dataset.index, Color.from_hex(e.value))
-		}
 		let selected_color
 		let selected_tool
 		
@@ -137,10 +133,9 @@ class ChatDraw extends HTMLElement {
 			
 			this.color_buttons.push(btn)
 			this.palette.push(null)
-			this.set_color(i, BaseColors[i], true)
+			this.set_color(i, BaseColors[i])
 		}
 		this.$colors.replaceWith(...this.color_buttons)
-		
 		
 		this.$tool1.replaceWith(
 			this.createToolButton(["↔️"], ['mover'])
@@ -164,42 +159,39 @@ class ChatDraw extends HTMLElement {
 	
 	restore_colors(list) {
 		for (let i=0; i<this.palette.length; i++) {
-			let hex = list[i]
-			this.palette[i] = Color.from_hex(hex)
-			let btn = this.color_buttons[i]
-			btn.style.color = hex
-			btn.value = hex
-			if (btn.checked)
-				this.drawer.color = hex
+			this.set_color(i, Color.from_hex(list[i]))
 		}
 	}
 	
-	set_color(index, color, init) {
-		if (!init) {
+	set_color(index, color, swap=false) {
+		if (swap) {
 			this.drawer.UpdateUndoBuffer()
+			this.drawer.SwapColor(this.palette[index], color)
 		}
-		let oldColor = this.palette[index]
-		color.color[0] &= ~1
-		color.color[0] |= (index>>1&1)
-		color.color[2] &= ~1 
-		color.color[2] |= (index&1)
-		if (oldColor)
-			this.drawer.SwapColor(oldColor, color)
+		
 		this.palette[index] = color
+		
 		let btn = this.color_buttons[index]
-		btn.style.color = color.to_hex()
-		btn.value = color.to_hex()
+		let hex = color.to_hex()
+		btn.style.color = hex
+		btn.value = hex
 		if (btn.checked)
-			this.drawer.color = color.to_hex()
-		if (!init) {
+			this.drawer.color = hex
+		
+		if (swap) {
 			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 		}
 	}
 	
 	show_picker(index) {
-		this.$color_picker.dataset.index = index
-		this.$color_picker.value = this.palette[index].to_hex()
-		this.$color_picker.click()
+		let picker = this.$color_picker
+		picker.value = this.palette[index].to_hex()
+		picker.onchange = ev=>{
+			picker.onchange = null
+			let e = ev.target
+			this.set_color(index, Color.from_hex(picker.value), true)
+		}
+		picker.click()
 	}
 	
 	connectedCallback() {
@@ -292,20 +284,20 @@ class ChatDraw extends HTMLElement {
 ChatDraw.template = HTML`
 <canvas-container $=container></canvas-container>
 <form $=form class=controls>
-	<fieldset>
+	<div>
 		<input type=button name=zoom value="◲">
 		<input type=button name=undo value="↶">
 		<input type=button name=redo value="↷">
 		<br $=colors>
 		<input type=button name=send value="➥">
-	</fieldset>
-	<fieldset>
+	</div>
+	<div>
 		<br $=tool1>
 		<input type=button name=clear value="❌️">
 		<input type=button name=thickness value="0" $=thickness>
 		<br $=tool2>
 		<input type=button name=toggle value="✎">
-	</fieldset>
+	</div>
 </form>
 <input $=color_picker type=color hidden>
 
@@ -345,10 +337,7 @@ canvas-container canvas {
 	display: contents;
 }
 
-.controls fieldset {
-	border: none;
-	margin: 0;
-	padding: 0;
+.controls > div {
 	display: flex;
 	justify-content: flex-end;
 	background: #E9E9E6;
