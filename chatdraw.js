@@ -68,19 +68,14 @@ class ChatDraw {
 		
 		//Set up the color picker
 		this.$color_picker.onchange = event=>{
-			let newColor = Color.from_input(event.target.value)
-			console.log(newColor, StyleUtilities.GetColor(event.target.associatedButton.style.color))
+			let e = event.currentTarget
+			let index = +e.dataset.index
+			let oldColor = this.palette[index]
+			let newColor = Color.from_input(e.value)
 			
-			CanvasUtilities.SwapColor(
-				this.canvas.getContext("2d"),
-				StyleUtilities.GetColor(event.target.associatedButton.style.color),
-				newColor,
-				0
-			)
-			event.target.associatedButton.style.color = newColor.ToRGBString()
-			this.drawer.color = newColor.ToRGBString()
+			CanvasUtilities.SwapColor(this.canvas.getContext("2d"), oldColor, newColor, 0)
+			this.setButtonColor(index, newColor)
 			this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
-			this.drawer.Redraw()
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
@@ -189,12 +184,20 @@ class ChatDraw {
 		return colors[clearColor]
 	}
 	
+	setButtonColor(index, color) {
+		this.palette[index] = color
+		let btn = this.color_buttons[index]
+		btn.style.color = color.ToHexString()
+		if (btn.hasAttribute('aria-selected'))
+			this.drawer.color = color.ToHexString()
+	}
+	
 	colorButtonSelect(index) {
 		for (let i=0; i<this.palette.length; i++) {
 			let btn = this.color_buttons[i]
 			if (i==index) {
 				if (btn.hasAttribute('aria-selected')) {
-					this.$color_picker.associatedButton = btn
+					this.$color_picker.dataset.index = i
 					this.$color_picker.value = this.palette[i].ToHexString()
 					this.$color_picker.click()
 				} else {
