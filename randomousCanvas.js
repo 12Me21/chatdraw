@@ -865,24 +865,17 @@ class CanvasDrawer extends CanvasPerformer {
 			
 			let originalColor = CanvasUtilities.GetColor(context, sx, sy)
 			let color = Color.from_input(data.color)
-			let ocolorArray = originalColor.ToArray()
-			let colorArray = color.ToArray()
 			
-			check: {
-				for (let j=0; j<4; j++)
-					if (colorArray[j] != ocolorArray[j])
-						break check
+			if (originalColor.compare_data(color.ToArray()))
 				return
-			}
 			
 			CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
 				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-				for (let j=0; j<4; j++)
-					if (d[i+j] != ocolorArray[j])
-						return false
-				for (let j = 0; j < 4; j++)
-					d[i+j] = colorArray[j]
-				return true
+				if (originalColor.compare_data(d, i)) {
+					color.write_data(d, i)
+					return true
+				}
+				return false
 			})
 		}
 	}

@@ -1,15 +1,6 @@
 'use strict'
 
-// Carlos Sanchez - 2017
-// randomouscrap98@aol.com
-// An enormous library full of garbage
-
-// ---- List of utilities ----
-// * CanvasUtilities
-// * MathUtilities
-
-// Functions objects for working with colors in a generic way. Any canvas
-// functions will use this object rather than some specific format.
+// Functions objects for working with colors in a generic way. Any canvas functions will use this object rather than some specific format.
 class Color {
 	constructor(r, g, b, a=255) {
 		this.color = [r,g,b,a]
@@ -17,6 +8,18 @@ class Color {
 	
 	ToArray() {
 		return this.color
+	}
+	
+	write_data(data, index=0) {
+		for (let j=0; j<4; j++)
+			data[index+j] = this.color[j]
+	}
+	
+	compare_data(data, index=0) {
+		for (let j=0; j<4; j++)
+			if (data[index+j] != this.color[j])
+				return false
+		return true
 	}
 	
 	//Expected color but found ‘#0-ff01’.  Error in parsing value for ‘color’.  Declaration dropped.
