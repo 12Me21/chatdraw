@@ -322,7 +322,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.defaultCursor = "crosshair"
 		this.currentLayer = 0
 		this.currentTool = "freehand"
-		this.color = "rgb(0,0,0)"
+		this.color = "#000000"
 		this.opacity = 1
 		this.lineWidth = 2
 		//this.cursorColor = "rgb(128,128,128)"
@@ -939,7 +939,7 @@ class CanvasDrawer extends CanvasPerformer {
 			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
 			let copyContext = canvasCopy.getContext("2d")
 			let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-			drawer.SetColor(pickupColor.ToRGBString())
+			drawer.SetColor(pickupColor.ToHexString())
 		}
 	}
 }

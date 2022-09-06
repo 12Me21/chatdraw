@@ -22,23 +22,11 @@ class Color {
 		return [this.r, this.g, this.b, this.a * (expandedAlpha ? 255 : 1)]
 	}
 	
-	ToRGBString() {
-		let pre = "rgb"
-		let vars = this.r + "," + this.g + "," + this.b
-		if (this.a !== 1) {
-			pre += "a"
-			vars += "," + this.a
-		}
-		return pre + "(" + vars + ")"
-	}
-	
+	//Expected color but found ‘#0-ff01’.  Error in parsing value for ‘color’.  Declaration dropped.
 	ToHexString(includeAlpha) {
-		let string = "#" + this.r.toString(16).padStart(2, "0") + this.g.toString(16).padStart(2, "0") + this.b.toString(16).padStart(2, "0")
-		
-		if (includeAlpha)
-			string += (255 * this.a).toString(16).padStart(2, "0")
-		
-		return string
+		// todo: alpha
+		let num = this.r<<16 | this.g<<8 | this.b
+		return "#"+num.toString(16).padStart(2*3, "0")
 	}
 	
 	//Find the maximum difference between the channels of two colors.
@@ -147,12 +135,11 @@ let CanvasUtilities = {
 		
 		return [cx - width / 2 - 1, cy - height / 2 - 1, width, width]
 	},
-	//Wraps the given "normal eraser" function in the necessary crap to get the
-	//eraser to function properly. Then you just have to fill wherever necessary.
+	//Wraps the given "normal eraser" function in the necessary crap to get the eraser to function properly. Then you just have to fill wherever necessary.
 	PerformNormalEraser(ctx, func) {
 		let oldStyle = ctx.fillStyle
 		let oldComposition = ctx.globalCompositeOperation
-		ctx.fillStyle = "rgba(0,0,0,1)"
+		ctx.fillStyle = "#000000"
 		ctx.globalCompositeOperation = "destination-out"
 		let result = func()
 		ctx.fillStyle = oldStyle
@@ -163,7 +150,7 @@ let CanvasUtilities = {
 	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {
 		let dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
 		let ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
-		if (dist === 0)
+		if (dist == 0)
 			dist=0.001
 		for (let i=0; i<dist; i+=0.5) {
 			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear)
