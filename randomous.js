@@ -302,22 +302,6 @@ let CanvasUtilities = {
 		}
 		CanvasUtilities.GenericFlood(context, sx, sy, floodFunction)
 	},
-	SwapColor(context, original, newColor, threshold) {
-		let canvas = context.canvas
-		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
-		let data = iData.data
-		let newArray = newColor.ToArray(true)
-		
-		for (let i = 0; i < data.length; i+=4) {
-			let cCol = CanvasUtilities.GetColorFromData(data, i)
-			if (cCol.MaxDifference(original) <= threshold) {
-				for (let j = 0; j < 4; j++)
-					data[i+j] = newArray[j]
-			}
-		}
-		
-		context.putImageData(iData, 0, 0)
-	},
 	ToString(canvas) {
 		return canvas.toDataURL("image/png")
 	},

@@ -47,6 +47,7 @@ class ChatDraw extends HTMLElement {
 		this.height = 100
 		
 		this.canvas = this.CreateCanvas()
+		this.context = this.canvas.getContext('2d')
 		this.$container.append(this.canvas)
 		
 		this.drawer = new CanvasDrawer()
@@ -77,7 +78,7 @@ class ChatDraw extends HTMLElement {
 			let oldColor = this.palette[index]
 			let newColor = Color.from_input(e.value)
 			
-			CanvasUtilities.SwapColor(this.canvas.getContext("2d"), oldColor, newColor, 0)
+			this.SwapColor(oldColor, newColor)
 			this.setButtonColor(index, newColor)
 			this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
 		}
@@ -126,6 +127,23 @@ class ChatDraw extends HTMLElement {
 		freehandButton.click()
 		this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
 		CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
+	}
+	
+	SwapColor(original, newColor) {
+		let iData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+		let data = iData.data
+		let oldArray = original.ToArray(true)
+		let newArray = newColor.ToArray(true)
+		
+		loop: for (let i=0; i<data.length; i+=4) {
+			for (let j=0; j<4; j++)
+				if (data[i+j] != oldArray[j])
+					continue loop
+			for (let j = 0; j < 4; j++)
+				data[i+j] = newArray[j]
+		}
+		
+		this.context.putImageData(iData, 0, 0)
 	}
 	
 	connectedCallback() {
