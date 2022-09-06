@@ -36,9 +36,12 @@ return holder`
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
 
-class ChatDraw {
+class ChatDraw extends HTMLElement {
 	constructor() {
+		super()
 		ChatDraw.template(this)
+		this.attachShadow({mode: 'open'})
+		this.shadowRoot.append(this.$root)
 		
 		this.width = 200
 		this.height = 100
@@ -89,7 +92,7 @@ class ChatDraw {
 		this.$thickness.dataset.width = defaultLineWidth - 1
 		this.$thickness.onclick = ev=>{ this.widthToggle() }
 		this.$send.onclick = ev=>{ this.sendDrawing() }
-		this.$toggle.onclick = ev=>{ this.toggleInterface() }
+		/*this.$toggle.onclick = ev=>{ this.toggleInterface() }*/
 		this.$zoom.onclick = ev=>{ this.scaleInterface() }
 		this.$undo.onclick = ev=>{ this.drawer.Undo() }
 		this.$redo.onclick = ev=>{ this.drawer.Redo() }
@@ -120,19 +123,14 @@ class ChatDraw {
 		this.$tool1.replaceWith(moveButton)
 		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
 		
-		let elem = document.createElement('chat-draw')
-		elem.attachShadow({mode: 'open'})
-		elem.shadowRoot.append(this.$root)
-		this.$root = elem
-		
 		this.$thickness.click()
 		freehandButton.click()
-		this.toggleInterface()
-		
-		let scale = Math.floor((window.screen.width - 200) / 200)
-		this.$root.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
-		
 		this.drawer.moveToolClearColor = rgbToFillStyle(this.getClearColor())
+	}
+	
+	connectedCallback() {
+		let scale = Math.floor((window.screen.width - 200) / 200)
+		this.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
 	}
 	
 	setButtonColors(palette) {
@@ -209,19 +207,12 @@ class ChatDraw {
 		}
 		this.drawer.color = this.palette[index].ToHexString()
 	}
-		
-	toggleInterface() {
-		if (this.$root.dataset.hidden)
-			delete this.$root.dataset.hidden
-		else
-			this.$root.dataset.hidden = true
-	}
 	
 	scaleInterface() {
 		try {
-			let rect = this.$root.getBoundingClientRect()
+			let rect = super.getBoundingClientRect()
 			
-			let scale = +this.$root.style.getPropertyValue('--scale') || 1
+			let scale = +super.style.getPropertyValue('--scale') || 1
 			let originalWidth = rect.width / scale
 			
 			//Figure out the NEXT scale.
@@ -230,7 +221,7 @@ class ChatDraw {
 			else
 				scale = 1
 			
-			this.$root.style.setProperty('--scale', scale)
+			super.style.setProperty('--scale', scale)
 		} catch(ex) {
 			console.error("Error while scaling drawing interface: " + ex)
 		}
@@ -383,3 +374,5 @@ let BaseColors = [
 	new Color(255, 0, 0),
 	new Color(0, 0, 255)
 ]
+
+customElements.define('chat-draw', ChatDraw)
