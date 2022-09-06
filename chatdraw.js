@@ -103,7 +103,7 @@ class ChatDraw extends HTMLElement {
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
-			let btn = HTMLUtilities.CreateUnsubmittableButton()
+			let btn = document.createElement('button')
 			
 			btn.textContent = "■"
 			btn.className = 'colorChange'
@@ -215,7 +215,9 @@ class ChatDraw extends HTMLElement {
 	
 	createToolButton(labels, toolNames) {
 		let nextTool = 0
-		let btn = HTMLUtilities.CreateUnsubmittableButton(labels[nextTool])
+		let btn = document.createElement('button')
+		btn.textContent = labels[nextTool]
+		
 		this.tool_buttons.push(btn)
 		btn.className = "toolButton"
 		btn.onclick = ev=>{

@@ -5,78 +5,9 @@
 // An enormous library full of garbage
 
 // ---- List of utilities ----
-// * HTMLUtilities
 // * CanvasUtilities
-// * EventUtilities
-// * ScreenUtilities
 // * MathUtilities
 
-// --- HTMLUtilities ---
-// Encode or decode HTML entitities / generate unique IDs for elements / etc.
-
-let HTMLUtilities = {
-	_nextID: 0,
-	MoveToEnd(element) {
-		element.parentNode.appendChild(element)
-	},
-	GetUniqueID(base) {
-		return "genID_" + this._nextID++ + (base ? "_" + base : "")
-	},
-	CreateUnsubmittableButton(text) {
-		let button = document.createElement('button')
-		button.type = 'button'
-		if (text)
-			button.textContent = text
-		return button
-	},
-	CreateContainer(className, id) {
-		let container = document.createElement("div")
-		container.className = className
-		if (id)
-			container.id = id
-		container.dataset.createdon = new Date().getTime()
-		return container
-	},
-	CreateSelect(options, name) {
-		let select = document.createElement("select")
-		if (name)
-			select.name = name
-		for (let i = 0; i < options.length; i++) {
-			let option = document.createElement("option")
-			if (options[i].value && options[i].text) {
-				option.textContent = options[i].text
-				option.value = options[i].value
-			} else {
-				option.textContent = options[i]
-			}
-			select.appendChild(option)
-		}
-		return select
-	},
-	SwapElements(obj1, obj2) {
-		// save the location of obj2
-		let parent2 = obj2.parentNode
-		let next2 = obj2.nextSibling
-		// special case for obj1 is the next sibling of obj2
-		if (next2 === obj1) {
-			// just put obj1 before obj2
-			parent2.insertBefore(obj1, obj2)
-		} else {
-			// insert obj2 right before obj1
-			obj1.parentNode.insertBefore(obj2, obj1)
-			// now insert obj1 where obj2 was
-			if (next2) {
-				// if there was an element after obj2, then insert obj1 right before that
-				parent2.insertBefore(obj1, next2)
-			} else {
-				// otherwise, just append as last child
-				parent2.appendChild(obj1)
-			}
-		}
-	}
-}
-
-// --- Color / Color Utilities ---
 // Functions objects for working with colors in a generic way. Any canvas
 // functions will use this object rather than some specific format.
 class Color {
@@ -425,31 +356,6 @@ let CanvasUtilities = {
 				callback(canvas, image)
 		}
 		image.src = string
-	}
-}
-
-// --- Event Utilities ---
-// Functions to help with built-in events (such as the mouse event).
-
-let EventUtilities = {
-	SignalCodes: {Cancel: 2, Run: 1, Wait: 0},
-	mButtonMap: [1, 4, 2, 8, 16],
-	MouseButtonToButtons(button) {
-		return this.mButtonMap[button]
-	},
-	//This is a NON-BLOCKING function that simply "schedules" the function to be
-	//performed later if the signal is in the "WAIT" phase.
-	ScheduleWaitingTask(signal, perform, interval) {
-		interval = interval || 100
-		let s = signal()
-		if (s === this.SignalCodes.Cancel)
-			return
-		else if (s === this.SignalCodes.Run)
-			perform()
-		else
-			window.setTimeout(()=>{
-				this.ScheduleWaitingTask(signal, perform, interval)
-			}, interval)
 	}
 }
 

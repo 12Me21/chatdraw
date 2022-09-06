@@ -61,7 +61,7 @@ class CanvasPerformer {
 		this._evMD = e=>{
 			console.trace("CanvasPerformer mouse down")
 			let action = CursorActions.Start
-			let buttons = e.buttons || EventUtilities.MouseButtonToButtons(e.button)
+			let buttons = e.buttons || [1,4,2,8,16][e.button]
 			
 			lastMAction = this.ButtonsToAction(buttons)
 			this.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), this._canvas)
