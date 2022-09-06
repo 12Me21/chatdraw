@@ -100,7 +100,6 @@ class ChatDraw extends HTMLElement {
 		
 		this.color_buttons = []
 		this.palette = []
-		this.current_color = -1
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
