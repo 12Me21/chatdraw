@@ -11,18 +11,55 @@
 console.trace = ()=>{}
 
 class CursorActionData {
-	constructor(action, x, y, zoomDelta) {
+	constructor(action, [x, y], target, zoomDelta) {
 		this.action = action
 		this.x = x
 		this.y = y
-		this.realX = x; //The real x and y relative to the canvas.
+		this.realX = x //The real x and y relative to the canvas.
 		this.realY = y
 		this.zoomDelta = zoomDelta || false
 		this.onTarget = true
-		this.targetElement = false
-		this.time = 0; //Date.now()
+		this.targetElement = target
+		this.time = Date.now()
 		this.modifiers = 0
+		this.existent = true
+		
+		if (target) {
+			let rect = target.getBoundingClientRect()
+			let sx = rect.width / target.width
+			let sy = rect.height / target.height
+			
+			if (sx <= 0 || sy <= 0)
+				this.existent = false
+			else {
+				this.x = (this.x - rect.x) / sx
+				this.y = (this.y - rect.y) / sy
+			}
+		}
 	}
+	set_action(bit, state) {
+		if (state)
+			this.action |= bit
+		else
+			this.action &= ~bit
+	}
+	get_action(bit) {
+		return (this.action | bit)==bit
+	}
+	get Start() { return this.get_action(1) }
+	set Start(v) { this.set_action(1, v) }
+	get End() { return this.get_action(2) }
+	set End(v) { this.set_action(2, v) }
+	get Drag() { return this.get_action(4) }
+	set Drag(v) { this.set_action(4, v) }
+	get Zoom() { return this.get_action(8) }
+	set Zoom(v) { this.set_action(8, v) }
+	get Pan() { return this.get_action(16) }
+	set Pan(v) { this.set_action(16, v) }
+	get Interrupt() { return this.get_action(32) }
+	set Interrupt(v) { this.set_action(32, v) }
+	get EndInterrupt() { return this.get_action(2|32) }
+	set EndInterrupt(v) { this.set_action(2|32, v) }
 }
 
 const CursorActions = {
@@ -32,6 +69,7 @@ const CursorActions = {
 	Zoom: 8,
 	Pan: 16,
 	Interrupt: 32,
+	Ctrl: 64,
 	EndInterrupt: 2|32,
 }
 
@@ -55,88 +93,85 @@ class CanvasPerformer {
 		this._canvas = false
 		this._oldStyle = {}
 		
-		let lastMAction = 0
-		let lastTAction = 0
+		let last_mouse_action = 0
+		let last_touch_action = 0
 		let startZDistance = 0
 		let lastZDistance = 0
-		let lastTPosition = [-1, -1]
+		let last_touch = [-1, -1]
 		
-		//Event for "mouse down". Creates a generic "cursor" action
-		this._evMD = e=>{
-			console.trace("CanvasPerformer mouse down")
-			let action = CursorActions.Start
-			let buttons = e.buttons || [1,4,2,8,16][e.button]
-			
-			lastMAction = this.ButtonsToAction(buttons)
-			this.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), this._canvas)
-		}
-		//Event for "mouse up". Creates a generic "cursor" action
-		this._evMU = e=>{
-			console.trace("CanvasPerformer mouse up")
-			this.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), this._canvas)
-			lastMAction = 0
-		}
-		//Event for the "wheel". Creates a generic "cursor" action
-		this._evMW = e=>{
-			this.Perform(e, new CursorActionData(CursorActions.Start | CursorActions.End | CursorActions.Zoom, e.clientX, e.clientY, -Math.sign(e.deltaY) * this.WheelZoom), this._canvas)
-		}
-		//Event for both "touch start" and "touch end". Creates a generic "cursor" action Event for "touch start". Creates a generic "cursor" action
-		this._evTC = e=>{
-			console.trace("CanvasPerformer touch start/end event [" + e.touches.length + "]")
+		let evtc = ev=>{
 			if (this.ZoomTouches !== 2)
 				throw "Zoom must use 2 fingers!"
 			
 			let extraAction = 0
-			let nextAction = this.TouchesToAction(e.touches.length)
+			let nextAction = this.TouchesToAction(ev.touches.length)
 			
-			//If we enter evTC and there is a lastTAction, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
-			if (lastTAction) {
+			//If we enter evTC and there is a last_touch_action, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
+			if (last_touch_action) {
 				if (nextAction)
 					extraAction |= CursorActions.Interrupt
-				this.Perform(e, new CursorActionData(CursorActions.End | lastTAction | extraAction, lastTPosition[0], lastTPosition[1]), this._canvas)
+				let action = CursorActions.End | last_touch_action | extraAction
+				this.Perform(ev, action, last_touch)
 			}
 			
 			//Move to the "next" action.
-			lastTAction = nextAction
+			last_touch_action = nextAction
 			
 			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
-			if (lastTAction) {
-				if (lastTAction & CursorActions.Zoom) {
-					startZDistance = this.PinchDistance(e.touches)
+			if (last_touch_action) {
+				if (last_touch_action & CursorActions.Zoom) {
+					startZDistance = this.PinchDistance(ev.touches)
 					lastZDistance = 0
 				}
-				lastTPosition = this.TouchesToXY(lastTAction, e.touches)
-				this.Perform(e, new CursorActionData(CursorActions.Start | lastTAction | extraAction, lastTPosition[0], lastTPosition[1]), this._canvas)
+				last_touch = this.TouchesToXY(last_touch_action, ev.touches)
+				let action = CursorActions.Start | last_touch_action | extraAction
+				this.Perform(ev, action, last_touch)
 			}
 		}
-		//Event for "mouse move". Creates a generic "cursor" action.
-		this._evMM = e=>{
-			this.Perform(e, new CursorActionData(this.ButtonsToAction(e.buttons), e.clientX, e.clientY), this._canvas)
-		}
-		//Event for "touch move". Creates a generic "cursor" action.
-		this._evTM = e=>{
-			let action = this.TouchesToAction(e.touches.length)
-			lastTPosition = this.TouchesToXY(action, e.touches)
-			
-			if (action & CursorActions.Zoom) {
-				let startZoomDiff = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
-				this.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1], startZoomDiff - lastZDistance), this._canvas)
-				lastZDistance = startZoomDiff
-			} else {
-				this.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1]), this._canvas)
-			}
-		}
-		this._evPrevent = e=>{
-			e.preventDefault()
-		}
+		
+		let evpd = ev=>{ev.preventDefault()}
+		
+		this._listeners = [
+			['mousedown', false, ev=>{
+				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
+				let action = CursorActions.Start | last_mouse_action
+				this.Perform(ev, action, this.MouseToXY(ev))
+			}],
+			['touchstart', false, evtc],
+			['touchstart', false, evpd],
+			['wheel', false, ev=>{
+				let action = CursorActions.Start | CursorActions.End | CursorActions.Zoom
+				this.Perform(ev, action, this.MouseToXY(ev), -Math.sign(ev.deltaY) * this.WheelZoom)
+			}],
+			['contextmenu', false, evpd],
+			['mouseup', true, ev=>{
+				let action = CursorActions.End | last_mouse_action
+				this.Perform(ev, action, this.MouseToXY(ev))
+				last_mouse_action = 0
+			}],
+			['touchend', true, evtc],
+			['touchcancel', true, evtc],
+			['mousemove', true, ev=>{
+				let action = this.ButtonsToAction(ev.buttons)
+				this.Perform(ev, action, this.MouseToXY(ev))
+			}],
+			['touchmove', true, ev=>{
+				let action = this.TouchesToAction(e.touches.length)
+				last_touch = this.TouchesToXY(action, e.touches)
+				
+				if (action & CursorActions.Zoom) {
+					let z = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
+					this.Perform(e, action, last_touch, z - lastZDistance)
+					lastZDistance = z
+				} else {
+					this.Perform(e, action, last_touch)
+				}
+			}],
+		]
 	}
 	
-	GetModifiedCursorData(data, e) {
-		if (!e)
-			return data
-		if (e.ctrlKey)
-			data.modifiers |= CursorModifiers.Ctrl
-		return data
+	MouseToXY(ev) {
+		return [ev.clientX, ev.clientY]
 	}
 	
 	//Convert the "buttons" field of a mouse event to the appropriate action
@@ -151,12 +186,12 @@ class CanvasPerformer {
 	TouchesToAction(touches) {
 		let action = 0
 		
-		if (touches === this.DragTouches)
-			action = action | CursorActions.Drag
-		if (touches === this.ZoomTouches)
-			action = action | CursorActions.Zoom
+		if (touches == this.DragTouches)
+			action |= CursorActions.Drag
+		if (touches == this.ZoomTouches)
+			action |= CursorActions.Zoom
 		if (touches == this.PanTouches)
-			action = action | CursorActions.Pan
+			action |= CursorActions.Pan
 		
 		return action
 	}
@@ -182,7 +217,14 @@ class CanvasPerformer {
 	
 	//System uses this function to determine if touches should be captured. Users can override this function to give their own rules for captured touches. Capturing a touch prevents scrolling.
 	ShouldCapture(data) {
-		return data.onTarget //this._canvas && (this._canvas === document.activeElement);   
+		return data.onTarget
+	}
+	
+	do_listeners(state) {
+		for (let [type, is_doc, func] of this._listeners) {
+			let target = is_doc ? document : this._canvas
+			target[state?'addEventListener':'removeEventListener'](type, func)
+		}
 	}
 	
 	Attach(canvas) {
@@ -191,93 +233,231 @@ class CanvasPerformer {
 		
 		this._canvas = canvas
 		this._oldStyle = canvas.style.touchAction
-		
 		canvas.style.touchAction = "none"
-		canvas.addEventListener("mousedown", this._evMD)
-		canvas.addEventListener("touchstart", this._evTC)
-		canvas.addEventListener("touchstart", this._evPrevent) //Stops initial tuochmove distance cutoff
-		canvas.addEventListener("wheel", this._evMW)
-		canvas.addEventListener("contextmenu", this._evPrevent)
-		document.addEventListener("mouseup", this._evMU)
-		document.addEventListener("touchend", this._evTC)
-		document.addEventListener("touchcancel", this._evTC)
-		document.addEventListener("mousemove", this._evMM)
-		document.addEventListener("touchmove", this._evTM)
+		
+		this.do_listeners(true)
 	}
 	
 	Detach() {
 		if (!this._canvas)
 			throw "This CanvasPerformer is is not attached to a canvas!"
 		
-		canvas.removeEventListener("mousedown", this._evMD)
-		canvas.removeEventListener("touchstart", this._evTC)
-		canvas.removeEventListener("wheel", this._evMW)
-		canvas.removeEventListener("touchstart", this._evPrevent)
-		canvas.removeEventListener("contextmenu", this._evPrevent)
-		document.removeEventListener("mouseup", this._evMU)
-		document.removeEventListener("touchend", this._evTC)
-		document.removeEventListener("touchcancel", this._evTC)
-		document.removeEventListener("mousemove", this._evMM)
-		document.removeEventListener("touchmove", this._evTM)
+		this.do_listeners(false)
 		
 		this._canvas.style.touchAction = this._oldStyle
-		this._canvas = false
+		this._canvas = null
 	}
 	
-	Perform(e, cursorData, canvas) {
-		let context = canvas.getContext("2d")
-		let clientRect = canvas.getBoundingClientRect()
-		//let clientStyle = window.getComputedStyle(canvas)
-		let scalingX = canvas.clientWidth / canvas.width
-		let scalingY = canvas.clientHeight / canvas.height
+	Perform(e, action, pos, zoomDelta) {
+		let canvas = this._canvas
+		let cursorData = new CursorActionData(action, pos, canvas, zoomDelta)
 		
-		//Do NOTHING if the canvas is non-existent
-		if (scalingX <= 0 || scalingY <= 0)
+		if (!cursorData.existent)
 			return
 		
-		cursorData = this.GetModifiedCursorData(cursorData, e)
-		// assumes 1px border
-		cursorData.x = (cursorData.x - (clientRect.left + 1)) / scalingX
-		cursorData.y = (cursorData.y - (clientRect.top + 1)) / scalingY
-		
-		//console.log(scalingX + ", " + scalingY + ", " + cursorData.x + ", " + cursorData.y)
-		cursorData.targetElement = canvas
-		
+		if (e.ctrlKey)
+			cursorData.modifiers |= CursorModifiers.Ctrl
 		cursorData.onTarget = (e.target === canvas)
-		//console.log("onTarget: " + cursorData.onTarget)
-		//cursorData.onTarget = (cursorData.x >= 0 && cursorData.y >= 0 &&
-		//   cursorData.x < canvas.width && cursorData.y < canvas.height)
-		cursorData.time = Date.now()
 		
-		if (e && this.ShouldCapture(cursorData)) {
+		if (e && this.ShouldCapture(cursorData))
 			e.preventDefault()
-		}
 		
-		if (this.OnAction)
+		if (this.OnAction) {
+			let context = canvas.getContext("2d")
 			this.OnAction(cursorData, context)
+		}
 	}
 }
-
-// --- CanvasDrawer ---
-// Allows art programs to be created easily from an existing canvas. Full functionality is achieved when layers and an overlay are provided.
 
 class CanvasDrawerTool {
-	constructor(tool, overlay, cursor) {
-		this.tool = tool
-		this.overlay = overlay
-		this.interrupt = false
-		this.cursor = cursor
-		this.stationaryReportInterval = 0
-		this.frameLock = 0
-		this.updateUndoBuffer = 1
-	}
 }
+CanvasDrawerTool.prototype.tool = null
+CanvasDrawerTool.prototype.overlay = null
+CanvasDrawerTool.prototype.interrupt = null
+CanvasDrawerTool.prototype.stationaryReportInterval = null
+CanvasDrawerTool.prototype.frameLock = false
+CanvasDrawerTool.prototype.updateUndoBuffer = true
+
+let Tools = {
+	freehand: class extends CanvasDrawerTool {
+		tool(data, context) {
+			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
+		}
+	},
+	eraser: class extends CanvasDrawerTool {
+		tool(data, context) {
+			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth, true)
+		}
+	},
+	line: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End)
+				return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+		}
+		overlay(data, context) {
+			if (!data.End)
+				return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+			else
+				return false
+		}
+	},
+	square: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End) {
+				return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+			}
+		}
+		overlay(data, context) {
+			if (!data.End) {
+				return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+			} else {
+				return false
+			}
+		}
+	},
+	clear: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End && data.onTarget)
+				CanvasUtilities.Clear(context.canvas, data.color)
+		}
+	},
+	mover: class extends CanvasDrawerTool {
+		tool(data, context, drawer) {
+			if (data.Start) {
+				drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
+				drawer.moveToolOffset = [0,0]
+				CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
+				return true; //just redraw everything. No point optimizing
+			} else if (data.End) {
+				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+				drawer.moveToolLayer = false
+				return true; //just redraw everything. No point optimizing.
+			} else {
+				drawer.moveToolOffset[0] += (data.x - data.oldX)
+				drawer.moveToolOffset[1] += (data.y - data.oldY)
+				return false
+			}
+		}
+		overlay(data, context, drawer) {
+			if (!data.End) {
+				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+				return true
+			} else {
+				return false
+			}
+		}
+		interrupt(data, context, drawer) {
+			//Just put the layer back.
+			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer)
+			return true
+		}
+	},
+	slow: class extends CanvasDrawerTool {
+		tool(data, context, drawer) {
+			if (drawer.slowAlpha === undefined)
+				drawer.slowAlpha = 0.15
+			
+			if (data.Start) {
+				drawer.avgX = data.x
+				drawer.avgY = data.y
+			}
+			drawer.oldX = drawer.avgX
+			drawer.oldY = drawer.avgY
+			if (data.Drag && !data.End) {
+				//var alpha=0.1
+				drawer.avgX = drawer.avgX*(1-drawer.slowAlpha)+data.x*drawer.slowAlpha
+				drawer.avgY = drawer.avgY*(1-drawer.slowAlpha)+data.y*drawer.slowAlpha
+			}
+			if (data.End) {
+				drawer.oldX =  data.x
+				drawer.oldY = data.y
+			}
+			if (data.Drag || data.End) {
+				return data.lineFunction(context, drawer.oldX, drawer.oldY, drawer.avgX, drawer.avgY, data.lineWidth)
+			}
+		}
+	},
+	
+	spray: class extends CanvasDrawerTool {
+		tool(data, context, drawer) {
+			if (drawer.spraySpread === undefined)
+				drawer.spraySpread = 2
+			if (drawer.sprayRate === undefined)
+				drawer.sprayRate = 1 / 1.5
+			
+			if (data.Drag) {
+				let x, y, radius=data.lineWidth*drawer.spraySpread
+				let count = data.lineWidth * drawer.sprayRate
+				//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
+				//data.lineWidth * drawer.sprayRate
+				for (let i=0;i<count;i+=0.1) {
+					if (MathUtilities.IntRandom(10))
+						continue
+					do {
+						x = (Math.random()*2-1)*radius
+						y = (Math.random()*2-1)*radius
+					} while (x*x+y*y>radius*radius)
+					CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
+				}
+			}
+		}
+	},
+	
+	fill: class extends CanvasDrawerTool {
+		tool(data, context, drawer) {
+			if (data.End) {
+				let sx = Math.floor(data.x)
+				let sy = Math.floor(data.y)
+				console.debug("Flood filling starting from " + sx + ", " + sy)
+				
+				let originalColor = CanvasUtilities.GetColor(context, sx, sy)
+				let color = Color.from_hex(data.color)
+				
+				if (originalColor.compare_data(color.ToArray()))
+					return
+				
+				CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
+					let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
+					if (originalColor.compare_data(d, i)) {
+						color.write_data(d, i)
+						return true
+					}
+					return false
+				})
+			}
+		}
+	},
+	
+	dropper: class extends CanvasDrawerTool {
+		tool(data, context, drawer) {
+			if (data.End) {
+				let sx = Math.floor(data.x)
+				let sy = Math.floor(data.y)
+				let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
+				drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
+				let copyContext = canvasCopy.getContext('2d')
+				let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
+				drawer.SetColor(pickupColor.to_hex())
+			}
+		}
+	},
+	
+	t: class extends CanvasDrawerTool {
+		tool(data, context) {
+		}
+	},
+}
+Tools.slow.prototype.stationaryReportInterval = 1
+Tools.slow.prototype.frameLock = true
+Tools.spray.prototype.stationaryReportInterval = 1
+Tools.spray.prototype.frameLock = true
+Tools.dropper.prototype.updateUndoBuffer = false
 
 class CanvasDrawerLayer {
-	constructor(canvas, id) {
+	constructor(canvas) {
 		this.canvas = canvas
 		this.opacity = 1.0
-		this.id = id || 0
+		this.id = 0
 	}
 }
 
@@ -288,15 +468,9 @@ class CanvasDrawer extends CanvasPerformer {
 		this.frameActions = []
 		this.undoBuffer = false
 		this.tools = {}
-		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover'])
-			this.tools[tool] = new CanvasDrawerTool(CanvasDrawer.tools[tool], CanvasDrawer.tools[tool+"_overlay"])
-		
-		this.tools.slow.stationaryReportInterval = 1
-		this.tools.spray.stationaryReportInterval = 1
-		this.tools.slow.frameLock = 1
-		this.tools.spray.frameLock = 1
-		this.tools.dropper.updateUndoBuffer = 0
-		this.tools.mover.interrupt = CanvasDrawer.tools.move_interrupt
+		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover']) {
+			this.tools[tool] = new Tools[tool]()
+		}
 		
 		this.overlay = false; //overlay is set with Attach. This false means nothing.
 		this.onlyInnerStrokes = true
@@ -321,7 +495,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.OnUndoStateChange = false
 		this.OnColorChange = false
 		this.OnAction = (data, context)=>{
-			if (this.CheckToolValidity('tool') && (data.action & CursorActions.Drag)) {
+			if (this.tool_has('tool') && (data.Drag)) {
 				data.color = this.color
 				data.lineWidth = this.lineWidth
 				data.lineShape = this.lineShape
@@ -337,10 +511,10 @@ class CanvasDrawer extends CanvasPerformer {
 					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
 				
 				//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
-				if (!this.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
+				if (!this.tool_has("cursor") && (data.Start)) 
 					;//this._canvas.style.cursor = this.defaultCursor
 				
-				if (data.action & CursorActions.Start) {
+				if (data.Start) {
 					data.oldX = data.x
 					data.oldY = data.y
 					data.startX = data.x
@@ -353,7 +527,7 @@ class CanvasDrawer extends CanvasPerformer {
 					data.startY = this.lastAction.startY
 				}
 				
-				if (this.CheckToolValidity('frameLock'))
+				if (this.tool_has('frameLock'))
 					this.frameActions.push({data, context})
 				else
 					this.PerformDrawAction(data, context)
@@ -368,8 +542,9 @@ class CanvasDrawer extends CanvasPerformer {
 			
 			//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
 			if (this.frameActions.length) {
-				for (let i=0; i < this.frameActions.length; i++) {
-					if (this.frameActions[i].data.action & (CursorActions.Start | CursorActions.End) || i === this.frameActions.length - 1) {
+				for (let i=0; i<this.frameActions.length; i++) {
+					let data = this.frameActions[i].data
+					if (data.Start || data.End || i==this.frameActions.length-1) {
 						this.PerformDrawAction(this.frameActions[i].data, this.frameActions[i].context)
 					}
 				}
@@ -377,7 +552,7 @@ class CanvasDrawer extends CanvasPerformer {
 				this.frameActions = []
 			}
 			//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
-			else if (this.CheckToolValidity("stationaryReportInterval") && this.CheckToolValidity("tool") && this.lastAction && (this.lastAction.action & CursorActions.Drag) && !(this.lastAction.action & (CursorActions.End)) && (frameCount % this.tools[this.currentTool].stationaryReportInterval) === 0) {
+			else if (this.tool_has('stationaryReportInterval') && this.tool_has('tool') && this.lastAction && this.lastAction.Drag && !this.lastAction.End && (frameCount % this.tools[this.currentTool].stationaryReportInterval)==0) {
 				this.PerformDrawAction(this.lastAction, this.GetCurrentCanvas().getContext("2d"))
 			}
 			
@@ -390,8 +565,9 @@ class CanvasDrawer extends CanvasPerformer {
 		return this._canvas
 	}
 	
-	CheckToolValidity(field) { 
-		return this.tools && this.tools[this.currentTool] && (!field || this.tools[this.currentTool][field])
+	tool_has(field) { 
+		let curr = this.tools[this.currentTool]
+		return curr && curr[field]
 	}
 	
 	SupportsUndo() {
@@ -472,10 +648,10 @@ class CanvasDrawer extends CanvasPerformer {
 		context.globalAlpha = 1.0; //this.opacity
 		bcontext.globalAlpha = this.opacity
 		
-		if ((data.action & CursorActions.Interrupt)) {
+		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
 			this.overlay.active = false
-			let interruptHandler = this.CheckToolValidity("interrupt")
+			let interruptHandler = this.tool_has("interrupt")
 			if (interruptHandler)
 				interruptHandler(data, bcontext, this)
 			//CanvasUtilities.Clear(this.overlay.canvas)
@@ -483,18 +659,18 @@ class CanvasDrawer extends CanvasPerformer {
 			//console.log("Clearing overlay")
 		}
 		
-		if (data.action & CursorActions.Start) {
-			if ((data.action & CursorActions.Interrupt) || (this.onlyInnerStrokes && !data.onTarget)) {
+		if (data.Start) {
+			if (data.Interrupt || (this.onlyInnerStrokes && !data.onTarget)) {
 				this.ignoreCurrentStroke = true
-				console.debug("ignoring stroke. Interrupt: " + ((data.action & CursorActions.Interrupt) > 0))
+				//console.debug("ignoring stroke. Interrupt: " + data.Interrupt)
 			} else {
-				if (this.CheckToolValidity("updateUndoBuffer"))
+				if (this.tool_has('updateUndoBuffer'))
 					this.UpdateUndoBuffer()
 			}
 		}
 		
 		//A special case: The last stroke that was valid was interrupted, so we need to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && (data.action & CursorActions.EndInterrupt) === CursorActions.EndInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
+		if (!this.ignoreCurrentStroke && data.EndInterrupt && this.tool_has('updateUndoBuffer')) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
@@ -504,7 +680,7 @@ class CanvasDrawer extends CanvasPerformer {
 		//Now actually perform the action.
 		if (!this.ignoreCurrentStroke) {
 			let bounding = this.tools[this.currentTool].tool(data, bcontext, this)
-			let overlay = this.CheckToolValidity("overlay")
+			let overlay = this.tool_has('overlay')
 			
 			if (overlay && this.overlay.canvas) {
 				let overlayContext = this.overlay.canvas.getContext("2d")
@@ -515,22 +691,21 @@ class CanvasDrawer extends CanvasPerformer {
 			}
 		}
 		
-		if (data.action & CursorActions.End) {
+		if (data.End) {
 			if (this.ignoreCurrentStroke)
-				console.debug("No longer ignoring stroke")
+				;//console.debug("No longer ignoring stroke")
 			this.ignoreCurrentStroke = false
 		}
 		
 		this.lastAction = data
 	}
 	
-	ResetUndoBuffer(size, canvasBlueprint) {
-		canvasBlueprint = canvasBlueprint || this._canvas
-		size = size || (this.undoBuffer.staticBuffer.length - 1)
-		this.undoBuffer = new UndoBuffer(size, size + 1)
+	ResetUndoBuffer(size, canvasBlueprint=this._canvas) {
+		size = size || (this.undoBuffer.staticBuffer.length-1)
+		this.undoBuffer = new UndoBuffer(size, size+1)
 		this.undoBuffer.staticBuffer = []
-		for (let i = 0; i < size + 1; i++) {
-			let layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint), -1)
+		for (let i=0; i<size+1; i++) {
+			let layer = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvasBlueprint))
 			this.undoBuffer.staticBuffer.push(layer)
 		}
 	}
@@ -546,9 +721,9 @@ class CanvasDrawer extends CanvasPerformer {
 			useToolOverlay = true
 		
 		if (useToolOverlay)
-			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas), -1)
+			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas))
 		else
-			this.overlay = new CanvasDrawerLayer(false, -1)
+			this.overlay = new CanvasDrawerLayer(null)
 		
 		if (undoCount)
 			this.ResetUndoBuffer(undoCount, mainCanvas)
@@ -639,215 +814,4 @@ class CanvasDrawer extends CanvasPerformer {
 			throw "Unknown CanvasDrawer version: " + object.version
 		}
 	}
-}
-// --- CanvasDrawer Tools ---
-// A bunch of predefined tools for your drawing pleasure
-CanvasDrawer.tools = {
-	//The most basic of tools: freehand (just like mspaint)
-	freehand(data, context) {
-		return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
-	},
-	eraser(data, context) {
-		return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth, true)
-	},
-	//Line tool (uses overlay)
-	line(data, context) {
-		if (data.action & CursorActions.End)
-			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-	},
-	line_overlay(data, context) {
-		if ((data.action & CursorActions.End) === 0)
-			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-		else
-			return false
-	},
-	//Square tool (uses overlay)
-	square(data, context) {
-		if (data.action & CursorActions.End) {
-			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-		}
-	},
-	square_overlay(data, context) {
-		if ((data.action & CursorActions.End) === 0) {
-			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-		} else {
-			return false
-		}
-	},
-	//Clear tool (just completely fills the current layer with color)
-	clear(data, context) {
-		if (data.action & CursorActions.End && data.onTarget) {
-			CanvasUtilities.Clear(context.canvas, data.color)
-		}
-	},
-	move(data, context, drawer) {
-		if (data.action & CursorActions.Start) {
-			drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
-			drawer.moveToolOffset = [0,0]
-			CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
-			return true; //just redraw everything. No point optimizing
-		} else if (data.action & CursorActions.End) {
-			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
-			drawer.moveToolLayer = false
-			return true; //just redraw everything. No point optimizing.
-		} else {
-			drawer.moveToolOffset[0] += (data.x - data.oldX)
-			drawer.moveToolOffset[1] += (data.y - data.oldY)
-			return false
-		}
-	},
-	move_overlay(data, context, drawer) {
-		if ((data.action & CursorActions.End) === 0) {
-			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
-			return true
-		} else {
-			return false
-		}
-	},
-	move_interrupt(data, context, drawer) {
-		//Just put the layer back.
-		CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer)
-		return true
-	},
-	//CanvasDrawer.MoveTool = function(data, context, drawer)
-	//{
-	//   if (!drawer.moveToolStage) drawer.moveToolStage = 0
-	//   if (!drawer.moveToolLocation) drawer.moveToolLocation = [0, 0]
-	//
-	//   switch(drawer.moveToolStage)
-	//   {
-	//      case 0: //Selecting
-	//         if (data.action & CursorActions.End && data.onTarget) 
-	//         {
-	//            var s = MathUtilities.GetSquare(data.startX, data.startY, data.x, data.y)
-	//            drawer.moveToolSelectData = CanvasUtilities.CreateCopy(context.canvas, true,
-	//               s[0], s[1], s[2], s[3])
-	//            drawer.moveToolLocation = [s[0], s[1]]
-	//            context.clearRect(s[0], s[1], s[2], s[3])
-	//            drawer.moveToolStage = 1
-	//            drawer.moveToolIsSelected = 0
-	//            console.debug("Moving to stage 1 of MoveTool. Selected area: " + s.join(","))
-	//         }
-	//         break
-	//      case 1: //Moving
-	//         if (drawer.moveToolIsSelected && (data.action & CursorActions.Start) === 0)
-	//         {
-	//            //Only actually move if this isn't the first data and the area is
-	//            //actually selected.
-	//            drawer.moveToolLocation[0] += (data.x - data.oldX)
-	//            drawer.moveToolLocation[1] += (data.y - data.oldY)
-	//         }
-	//         else if (!drawer.moveToolIsSelected && (data.action & CursorActions.End))
-	//         {
-	//            drawer.moveToolStage = 0
-	//            console.debug("Returning to stage 0 of MoveTool.")
-	//            return CanvasUtilities.OptimizedDrawImage(context, 
-	//               drawer.moveToolSelectData, drawer.moveToolLocation[0], 
-	//            drawer.moveToolLocation[1])
-	//         }
-	//         if (data.action & CursorActions.Start) 
-	//         {
-	//            var point = [data.x, data.y]
-	//            var square = [drawer.moveToolLocation[0], drawer.moveToolLocation[1], 
-	//               drawer.moveToolSelectData.width, drawer.moveToolSelectData.height]
-	//            if (!MathUtilities.IsPointInSquare(point, square)) drawer.moveToolIsSelected = 1
-	//         }
-	//         break
-	//   }
-	//}
-	//
-	//CanvasDrawer.MoveOverlay = function(data, context, drawer)
-	//{
-	//   switch(drawer.moveToolStage)
-	//   {
-	//      case 0:
-	//         return CanvasUtilities.DrawHollowRectangle(context, 
-	//            data.startX, data.startY, data.x, data.y, 1)
-	//      case 1:
-	//         return CanvasUtilities.OptimizedDrawImage(context, 
-	//            drawer.moveToolSelectData, drawer.moveToolLocation[0], 
-	//            drawer.moveToolLocation[1])
-	//   }
-	//}
-	
-	//Slow tool (courtesy of 12me21)
-	slow(data, context, drawer) {
-		if (drawer.slowAlpha === undefined)
-			drawer.slowAlpha = 0.15
-		
-		if (data.action & CursorActions.Start) {
-			drawer.avgX = data.x
-			drawer.avgY = data.y
-		}
-		drawer.oldX = drawer.avgX
-		drawer.oldY = drawer.avgY
-		if (data.action & CursorActions.Drag && !(data.action & CursorActions.End)) {
-			//var alpha=0.1
-			drawer.avgX = drawer.avgX*(1-drawer.slowAlpha)+data.x*drawer.slowAlpha
-			drawer.avgY = drawer.avgY*(1-drawer.slowAlpha)+data.y*drawer.slowAlpha
-		}
-		if (data.action & CursorActions.End) {
-			drawer.oldX =  data.x
-			drawer.oldY = data.y
-		}
-		if (data.action & (CursorActions.Drag | CursorActions.End)) {
-			return data.lineFunction(context, drawer.oldX, drawer.oldY, drawer.avgX, drawer.avgY, data.lineWidth)
-		}
-	},
-	//Spray tool (like mspaint)
-	spray(data, context, drawer) {
-		if (drawer.spraySpread === undefined)
-			drawer.spraySpread = 2
-		if (drawer.sprayRate === undefined)
-			drawer.sprayRate = 1 / 1.5
-		
-		if (data.action & CursorActions.Drag) {
-			let x, y, radius=data.lineWidth*drawer.spraySpread
-			let count = data.lineWidth * drawer.sprayRate
-			//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
-			//data.lineWidth * drawer.sprayRate
-			for (let i=0;i<count;i+=0.1) {
-				if (MathUtilities.IntRandom(10))
-					continue
-				do {
-					x = (Math.random()*2-1)*radius
-					y = (Math.random()*2-1)*radius
-				} while (x*x+y*y>radius*radius)
-				CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
-			}
-		}
-	},
-	fill(data, context, drawer) {
-		if (data.action & CursorActions.End) {
-			let sx = Math.floor(data.x)
-			let sy = Math.floor(data.y)
-			console.debug("Flood filling starting from " + sx + ", " + sy)
-			
-			let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-			let color = Color.from_hex(data.color)
-			
-			if (originalColor.compare_data(color.ToArray()))
-				return
-			
-			CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
-				let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-				if (originalColor.compare_data(d, i)) {
-					color.write_data(d, i)
-					return true
-				}
-				return false
-			})
-		}
-	},
-	dropper(data, context, drawer) {
-		if (data.action & CursorActions.End) {
-			let sx = Math.floor(data.x)
-			let sy = Math.floor(data.y)
-			let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
-			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
-			let copyContext = canvasCopy.getContext("2d")
-			let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-			drawer.SetColor(pickupColor.to_hex())
-		}
-	},
 }
