@@ -37,39 +37,14 @@ class CursorActionData {
 			}
 		}
 	}
-	set_action(bit, state) {
-		if (state)
-			this.action |= bit
-		else
-			this.action &= ~bit
-	}
-	get_action(bit) {
-		return (this.action & bit)==bit
-	}
+	get_action(bit) { return (this.action & bit)==bit }
 	get Start() { return this.get_action(1) }
-	set Start(v) { this.set_action(1, v) }
 	get End() { return this.get_action(2) }
-	set End(v) { this.set_action(2, v) }
 	get Drag() { return this.get_action(4) }
-	set Drag(v) { this.set_action(4, v) }
 	get Zoom() { return this.get_action(8) }
-	set Zoom(v) { this.set_action(8, v) }
 	get Pan() { return this.get_action(16) }
-	set Pan(v) { this.set_action(16, v) }
 	get Interrupt() { return this.get_action(32) }
-	set Interrupt(v) { this.set_action(32, v) }
 	get EndInterrupt() { return this.get_action(2|32) }
-	set EndInterrupt(v) { this.set_action(2|32, v) }
-}
-
-const CursorActions = {
-	Start: 1,
-	End: 2,
-	Drag: 4,
-	Zoom: 8,
-	Pan: 16,
-	Interrupt: 32,
-	EndInterrupt: 2|32,
 }
 
 const CursorModifiers = {
@@ -108,8 +83,8 @@ class CanvasPerformer {
 			//If we enter evTC and there is a last_touch_action, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
 			if (last_touch_action) {
 				if (nextAction)
-					extraAction |= CursorActions.Interrupt
-				let action = CursorActions.End | last_touch_action | extraAction
+					extraAction |= CanvasPerformer.INTERRUPT
+				let action = CanvasPerformer.END | last_touch_action | extraAction
 				this.Perform(ev, action, last_touch)
 			}
 			
@@ -118,12 +93,12 @@ class CanvasPerformer {
 			
 			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
 			if (last_touch_action) {
-				if (last_touch_action & CursorActions.Zoom) {
+				if (last_touch_action & CanvasPerformer.ZOOM) {
 					startZDistance = this.PinchDistance(ev.touches)
 					lastZDistance = 0
 				}
 				last_touch = this.TouchesToXY(last_touch_action, ev.touches)
-				let action = CursorActions.Start | last_touch_action | extraAction
+				let action = CanvasPerformer.START | last_touch_action | extraAction
 				this.Perform(ev, action, last_touch)
 			}
 		}
@@ -132,27 +107,25 @@ class CanvasPerformer {
 		
 		this._listeners = [
 			['mousedown', false, ev=>{
-				console.log('down')
 				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
-				let action = CursorActions.Start | last_mouse_action
+				let action = CanvasPerformer.START | last_mouse_action
 				this.Perform(ev, action, this.MouseToXY(ev))
 			}],
 			['touchstart', false, evtc],
 			['touchstart', false, evpd],
 			['wheel', false, ev=>{
-				let action = CursorActions.Start | CursorActions.End | CursorActions.Zoom
+				let action = CanvasPerformer.START | CanvasPerformer.END | CanvasPerformer.ZOOM
 				this.Perform(ev, action, this.MouseToXY(ev), -Math.sign(ev.deltaY) * this.WheelZoom)
 			}],
 			['contextmenu', false, evpd],
 			['mouseup', true, ev=>{
-				let action = CursorActions.End | last_mouse_action
+				let action = CanvasPerformer.END | last_mouse_action
 				this.Perform(ev, action, this.MouseToXY(ev))
 				last_mouse_action = 0
 			}],
 			['touchend', true, evtc],
 			['touchcancel', true, evtc],
 			['mousemove', true, ev=>{
-				console.log('move')
 				let action = this.ButtonsToAction(ev.buttons)
 				this.Perform(ev, action, this.MouseToXY(ev))
 			}],
@@ -160,7 +133,7 @@ class CanvasPerformer {
 				let action = this.TouchesToAction(e.touches.length)
 				last_touch = this.TouchesToXY(action, e.touches)
 				
-				if (action & CursorActions.Zoom) {
+				if (action & CanvasPerformer.ZOOM) {
 					let z = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
 					this.Perform(e, action, last_touch, z - lastZDistance)
 					lastZDistance = z
@@ -178,9 +151,9 @@ class CanvasPerformer {
 	//Convert the "buttons" field of a mouse event to the appropriate action
 	ButtonsToAction(buttons) {
 		if (buttons & this.DragButton)
-			return CursorActions.Drag
+			return CanvasPerformer.DRAG
 		else if (buttons & this.PanButton)
-			return CursorActions.Pan
+			return CanvasPerformer.PAN
 	}
 	
 	//Convert the touch count to an appropriate action
@@ -188,18 +161,18 @@ class CanvasPerformer {
 		let action = 0
 		
 		if (touches == this.DragTouches)
-			action |= CursorActions.Drag
+			action |= CanvasPerformer.DRAG
 		if (touches == this.ZoomTouches)
-			action |= CursorActions.Zoom
+			action |= CanvasPerformer.ZOOM
 		if (touches == this.PanTouches)
-			action |= CursorActions.Pan
+			action |= CanvasPerformer.PAN
 		
 		return action
 	}
 	
 	//Convert a touch array into a certain XY position based on the given action.
 	TouchesToXY(action, touchArray) {
-		if (action & CursorActions.Zoom) {
+		if (action & CanvasPerformer.ZOOM) {
 			return MathUtilities.Midpoint(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
 		}
 		
@@ -269,6 +242,13 @@ class CanvasPerformer {
 		}
 	}
 }
+CanvasPerformer.START = 1
+CanvasPerformer.END = 2
+CanvasPerformer.DRAG = 4
+CanvasPerformer.ZOOM = 8
+CanvasPerformer.PAN = 16
+CanvasPerformer.INTERRUPT = 32
+CanvasPerformer.END_INTERRUPT = 2|23
 
 class CanvasDrawerTool {
 }
@@ -381,9 +361,9 @@ let Tools = {
 	
 	spray: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
-			if (drawer.spraySpread === undefined)
+			if (drawer.spraySpread == undefined)
 				drawer.spraySpread = 2
-			if (drawer.sprayRate === undefined)
+			if (drawer.sprayRate == undefined)
 				drawer.sprayRate = 1 / 1.5
 			
 			if (data.Drag) {
@@ -657,7 +637,6 @@ class CanvasDrawer extends CanvasPerformer {
 				interruptHandler(data, bcontext, this)
 			//CanvasUtilities.Clear(this.overlay.canvas)
 			//UXUtilities.Toast("Disabling overlay")
-			//console.log("Clearing overlay")
 		}
 		
 		if (data.Start) {
