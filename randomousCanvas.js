@@ -61,7 +61,6 @@ class CanvasPerformer {
 		this.ZoomTouches = 2
 		this.PanTouches = 2
 		this.WheelZoom = 0.5
-		this.OnAction = null
 		
 		this._canvas = null
 		this.context = null
@@ -242,19 +241,23 @@ class CanvasPerformer {
 			this.OnAction(ca, this.context)
 	}
 }
+CanvasPerformer.prototype.OnAction = null
+
 CanvasPerformer.START = 1
 CanvasPerformer.END = 2
 CanvasPerformer.DRAG = 4
 CanvasPerformer.ZOOM = 8
 CanvasPerformer.PAN = 16
 CanvasPerformer.INTERRUPT = 32
-CanvasPerformer.END_INTERRUPT = 2|32
 
 CanvasPerformer.CTRL = 1
+
+
 
 
 class CanvasDrawerTool {
 }
+// why isn't there a syntax for this?
 CanvasDrawerTool.prototype.tool = null
 CanvasDrawerTool.prototype.overlay = null
 CanvasDrawerTool.prototype.interrupt = null
@@ -361,7 +364,6 @@ CanvasDrawerTool.tools = {
 			}
 		}
 	},
-	
 	spray: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
 			if (drawer.spraySpread == undefined)
@@ -386,7 +388,6 @@ CanvasDrawerTool.tools = {
 			}
 		}
 	},
-	
 	fill: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
 			if (data.End) {
@@ -411,7 +412,6 @@ CanvasDrawerTool.tools = {
 			}
 		}
 	},
-	
 	dropper: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
 			if (data.End) {
@@ -423,11 +423,6 @@ CanvasDrawerTool.tools = {
 				let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
 				drawer.SetColor(pickupColor.to_hex())
 			}
-		}
-	},
-	
-	t: class extends CanvasDrawerTool {
-		tool(data, context) {
 		}
 	},
 }
@@ -451,13 +446,13 @@ class CanvasDrawer extends CanvasPerformer {
 		super()
 		
 		this.frameActions = []
-		this.undoBuffer = false
+		this.undoBuffer = null
 		this.tools = {}
 		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover']) {
 			this.tools[tool] = new CanvasDrawerTool.tools[tool]()
 		}
 		
-		this.overlay = false; //overlay is set with Attach. This false means nothing.
+		this.overlay = null
 		this.onlyInnerStrokes = true
 		this.defaultCursor = 'crosshair'
 		this.currentLayer = 0
@@ -465,83 +460,86 @@ class CanvasDrawer extends CanvasPerformer {
 		this.color = "#000000"
 		this.opacity = 1
 		this.lineWidth = 2
-		//this.cursorColor = "rgb(128,128,128)"
 		this.lineShape = 'hardcircle'
 		
-		this.lastAction = false
+		this.lastAction = null
 		this.ignoreCurrentStroke = false
+		this.frameCount = 0
 		
 		//All private stuff that's only used for our internal functions.
-		let strokeCount = 0
-		let frameCount = 0
+		this.strokeCount = 0
 		
-		this.StrokeCount = ()=>strokeCount
+		this.OnUndoStateChange = null
+		this.OnColorChange = null
+	}
+	
+	OnAction(data, context) {
+		if (!this.tool_has('tool'))
+			return
+		if (!data.Drag)
+			return
+		data.color = this.color
+		data.lineWidth = this.lineWidth
+		data.lineShape = this.lineShape
+		data.opacity = this.opacity
 		
-		this.OnUndoStateChange = false
-		this.OnColorChange = false
-		this.OnAction = (data, context)=>{
-			if (this.tool_has('tool') && (data.Drag)) {
-				data.color = this.color
-				data.lineWidth = this.lineWidth
-				data.lineShape = this.lineShape
-				data.opacity = this.opacity
-				
-				if (this.lineShape === 'hardcircle')
-					data.lineFunction = CanvasUtilities.DrawSolidRoundLine
-				else if (this.lineShape === 'hardsquare')
-					data.lineFunction = CanvasUtilities.DrawSolidSquareLine
-				else if (this.lineShape === 'normalsquare')
-					data.lineFunction = CanvasUtilities.DrawNormalSquareLine
-				else
-					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
-				
-				//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
-				if (!this.tool_has("cursor") && (data.Start)) 
-					;//this._canvas.style.cursor = this.defaultCursor
-				
-				if (data.Start) {
-					data.oldX = data.x
-					data.oldY = data.y
-					data.startX = data.x
-					data.startY = data.y
-					strokeCount++
-				} else {
-					data.oldX = this.lastAction.x
-					data.oldY = this.lastAction.y
-					data.startX = this.lastAction.startX
-					data.startY = this.lastAction.startY
-				}
-				
-				if (this.tool_has('frameLock'))
-					this.frameActions.push({data, context})
-				else
-					this.PerformDrawAction(data, context)
-			}
+		if (this.lineShape === 'hardcircle')
+			data.lineFunction = CanvasUtilities.DrawSolidRoundLine
+		else if (this.lineShape === 'hardsquare')
+			data.lineFunction = CanvasUtilities.DrawSolidSquareLine
+		else if (this.lineShape === 'normalsquare')
+			data.lineFunction = CanvasUtilities.DrawNormalSquareLine
+		else
+			data.lineFunction = CanvasUtilities.DrawNormalRoundLine
+		
+		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
+		if (!this.tool_has("cursor") && data.Start) 
+			;//this._canvas.style.cursor = this.defaultCursor
+		
+		if (data.Start) {
+			data.oldX = data.x
+			data.oldY = data.y
+			data.startX = data.x
+			data.startY = data.y
+			this.strokeCount++
+		} else {
+			data.oldX = this.lastAction.x
+			data.oldY = this.lastAction.y
+			data.startX = this.lastAction.startX
+			data.startY = this.lastAction.startY
 		}
-		this._doFrame = ()=>{
-			frameCount++
-			
-			//Oh look, we were detached. How nice.
-			if (!this._canvas)
-				return
-			
-			//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
-			if (this.frameActions.length) {
-				for (let i=0; i<this.frameActions.length; i++) {
-					let data = this.frameActions[i].data
-					if (data.Start || data.End || i==this.frameActions.length-1) {
-						this.PerformDrawAction(this.frameActions[i].data, this.frameActions[i].context)
-					}
+		
+		if (this.tool_has('frameLock'))
+			this.frameActions.push({data, context})
+		else
+			this.PerformDrawAction(data, context)
+	}
+	
+	do_frame() {
+		this.frameCount++
+		//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
+		if (this.frameActions.length) {
+			for (let i=0; i<this.frameActions.length; i++) {
+				let data = this.frameActions[i].data
+				if (data.Start || data.End || i==this.frameActions.length-1) {
+					this.PerformDrawAction(
+						this.frameActions[i].data,
+						this.frameActions[i].context
+					)
 				}
-				
-				this.frameActions = []
-			}
-			//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
-			else if (this.tool_has('stationaryReportInterval') && this.tool_has('tool') && this.lastAction && this.lastAction.Drag && !this.lastAction.End && (frameCount % this.tools[this.currentTool].stationaryReportInterval)==0) {
-				this.PerformDrawAction(this.lastAction, this.context)
 			}
 			
-			requestAnimationFrame(this._doFrame)
+			this.frameActions = []
+		}
+		//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
+		else if (this.tool_has('stationaryReportInterval')) {
+			if (this.tool_has('tool')) {
+				let la = this.lastAction
+				if (la && la.Drag && !la.End) {
+					if ((this.frameCount % this.tools[this.currentTool].stationaryReportInterval)==0)
+						this.PerformDrawAction(la, this.context)
+				}
+			}
 		}
 	}
 	
@@ -661,7 +659,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let overlay = this.tool_has('overlay')
 			
 			if (overlay && this.overlay.canvas) {
-				let overlayContext = this.overlay.canvas.getContext("2d")
+				let overlayContext = this.overlay.canvas.getContext('2d')
 				overlayContext.fillStyle = this.color
 				overlayContext.globalAlpha = this.opacity
 				overlayContext.clearRect(0, 0, this.overlay.canvas.width, this.overlay.canvas.height)
@@ -690,14 +688,8 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
 	//overlays will be the same size as mainCanvas.
-	Attach(mainCanvas, undoCount, useToolOverlay) {
+	Attach(mainCanvas, undoCount=5, useToolOverlay=true) {
 		let i
-		
-		if (undoCount === undefined)
-			undoCount = 5
-		if (useToolOverlay === undefined)
-			useToolOverlay = true
-		
 		if (useToolOverlay)
 			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas))
 		else
@@ -708,10 +700,16 @@ class CanvasDrawer extends CanvasPerformer {
 		else
 			this.undoBuffer = false
 		
-		//mainCanvas.setAttribute("tabindex", "-1")
 		super.Attach(mainCanvas)
 		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
-		this._doFrame()
+		
+		let do_frame = ()=>{
+			if (!this._canvas)
+				return
+			this.do_frame()
+			requestAnimationFrame(do_frame)
+		}
+		do_frame()
 	}
 	
 	Detach() {

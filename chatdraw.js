@@ -103,7 +103,7 @@ class ChatDraw extends HTMLElement {
 			} else if (name=='redo') {
 				this.drawer.Redo()
 			} else if (name=='clear') {
-				if (this.drawer.StrokeCount())
+				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
 				this.clear()
 			}
