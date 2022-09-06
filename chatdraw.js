@@ -262,6 +262,7 @@ class ChatDraw extends HTMLElement {
 		btn.dataset.tool = tools[index]
 		btn.textContent = labels[index]
 		this.drawer.currentTool = btn.dataset.tool
+		console.log(this.drawer.currentTool, 'current tool')
 	}
 	
 	CreateCanvas() {

@@ -11,13 +11,13 @@
 console.trace = ()=>{}
 
 class CursorActionData {
-	constructor(action, [x, y], target, zoomDelta) {
+	constructor(action, [x, y], target, zoomDelta=null) {
 		this.action = action
 		this.x = x
 		this.y = y
 		this.realX = x //The real x and y relative to the canvas.
 		this.realY = y
-		this.zoomDelta = zoomDelta || false
+		this.zoomDelta = zoomDelta
 		this.onTarget = true
 		this.targetElement = target
 		this.time = Date.now()
@@ -44,7 +44,7 @@ class CursorActionData {
 			this.action &= ~bit
 	}
 	get_action(bit) {
-		return (this.action | bit)==bit
+		return (this.action & bit)==bit
 	}
 	get Start() { return this.get_action(1) }
 	set Start(v) { this.set_action(1, v) }
@@ -69,7 +69,6 @@ const CursorActions = {
 	Zoom: 8,
 	Pan: 16,
 	Interrupt: 32,
-	Ctrl: 64,
 	EndInterrupt: 2|32,
 }
 
@@ -133,6 +132,7 @@ class CanvasPerformer {
 		
 		this._listeners = [
 			['mousedown', false, ev=>{
+				console.log('down')
 				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
 				let action = CursorActions.Start | last_mouse_action
 				this.Perform(ev, action, this.MouseToXY(ev))
@@ -152,6 +152,7 @@ class CanvasPerformer {
 			['touchend', true, evtc],
 			['touchcancel', true, evtc],
 			['mousemove', true, ev=>{
+				console.log('move')
 				let action = this.ButtonsToAction(ev.buttons)
 				this.Perform(ev, action, this.MouseToXY(ev))
 			}],
@@ -354,7 +355,7 @@ let Tools = {
 	},
 	slow: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
-			if (drawer.slowAlpha === undefined)
+			if (drawer.slowAlpha == undefined)
 				drawer.slowAlpha = 0.15
 			
 			if (data.Start) {
@@ -369,7 +370,7 @@ let Tools = {
 				drawer.avgY = drawer.avgY*(1-drawer.slowAlpha)+data.y*drawer.slowAlpha
 			}
 			if (data.End) {
-				drawer.oldX =  data.x
+				drawer.oldX = data.x
 				drawer.oldY = data.y
 			}
 			if (data.Drag || data.End) {
@@ -567,7 +568,7 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	tool_has(field) { 
 		let curr = this.tools[this.currentTool]
-		return curr && curr[field]
+		return curr && (!field || curr[field])
 	}
 	
 	SupportsUndo() {
