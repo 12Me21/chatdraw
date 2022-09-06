@@ -6,8 +6,7 @@
 // NOTE: THIS LIBRARY REQUIRES randomous.js!
 
 // --- CursorActionData ---
-// Auxiliary object for describing generic cursor actions and data. Useful for
-// unified mouse/touch systems (like CanvasPerformer)
+// Auxiliary object for describing generic cursor actions and data. Useful for unified mouse/touch systems (like CanvasPerformer)
 
 console.trace = ()=>{}
 
@@ -41,8 +40,7 @@ const CursorModifiers = {
 }
 
 // --- CanvasPerformer ---
-// Allows simple actions using unified touch and mouse on a canvas. Useful for
-// drawing applications
+// Allows simple actions using unified touch and mouse on a canvas. Useful for drawing applications
 
 class CanvasPerformer {
 	constructor() {
@@ -82,8 +80,7 @@ class CanvasPerformer {
 		this._evMW = e=>{
 			this.Perform(e, new CursorActionData(CursorActions.Start | CursorActions.End | CursorActions.Zoom, e.clientX, e.clientY, -Math.sign(e.deltaY) * this.WheelZoom), this._canvas)
 		}
-		//Event for both "touch start" and "touch end". Creates a generic "cursor" action
-		//Event for "touch start". Creates a generic "cursor" action
+		//Event for both "touch start" and "touch end". Creates a generic "cursor" action Event for "touch start". Creates a generic "cursor" action
 		this._evTC = e=>{
 			console.trace("CanvasPerformer touch start/end event [" + e.touches.length + "]")
 			if (this.ZoomTouches !== 2)
@@ -92,10 +89,7 @@ class CanvasPerformer {
 			let extraAction = 0
 			let nextAction = this.TouchesToAction(e.touches.length)
 			
-			//If we enter evTC and there is a lastTAction, that means that last
-			//action has ended. Either we went from 1 touch to 0 or maybe 2 touches
-			//to 1 touch. Either way, that specific action has ended (2 touches is a
-			//zoom, 1 touch is a drag, etc.).
+			//If we enter evTC and there is a lastTAction, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
 			if (lastTAction) {
 				if (nextAction)
 					extraAction |= CursorActions.Interrupt
@@ -105,8 +99,7 @@ class CanvasPerformer {
 			//Move to the "next" action.
 			lastTAction = nextAction
 			
-			//if the user is ACTUALLY performing something (and this isn't just a 0
-			//touch event), THEN we're starting something here.
+			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
 			if (lastTAction) {
 				if (lastTAction & CursorActions.Zoom) {
 					startZDistance = this.PinchDistance(e.touches)
@@ -182,18 +175,14 @@ class CanvasPerformer {
 		return MathUtilities.Distance(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
 	}
 	
-	//Figure out the zoom difference (from the original) for a pinch. This is NOT
-	//the delta zoom between actions, just the delta zoom since the start of the
-	//pinch (or whatever is passed for oDistance)
+	//Figure out the zoom difference (from the original) for a pinch. This is NOT the delta zoom between actions, just the delta zoom since the start of the pinch (or whatever is passed for oDistance)
 	PinchZoom(distance, oDistance) {
 		return Math.log2(distance / oDistance)
 	}
 	
-	//System uses this function to determine if touches should be captured. Users
-	//can override this function to give their own rules for captured touches.
-	//Capturing a touch prevents scrolling.
+	//System uses this function to determine if touches should be captured. Users can override this function to give their own rules for captured touches. Capturing a touch prevents scrolling.
 	ShouldCapture(data) {
-		return data.onTarget; //this._canvas && (this._canvas === document.activeElement);   
+		return data.onTarget //this._canvas && (this._canvas === document.activeElement);   
 	}
 	
 	Attach(canvas) {
@@ -206,7 +195,7 @@ class CanvasPerformer {
 		canvas.style.touchAction = "none"
 		canvas.addEventListener("mousedown", this._evMD)
 		canvas.addEventListener("touchstart", this._evTC)
-		canvas.addEventListener("touchstart", this._evPrevent); //Stops initial tuochmove distance cutoff
+		canvas.addEventListener("touchstart", this._evPrevent) //Stops initial tuochmove distance cutoff
 		canvas.addEventListener("wheel", this._evMW)
 		canvas.addEventListener("contextmenu", this._evPrevent)
 		document.addEventListener("mouseup", this._evMU)
@@ -270,8 +259,7 @@ class CanvasPerformer {
 }
 
 // --- CanvasDrawer ---
-// Allows art programs to be created easily from an existing canvas. Full
-// functionality is achieved when layers and an overlay are provided.
+// Allows art programs to be created easily from an existing canvas. Full functionality is achieved when layers and an overlay are provided.
 
 class CanvasDrawerTool {
 	constructor(tool, overlay, cursor) {
@@ -357,8 +345,7 @@ class CanvasDrawer extends CanvasPerformer {
 				else
 					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
 				
-				//Replace this with some generic cursor drawing thing that takes both
-				//strings AND functions to draw the cursor.
+				//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 				if (!this.CheckToolValidity("cursor") && (data.action & CursorActions.Start)) 
 					;//this._canvas.style.cursor = this.defaultCursor
 				
@@ -487,8 +474,7 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	PerformDrawAction(data, context) {
-		//Ensure the drawing canvases are properly set up before we hand the data
-		//off to a tool action thingy.
+		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
 		let bcontext = this.GetCurrentCanvas().getContext("2d")
 		context.fillStyle = this.color
 		bcontext.fillStyle = this.color
@@ -496,8 +482,7 @@ class CanvasDrawer extends CanvasPerformer {
 		bcontext.globalAlpha = this.opacity
 		
 		if ((data.action & CursorActions.Interrupt)) {
-			//Interrupted? Clear the overlay... don't know what we were doing
-			//but whatever, man. Oh and call the tool's interrupt function...
+			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
 			this.overlay.active = false
 			let interruptHandler = this.CheckToolValidity("interrupt")
 			if (interruptHandler)
@@ -517,8 +502,7 @@ class CanvasDrawer extends CanvasPerformer {
 			}
 		}
 		
-		//A special case: The last stroke that was valid was interrupted, so we need
-		//to undo the stroke (only if the stroke wasn't ignored in the first place)
+		//A special case: The last stroke that was valid was interrupted, so we need to undo the stroke (only if the stroke wasn't ignored in the first place)
 		if (!this.ignoreCurrentStroke && (data.action & CursorActions.EndInterrupt) === CursorActions.EndInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
@@ -646,9 +630,7 @@ class CanvasDrawer extends CanvasPerformer {
 			CanvasUtilities.DrawDataURL(layer.canvas, buffer.canvas, 0, 0, redrawCheck)
 		}
 		
-		//Version 1 assumes you will already have set up your canvasdrawer in a way
-		//that you like, so the buffers and overlay canvas better be the same as
-		//what the stored object was.
+		//Version 1 assumes you will already have set up your canvasdrawer in a way that you like, so the buffers and overlay canvas better be the same as what the stored object was.
 		if (object.version === 1 || object.version == 2) {
 			this._canvas.width = object.width
 			this._canvas.height = object.height
@@ -864,7 +846,7 @@ class CanvasDrawer extends CanvasPerformer {
 			console.debug("Flood filling starting from " + sx + ", " + sy)
 			
 			let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-			let color = Color.from_input(data.color)
+			let color = Color.from_hex(data.color)
 			
 			if (originalColor.compare_data(color.ToArray()))
 				return
@@ -888,7 +870,7 @@ class CanvasDrawer extends CanvasPerformer {
 			drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
 			let copyContext = canvasCopy.getContext("2d")
 			let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-			drawer.SetColor(pickupColor.ToHexString())
+			drawer.SetColor(pickupColor.to_hex())
 		}
 	}
 }

@@ -76,18 +76,18 @@ class ChatDraw extends HTMLElement {
 			let e = event.currentTarget
 			let index = +e.dataset.index
 			let oldColor = this.palette[index]
-			let newColor = Color.from_input(e.value)
+			let newColor = Color.from_hex(e.value)
 			
 			this.SwapColor(oldColor, newColor)
 			this.setButtonColor(index, newColor)
-			this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
+			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 		}
 		
 		//Set up the various control buttons (like submit, clear, etc.)
 		this.$clear.onclick = ev=>{
 			if (this.drawer.StrokeCount())
 				this.drawer.UpdateUndoBuffer()
-			CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
+			CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 		}
 		this.$thickness.textContent = defaultLineWidth - 1
 		this.$thickness.dataset.width = defaultLineWidth - 1
@@ -125,8 +125,8 @@ class ChatDraw extends HTMLElement {
 		
 		this.$thickness.click()
 		freehandButton.click()
-		this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
-		CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
+		this.drawer.moveToolClearColor = this.getClearColor().to_hex()
+		CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 	}
 	
 	SwapColor(original, newColor) {
@@ -185,9 +185,9 @@ class ChatDraw extends HTMLElement {
 	setButtonColor(index, color) {
 		this.palette[index] = color
 		let btn = this.color_buttons[index]
-		btn.style.color = color.ToHexString()
+		btn.style.color = color.to_hex()
 		if (btn.hasAttribute('aria-selected'))
-			this.drawer.color = color.ToHexString()
+			this.drawer.color = color.to_hex()
 	}
 	
 	colorButtonSelect(index) {
@@ -196,7 +196,7 @@ class ChatDraw extends HTMLElement {
 			if (i==index) {
 				if (btn.hasAttribute('aria-selected')) {
 					this.$color_picker.dataset.index = i
-					this.$color_picker.value = this.palette[i].ToHexString()
+					this.$color_picker.value = this.palette[i].to_hex()
 					this.$color_picker.click()
 				} else {
 					btn.setAttribute('aria-selected', true)
@@ -204,7 +204,7 @@ class ChatDraw extends HTMLElement {
 			} else
 				btn.removeAttribute('aria-selected')
 		}
-		this.drawer.color = this.palette[index].ToHexString()
+		this.drawer.color = this.palette[index].to_hex()
 	}
 	
 	scaleInterface() {

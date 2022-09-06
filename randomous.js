@@ -22,14 +22,13 @@ class Color {
 		return true
 	}
 	
-	//Expected color but found ‘#0-ff01’.  Error in parsing value for ‘color’.  Declaration dropped.
-	ToHexString(includeAlpha) {
+	to_hex(includeAlpha) {
 		// todo: alpha
 		let num = this.color[0]<<16 | this.color[1]<<8 | this.color[2]
 		return "#"+num.toString(16).padStart(2*3, "0")
 	}
 	
-	static from_input(value) {
+	static from_hex(value) {
 		let num = parseInt(value.slice(1), 16)
 		return new this(num>>16&255, num>>8&255, num&255)
 	}
@@ -49,8 +48,7 @@ let CanvasUtilities = {
 		return newCanvas
 	},
 	CopyInto(context, canvas, x, y) {
-		//x and y are the offset locations to place the copy into on the
-		//receiving canvas
+		//x and y are the offset locations to place the copy into on the receiving canvas
 		x = x || 0
 		y = y || 0
 		let oldComposition = context.globalCompositeOperation
@@ -146,8 +144,7 @@ let CanvasUtilities = {
 		for (let i=0; i<dist; i+=0.5) {
 			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear)
 		}
-		//This is just an approximation and will most likely be larger than
-		//necessary. It is the bounding rectangle for the area that was updated
+		//This is just an approximation and will most likely be larger than necessary. It is the bounding rectangle for the area that was updated
 		return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width)
 	},
 	//How to draw a single point on the SolidSquare line
@@ -243,15 +240,13 @@ let CanvasUtilities = {
 		while (queueX.length) {
 			let column = queueX.shift()
 			let row = queueY.shift()
-			//Move west until it is just outside the range we want to fill. Move
-			//east in a similar manner.
+			//Move west until it is just outside the range we want to fill. Move east in a similar manner.
 			let west, east
 			for (west = column-1; west>=-1 && floodFunction(context, west, row, data); west--)
 				;
 			for (east = column+1; east<=canvas.width && floodFunction(context, east, row, data); east++)
 				;
-			//Move from west to east EXCLUSIVE and fill the queue with matching
-			//north and south nodes.
+			//Move from west to east EXCLUSIVE and fill the queue with matching north and south nodes.
 			for (column = west+1; column<east; column++) {
 				if (row+1 < canvas.height && floodFunction(context, column, row+1, data))
 					enqueue(column, row+1)
@@ -337,8 +332,7 @@ let MathUtilities = {
 }
 
 // --- UndoBuffer ---
-// Basically all undo buffers work the same, so here's a generic object you can
-// use for all your undo needs
+// Basically all undo buffers work the same, so here's a generic object you can use for all your undo needs
 
 class UndoBuffer {
 	constructor(maxSize, maxVirtualIndex) {
