@@ -261,32 +261,6 @@ let CanvasUtilities = {
 		}
 		context.putImageData(iData, 0, 0)
 	},
-	ToString(canvas) {
-		return canvas.toDataURL("image/png")
-	},
-	FromString(string) {
-		let canvas = document.createElement("canvas")
-		let image = new Image()
-		image.onload = ev=>{
-			canvas.width = image.width
-			canvas.height = image.height
-			canvas.getContext("2d").drawImage(image, 0, 0)
-		}
-		image.src = string
-		return canvas
-	},
-	//Draw the image from a data url into the given canvas.
-	DrawDataURL(string, canvas, x, y, callback) {
-		x = x || 0
-		y = y || 0
-		let image = new Image()
-		image.onload = ev=>{
-			canvas.getContext("2d").drawImage(image, x, y)
-			if (callback)
-				callback(canvas, image)
-		}
-		image.src = string
-	}
 }
 
 // --- Math Utilities ---

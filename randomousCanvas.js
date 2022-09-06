@@ -5,10 +5,12 @@
 // An enormous library full of canvas garbage
 // NOTE: THIS LIBRARY REQUIRES randomous.js!
 
+console.trace = ()=>{}
+
+
+
 // --- CursorActionData ---
 // Auxiliary object for describing generic cursor actions and data. Useful for unified mouse/touch systems (like CanvasPerformer)
-
-console.trace = ()=>{}
 
 class CursorActionData {
 	constructor(action, [x, y], target, zoomDelta=null) {
@@ -47,10 +49,7 @@ class CursorActionData {
 	get EndInterrupt() { return this.get_action(2|32) }
 }
 
-const CursorModifiers = {
-	Ctrl: 1, Alt: 2,
-}
-
+
 // --- CanvasPerformer ---
 // Allows simple actions using unified touch and mouse on a canvas. Useful for drawing applications
 
@@ -62,10 +61,11 @@ class CanvasPerformer {
 		this.ZoomTouches = 2
 		this.PanTouches = 2
 		this.WheelZoom = 0.5
-		this.OnAction = false
+		this.OnAction = null
 		
-		this._canvas = false
-		this._oldStyle = {}
+		this._canvas = null
+		this.context = null
+		this._oldStyle = ""
 		
 		let last_mouse_action = 0
 		let last_touch_action = 0
@@ -206,6 +206,7 @@ class CanvasPerformer {
 			throw "This CanvasPerformer is already attached to a canvas!"
 		
 		this._canvas = canvas
+		this.context = canvas.getContext('2d')
 		this._oldStyle = canvas.style.touchAction
 		canvas.style.touchAction = "none"
 		
@@ -220,26 +221,25 @@ class CanvasPerformer {
 		
 		this._canvas.style.touchAction = this._oldStyle
 		this._canvas = null
+		this.context = null
 	}
 	
-	Perform(e, action, pos, zoomDelta) {
+	Perform(ev, action, pos, zoomDelta) {
 		let canvas = this._canvas
-		let cursorData = new CursorActionData(action, pos, canvas, zoomDelta)
+		let ca = new CursorActionData(action, pos, canvas, zoomDelta)
 		
-		if (!cursorData.existent)
+		if (!ca.existent)
 			return
 		
-		if (e.ctrlKey)
-			cursorData.modifiers |= CursorModifiers.Ctrl
-		cursorData.onTarget = (e.target === canvas)
+		if (ev.ctrlKey)
+			ca.modifiers |= CanvasPerformer.CTRL
+		ca.onTarget = ev.target===canvas
 		
-		if (e && this.ShouldCapture(cursorData))
-			e.preventDefault()
+		if (ev && this.ShouldCapture(ca))
+			ev.preventDefault()
 		
-		if (this.OnAction) {
-			let context = canvas.getContext("2d")
-			this.OnAction(cursorData, context)
-		}
+		if (this.OnAction)
+			this.OnAction(ca, this.context)
 	}
 }
 CanvasPerformer.START = 1
@@ -248,8 +248,11 @@ CanvasPerformer.DRAG = 4
 CanvasPerformer.ZOOM = 8
 CanvasPerformer.PAN = 16
 CanvasPerformer.INTERRUPT = 32
-CanvasPerformer.END_INTERRUPT = 2|23
+CanvasPerformer.END_INTERRUPT = 2|32
 
+CanvasPerformer.CTRL = 1
+
+
 class CanvasDrawerTool {
 }
 CanvasDrawerTool.prototype.tool = null
@@ -259,7 +262,7 @@ CanvasDrawerTool.prototype.stationaryReportInterval = null
 CanvasDrawerTool.prototype.frameLock = false
 CanvasDrawerTool.prototype.updateUndoBuffer = true
 
-let Tools = {
+CanvasDrawerTool.tools = {
 	freehand: class extends CanvasDrawerTool {
 		tool(data, context) {
 			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
@@ -428,12 +431,13 @@ let Tools = {
 		}
 	},
 }
-Tools.slow.prototype.stationaryReportInterval = 1
-Tools.slow.prototype.frameLock = true
-Tools.spray.prototype.stationaryReportInterval = 1
-Tools.spray.prototype.frameLock = true
-Tools.dropper.prototype.updateUndoBuffer = false
+CanvasDrawerTool.tools.slow.prototype.stationaryReportInterval = 1
+CanvasDrawerTool.tools.slow.prototype.frameLock = true
+CanvasDrawerTool.tools.spray.prototype.stationaryReportInterval = 1
+CanvasDrawerTool.tools.spray.prototype.frameLock = true
+CanvasDrawerTool.tools.dropper.prototype.updateUndoBuffer = false
 
+
 class CanvasDrawerLayer {
 	constructor(canvas) {
 		this.canvas = canvas
@@ -450,7 +454,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = false
 		this.tools = {}
 		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover']) {
-			this.tools[tool] = new Tools[tool]()
+			this.tools[tool] = new CanvasDrawerTool.tools[tool]()
 		}
 		
 		this.overlay = false; //overlay is set with Attach. This false means nothing.
@@ -534,16 +538,11 @@ class CanvasDrawer extends CanvasPerformer {
 			}
 			//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
 			else if (this.tool_has('stationaryReportInterval') && this.tool_has('tool') && this.lastAction && this.lastAction.Drag && !this.lastAction.End && (frameCount % this.tools[this.currentTool].stationaryReportInterval)==0) {
-				this.PerformDrawAction(this.lastAction, this.GetCurrentCanvas().getContext("2d"))
+				this.PerformDrawAction(this.lastAction, this.context)
 			}
 			
 			requestAnimationFrame(this._doFrame)
 		}
-	}
-	
-	//Get the canvas that the user should currently be drawing on. 
-	GetCurrentCanvas() {
-		return this._canvas
 	}
 	
 	tool_has(field) { 
@@ -588,8 +587,8 @@ class CanvasDrawer extends CanvasPerformer {
 		currentState.id = nextState.id
 		this.currentLayer = nextState.id
 		//Now we simply put our current drawing into the buffer and apply the bufferr's state
-		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
-		CanvasUtilities.CopyInto(this.GetCurrentCanvas().getContext("2d"), nextState.canvas)
+		CanvasUtilities.CopyInto(currentState.canvas.getContext('2d'), this._canvas)
+		CanvasUtilities.CopyInto(this.context, nextState.canvas)
 		this.DoUndoStateChange()
 	}
 	
@@ -616,25 +615,24 @@ class CanvasDrawer extends CanvasPerformer {
 		console.trace("Updating undo buffer")
 		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
 		currentState.id = this.currentLayer
-		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
+		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this._canvas)
 		this.undoBuffer.Add(currentState)
 		this.DoUndoStateChange()
 	}
 	
 	PerformDrawAction(data, context) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
-		let bcontext = this.GetCurrentCanvas().getContext("2d")
 		context.fillStyle = this.color
-		bcontext.fillStyle = this.color
+		this.context.fillStyle = this.color
 		context.globalAlpha = 1.0; //this.opacity
-		bcontext.globalAlpha = this.opacity
+		this.context.globalAlpha = this.opacity
 		
 		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
 			this.overlay.active = false
 			let interruptHandler = this.tool_has("interrupt")
 			if (interruptHandler)
-				interruptHandler(data, bcontext, this)
+				interruptHandler(data, this.context, this)
 			//CanvasUtilities.Clear(this.overlay.canvas)
 			//UXUtilities.Toast("Disabling overlay")
 		}
@@ -659,7 +657,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//Now actually perform the action.
 		if (!this.ignoreCurrentStroke) {
-			let bounding = this.tools[this.currentTool].tool(data, bcontext, this)
+			let bounding = this.tools[this.currentTool].tool(data, this.context, this)
 			let overlay = this.tool_has('overlay')
 			
 			if (overlay && this.overlay.canvas) {
@@ -720,78 +718,5 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = false
 		this.overlay = false
 		super.Detach()
-	}
-	
-	ToString() {
-		//Version 1-2 assumes the width and height of all layers are the same.
-		let object = {version:2, width: this._canvas.width, height: this._canvas.height}
-		let layers = []
-		
-		let layerToObject = (layer)=>{
-			return {
-				canvas: CanvasUtilities.ToString(layer.canvas),
-				opacity: layer.opacity
-			}
-		}
-		
-		object.buffered = false
-		layers.push({
-			canvas: CanvasUtilities.ToString(this._canvas),
-			opacity: 1.0
-		})
-		
-		object.layers = layers
-		
-		return JSON.stringify(object)
-	}
-	
-	FromString(string, callback) {
-		let object = JSON.parse(string)
-		
-		//Version 1 stuff. May be used in other versions as well.
-		let version1LoadComplete = ()=>{
-			this.ResetUndoBuffer()
-			if (callback)
-				callback(this, object)
-		}
-		let version1LayerLoad = (layer, buffer, redrawCheck)=>{
-			CanvasUtilities.DrawDataURL(layer, buffer.canvas, 0, 0, redrawCheck)
-		}
-		let version1BufferLoad = (layerLoadFunction)=>{
-			let loadedBuffers = 0
-			let redrawCheck = ()=>{
-				loadedBuffers++
-				if (loadedBuffers >= object.layers.length)
-					version1LoadComplete()
-			}
-			for (let i = 0; i < object.layers.length; i++) {
-				this.buffers[i].canvas.width = object.width
-				this.buffers[i].canvas.height = object.height
-				layerLoadFunction(object.layers[i], this.buffers[i], redrawCheck)
-			}
-		}
-		
-		let version2LayerLoad = (layer, buffer, redrawCheck)=>{
-			buffer.opacity = layer.opacity
-			CanvasUtilities.DrawDataURL(layer.canvas, buffer.canvas, 0, 0, redrawCheck)
-		}
-		
-		//Version 1 assumes you will already have set up your canvasdrawer in a way that you like, so the buffers and overlay canvas better be the same as what the stored object was.
-		if (object.version === 1 || object.version == 2) {
-			this._canvas.width = object.width
-			this._canvas.height = object.height
-			
-			let loadLayerFunction = version1LayerLoad
-			if (object.version === 2)
-				loadLayerFunction = version2LayerLoad
-			
-			if (object.buffered) {
-				version1BufferLoad(loadLayerFunction)
-			} else {
-				loadLayerFunction(object.layers[0], {canvas:this._canvas}, version1LoadComplete)
-			}
-		} else {
-			throw "Unknown CanvasDrawer version: " + object.version
-		}
 	}
 }
