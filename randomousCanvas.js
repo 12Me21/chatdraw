@@ -61,7 +61,7 @@ class CanvasPerformer {
 		let lastTAction = 0
 		let startZDistance = 0
 		let lastZDistance = 0
-		let lastTPosition = [-1,-1]
+		let lastTPosition = [-1, -1]
 		
 		//Event for "mouse down". Creates a generic "cursor" action
 		this._evMD = e=>{
@@ -73,18 +73,18 @@ class CanvasPerformer {
 			this.Perform(e, new CursorActionData(action | lastMAction, e.clientX, e.clientY), this._canvas)
 		}
 		//Event for "mouse up". Creates a generic "cursor" action
-		this._evMU = (e)=>{
+		this._evMU = e=>{
 			console.trace("CanvasPerformer mouse up")
 			this.Perform(e, new CursorActionData(CursorActions.End | lastMAction, e.clientX, e.clientY), this._canvas)
 			lastMAction = 0
 		}
 		//Event for the "wheel". Creates a generic "cursor" action
-		this._evMW = (e)=>{
+		this._evMW = e=>{
 			this.Perform(e, new CursorActionData(CursorActions.Start | CursorActions.End | CursorActions.Zoom, e.clientX, e.clientY, -Math.sign(e.deltaY) * this.WheelZoom), this._canvas)
 		}
 		//Event for both "touch start" and "touch end". Creates a generic "cursor" action
 		//Event for "touch start". Creates a generic "cursor" action
-		this._evTC = (e)=>{
+		this._evTC = e=>{
 			console.trace("CanvasPerformer touch start/end event [" + e.touches.length + "]")
 			if (this.ZoomTouches !== 2)
 				throw "Zoom must use 2 fingers!"
@@ -117,11 +117,11 @@ class CanvasPerformer {
 			}
 		}
 		//Event for "mouse move". Creates a generic "cursor" action.
-		this._evMM = (e)=>{
+		this._evMM = e=>{
 			this.Perform(e, new CursorActionData(this.ButtonsToAction(e.buttons), e.clientX, e.clientY), this._canvas)
 		}
 		//Event for "touch move". Creates a generic "cursor" action.
-		this._evTM = (e)=>{
+		this._evTM = e=>{
 			let action = this.TouchesToAction(e.touches.length)
 			lastTPosition = this.TouchesToXY(action, e.touches)
 			
@@ -133,7 +133,7 @@ class CanvasPerformer {
 				this.Perform(e, new CursorActionData(action, lastTPosition[0], lastTPosition[1]), this._canvas)
 			}
 		}
-		this._evPrevent = (e)=>{
+		this._evPrevent = e=>{
 			e.preventDefault()
 		}
 	}
@@ -841,7 +841,7 @@ class CanvasDrawer extends CanvasPerformer {
 			drawer.sprayRate = 1 / 1.5
 		
 		if (data.action & CursorActions.Drag) {
-			let x,y,radius=data.lineWidth*drawer.spraySpread
+			let x, y, radius=data.lineWidth*drawer.spraySpread
 			let count = data.lineWidth * drawer.sprayRate
 			//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
 			//data.lineWidth * drawer.sprayRate
@@ -849,8 +849,8 @@ class CanvasDrawer extends CanvasPerformer {
 				if (MathUtilities.IntRandom(10))
 					continue
 				do {
-					x=(Math.random()*2-1)*radius
-					y=(Math.random()*2-1)*radius
+					x = (Math.random()*2-1)*radius
+					y = (Math.random()*2-1)*radius
 				} while (x*x+y*y>radius*radius)
 				CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
 			}
