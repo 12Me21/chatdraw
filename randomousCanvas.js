@@ -865,8 +865,8 @@ class CanvasDrawer extends CanvasPerformer {
 			
 			let originalColor = CanvasUtilities.GetColor(context, sx, sy)
 			let color = Color.from_input(data.color)
-			let ocolorArray = originalColor.ToArray(true)
-			let colorArray = color.ToArray(true)
+			let ocolorArray = originalColor.ToArray()
+			let colorArray = color.ToArray()
 			
 			check: {
 				for (let j=0; j<4; j++)

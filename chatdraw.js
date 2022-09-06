@@ -132,8 +132,8 @@ class ChatDraw extends HTMLElement {
 	SwapColor(original, newColor) {
 		let iData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
 		let data = iData.data
-		let oldArray = original.ToArray(true)
-		let newArray = newColor.ToArray(true)
+		let oldArray = original.ToArray()
+		let newArray = newColor.ToArray()
 		
 		loop: for (let i=0; i<data.length; i+=4) {
 			for (let j=0; j<4; j++)

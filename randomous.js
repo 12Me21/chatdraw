@@ -11,31 +11,19 @@
 // Functions objects for working with colors in a generic way. Any canvas
 // functions will use this object rather than some specific format.
 class Color {
-	constructor(r, g, b, a=1) {
-		this.r = r
-		this.g = g
-		this.b = b
-		this.a = a; //This should be a decimal a ranging from 0 to 1
+	constructor(r, g, b, a=255) {
+		this.color = [r,g,b,a]
 	}
 	
-	ToArray(expandedAlpha) {
-		return [this.r, this.g, this.b, this.a * (expandedAlpha ? 255 : 1)]
+	ToArray() {
+		return this.color
 	}
 	
 	//Expected color but found ‘#0-ff01’.  Error in parsing value for ‘color’.  Declaration dropped.
 	ToHexString(includeAlpha) {
 		// todo: alpha
-		let num = this.r<<16 | this.g<<8 | this.b
+		let num = this.color[0]<<16 | this.color[1]<<8 | this.color[2]
 		return "#"+num.toString(16).padStart(2*3, "0")
-	}
-	
-	//Find the maximum difference between the channels of two colors.
-	MaxDifference(compareColor) {
-		return Math.max(
-			Math.abs(this.r - compareColor.r), 
-			Math.abs(this.g - compareColor.g), 
-			Math.abs(this.b - compareColor.b), 
-			Math.abs(this.a - compareColor.a) * 255)
 	}
 	
 	static from_input(value) {
@@ -228,18 +216,9 @@ let CanvasUtilities = {
 	},
 	GetColor(context, x, y) {
 		let data = context.getImageData(x, y, 1, 1).data
-		return new Color(data[0], data[1], data[2], data[3] / 255)
+		return new Color(data[0], data[1], data[2], data[3])
 	},
-	GetColorFromData(data, i) {
-		return new Color(data[i], data[i+1], data[i+2], data[i+3]/255)
-	},
-	//PutColorInData: function(color, data, i)
-	//{
-	//   var array = color.ToArray(true)
-	//   for (var i = 0; i < 
-	//},
-	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate
-	//falls outside the canvas.
+	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate falls outside the canvas.
 	ImageDataCoordinate(context, x, y) {
 		if (x < 0 || x >= context.canvas.width || y < 0 || y >= context.canvas.height)
 			return -1
