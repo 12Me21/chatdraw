@@ -87,7 +87,6 @@ class ChatDraw extends HTMLElement {
 			if (this.drawer.StrokeCount())
 				this.drawer.UpdateUndoBuffer()
 			CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
-			this.drawer.Redraw()
 		}
 		this.$thickness.textContent = defaultLineWidth - 1
 		this.$thickness.dataset.width = defaultLineWidth - 1
@@ -127,6 +126,7 @@ class ChatDraw extends HTMLElement {
 		this.$thickness.click()
 		freehandButton.click()
 		this.drawer.moveToolClearColor = this.getClearColor().ToHexString()
+		CanvasUtilities.Clear(this.canvas, this.getClearColor().ToHexString())
 	}
 	
 	connectedCallback() {
@@ -224,7 +224,7 @@ class ChatDraw extends HTMLElement {
 			let toolButtons = this.tool_buttons
 			for (let i=0; i<toolButtons.length; i++) {
 				if (toolButtons[i]!==btn) {
-					btn.removeAttribute("aria-selected")
+					toolButtons[i].removeAttribute("aria-selected")
 				}
 			}
 			//Now figure out if we're just selecting this button or cycling
@@ -265,46 +265,43 @@ ChatDraw.template = HTML`
 	<button $=toggle>✎</button>
 </button-area>
 <input $=color_picker type=color hidden>
+
 <style>
 :host {
 	display: flex;
 	flex-flow: column;
 	--scale: 1;
 	width: min-content;
+	background: #BBB;
+	padding: 1px;
 }
 
 canvas-container {
 	position: relative;
+	margin-bottom: 1px;
+	cursor: crosshair;
+	box-sizing: content-box;
+	width: calc(var(--scale) * 200px);
+	height: calc(var(--scale) * 100px);
 }
 
 canvas {
-	display: inline-block;
-	margin: 0.0rem;
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	padding: 0;
-	box-sizing: content-box;
-	vertical-align: bottom;
+	border: none;
 	image-rendering: -moz-crisp-edges;
 	image-rendering: crisp-edges;
 	image-rendering: optimizespeed;
 	image-rendering: pixelated;
-	border: 1px solid #BBB;
-	width: calc(var(--scale) * 200px);
-	cursor: crosshair;
-}
-
-.overlay {
-	position: absolute;
-	left: 0;
-	top: 0;
 }
 
 button-area {
 	display: flex;
 	justify-content: flex-end;
-	font-size: 0;
 	background: #E9E9E6;
-	border: 1px #BBB;
-	border-style: none solid;
 }
 
 button-area button {
