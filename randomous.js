@@ -6,9 +6,6 @@
 
 // ---- List of utilities ----
 // * HTMLUtilities
-// * StorageUtilities
-// * RequestUtilities
-// * StyleUtilities
 // * CanvasUtilities
 // * EventUtilities
 // * ScreenUtilities
@@ -79,65 +76,6 @@ let HTMLUtilities = {
 	}
 }
 
-// --- StorageUtilities ---
-// Retrieve and store data put into browser storage (such as cookies,
-// localstorage, etc.
-
-let StorageUtilities = {
-	WriteLocal(name, value) {
-		localStorage.setItem(name, JSON.stringify(value))
-	},
-	ReadLocal(name) {
-		try {
-			return JSON.parse(localStorage.getItem(name))
-		} catch(error) {
-			//console.log("Failed to retrieve " + name + " from local storage")
-			return undefined
-		}
-	}
-}
-
-// --- Request ---
-// Helpers for POST/GET requests
-
-let RequestUtilities = {
-	XHRSimple(page, callback, data, extraHeaders) {
-		let xhr = new XMLHttpRequest()
-		
-		if (data)
-			xhr.open("POST", page)
-		else
-			xhr.open("GET", page)
-		
-		if (extraHeaders) {
-			for (let key in extraHeaders) {
-				if (extraHeaders.hasOwnProperty(key))
-					xhr.setRequestHeader(key, extraHeaders[key])
-			}
-		}
-		
-		//Use generic completion function with given success callback
-		xhr.onload = event=>{
-			try {
-				callback(event.target.response)
-			} catch(e) {
-				console.log("Oops, XHR callback didn't work. Dumping exception")
-				console.log(e)
-			}
-		}
-		
-		if (data)
-			xhr.send(data)
-		else
-			xhr.send()
-	},
-	XHRJSON(page, callback, data) {
-		RequestUtilities.XHRSimple(page, (response)=>{
-			callback(JSON.parse(response))
-		}, data, {"Content-type": "application/json"})
-	}
-}
-
 // --- Color / Color Utilities ---
 // Functions objects for working with colors in a generic way. Any canvas
 // functions will use this object rather than some specific format.
@@ -187,71 +125,10 @@ class Color {
 	}
 }
 
-// --- StyleUtilities ---
-// Functions for working with styles and colors. Some of these may have a poor
-// runtime
-
-let StyleUtilities = {
-	_cContext: document.createElement("canvas").getContext("2d"),
-	GetColor(input) {
-		this._cContext.clearRect(0,0,1,1)
-		this._cContext.fillStyle = input
-		this._cContext.fillRect(0,0,1,1)
-		let data = this._cContext.getImageData(0,0,1,1).data
-		return new Color(data[0], data[1], data[2], data[3] / 255)
-	},
-	//Converts width and height into the true width and height on the device (or as close to it, anyway). Usefull mostly for canvases.
-	GetTrueRect(element) {
-		window.devicePixelRatio = window.devicePixelRatio || 1
-		let pixelRatio = 1
-		let rect = element.getBoundingClientRect()
-		rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / window.devicePixelRatio
-		rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / window.devicePixelRatio
-		return rect
-	},
-}
-StyleUtilities._cContext.canvas.width = StyleUtilities._cContext.canvas.height = 1
-
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
 let CanvasUtilities = {
-	//WARNING! This function breaks canvases without a style set width or height 
-	//on devices with a higher devicePixelRatio than 1 O_O
-	AutoSize(canvas) {
-		let rect = StyleUtilities.GetTrueRect(canvas)
-		canvas.width = rect.width
-		canvas.height = rect.height
-	},
-	//Basically the opposite of autosize: sets the style to match the canvas
-	//size.
-	AutoStyle(canvas) {
-		canvas.style.width = canvas.width + "px"
-		canvas.style.height = canvas.height + "px"
-	},
-	GetScaling(canvas) {
-		let rect = StyleUtilities.GetTrueRect(canvas)
-		return [rect.width / canvas.width, rect.height / canvas.height]
-	},
-	//Set scaling of canvas. Alternatively, set the scaling of the given element
-	//(canvas will remain unaffected)
-	SetScaling(canvas, scale, element) {
-		if (!Array.isArray(scale))
-			scale = [scale, scale]
-		let oldWidth = canvas.style.width
-		let oldHeight = canvas.style.height
-		canvas.style.width = canvas.width + "px"
-		canvas.style.height = canvas.height + "px"
-		let rect = StyleUtilities.GetTrueRect(canvas)
-		if (element) {
-			canvas.style.width = oldWidth || ""
-			canvas.style.height = oldHeight || ""
-		} else {
-			element = canvas
-		}
-		element.style.width = (rect.width * scale[0]) + "px"
-		element.style.height = (rect.height * scale[1]) + "px"
-	},
 	CreateCopy(canvas, copyImage, x=0, y=0, width=canvas.width, height=canvas.height) {
 		// Width and height are cropping, not scaling. X and Y are the place to start the copy within the original canvas 
 		let newCanvas = document.createElement('canvas')

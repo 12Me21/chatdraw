@@ -909,7 +909,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data
 			
 			let originalColor = CanvasUtilities.GetColor(copyContext, sx, sy)
-			let color = StyleUtilities.GetColor(data.color)
+			let color = Color.from_input(data.color)
 			let ocolorArray = originalColor.ToArray(true)
 			let colorArray = color.ToArray(true)
 			if (color.MaxDifference(originalColor) <= drawer.floodThreshold)
