@@ -47,7 +47,7 @@ class ChatDraw extends HTMLElement {
 		this.attachShadow({mode: 'open'})
 		this.shadowRoot.append(this.$root)
 		
-		this.width = 100
+		this.width = 200
 		this.height = 100
 		
 		this.canvas = this.CreateCanvas()
@@ -116,7 +116,7 @@ class ChatDraw extends HTMLElement {
 				this.drawer.UpdateUndoBuffer()
 			CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 		}
-		this.$thickness.textContent = defaultLineWidth - 1
+		this.$thickness.value = defaultLineWidth - 1
 		this.$thickness.dataset.width = defaultLineWidth - 1
 		this.$thickness.onclick = ev=>{ this.widthToggle() }
 		this.$send.onclick = ev=>{ this.sendDrawing() }
@@ -206,7 +206,7 @@ class ChatDraw extends HTMLElement {
 	
 	widthToggle() {
 		let width = (+this.$thickness.dataset.width % this.maxLineWidth) + 1
-		this.$thickness.textContent = width
+		this.$thickness.value = width
 		this.$thickness.dataset.width = width
 		this.drawer.lineWidth = width
 	}
@@ -291,18 +291,18 @@ ChatDraw.template = HTML`
 <canvas-container $=container></canvas-container>
 <form $=form>
 	<fieldset>
-		<button type=button $=zoom>◲</button>
-		<button type=button $=undo>↶</button>
-		<button type=button $=redo>↷</button>
+		<input type=button $=zoom value="◲">
+		<input type=button $=undo value="↶">
+		<input type=button $=redo value="↷">
 		<br $=colors>
-		<button type=button $=send data-button="sendDrawing">➥</button>
+		<input type=button $=send value="➥">
 	</fieldset>
 	<fieldset>
 		<br $=tool1>
-		<button type=button $=clear>❌️</button>
-		<button type=button $=thickness>0</button>
+		<input type=button $=clear value="❌️">
+		<input type=button $=thickness value="0">
 		<br $=tool2>
-		<button type=button $=toggle>✎</button>
+		<input type=button $=toggle value="✎">
 	</fieldset>
 </form>
 <input $=color_picker type=color hidden>
@@ -352,7 +352,7 @@ fieldset {
 	background: #E9E9E6;
 }
 
-button, input {
+input {
 	flex: none;
 	appearance: none;
 	border: none;
@@ -364,19 +364,20 @@ button, input {
 	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
+	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
 }
 
-button:hover, input:hover {
+input:hover {
 	background: #2929291A;
 }
 
-button:disabled, input:disabled {
+input:disabled {
 	color: #666;
 	background: #2929291A;
 }
 
-button[aria-selected], input:checked {
+input:checked {
 	color: #E9E9E6;
 	background: #666;
 }
