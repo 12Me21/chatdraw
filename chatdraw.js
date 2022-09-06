@@ -324,6 +324,9 @@ button-area button {
 	border: none;
 	border-radius: unset;
 	outline: none;
+	padding: 0;
+	margin: 0;
+	text-align: center;
 	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
@@ -359,3 +362,6 @@ customElements.define('chat-draw', ChatDraw)
 // todo: why don't we just use radio buttons for tools and colors?
 
 // erode/dilate tool would be neat
+
+// what if fills and strokes used different colors like
+// you could draw a red circle outline, fill it with red, and then fill it with some other color and the red would be back?
