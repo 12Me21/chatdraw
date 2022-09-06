@@ -67,6 +67,7 @@ class ChatDraw extends HTMLElement {
 			this.$undo.disabled = !this.drawer.CanUndo()
 			this.$redo.disabled = !this.drawer.CanRedo()
 		}
+		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
@@ -130,7 +131,7 @@ class ChatDraw extends HTMLElement {
 	
 	connectedCallback() {
 		let scale = Math.floor((window.screen.width - 200) / 200)
-		this.style.setProperty('--scale', MathUtilities.MinMax(scale, 1, 3))
+		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
 	}
 	
 	//Send the current drawing to the chat.
@@ -343,3 +344,5 @@ let BaseColors = [
 ]
 
 customElements.define('chat-draw', ChatDraw)
+
+// todo: why don't we just use radio buttons for tools and colors?

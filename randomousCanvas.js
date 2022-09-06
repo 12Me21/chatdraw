@@ -91,7 +91,8 @@ class CanvasPerformer {
 			//to 1 touch. Either way, that specific action has ended (2 touches is a
 			//zoom, 1 touch is a drag, etc.).
 			if (lastTAction) {
-				if (nextAction) extraAction |= CursorActions.Interrupt
+				if (nextAction)
+					extraAction |= CursorActions.Interrupt
 				this.Perform(e, new CursorActionData(CursorActions.End | lastTAction | extraAction, lastTPosition[0], lastTPosition[1]), this._canvas)
 			}
 			
@@ -132,8 +133,10 @@ class CanvasPerformer {
 	}
 	
 	GetModifiedCursorData(data, e) {
-		if (!e) return data
-		if (e.ctrlKey) data.modifiers |= CursorModifiers.Ctrl
+		if (!e)
+			return data
+		if (e.ctrlKey)
+			data.modifiers |= CursorModifiers.Ctrl
 		return data
 	}
 	
@@ -234,7 +237,8 @@ class CanvasPerformer {
 		let scalingY = canvas.clientHeight / canvas.height
 		
 		//Do NOTHING if the canvas is non-existent
-		if (scalingX <= 0 || scalingY <= 0) return
+		if (scalingX <= 0 || scalingY <= 0)
+			return
 		
 		cursorData = this.GetModifiedCursorData(cursorData, e)
 		// assumes 1px border
@@ -254,7 +258,8 @@ class CanvasPerformer {
 			e.preventDefault()
 		}
 		
-		if (this.OnAction) this.OnAction(cursorData, context)
+		if (this.OnAction)
+			this.OnAction(cursorData, context)
 	}
 }
 
@@ -501,7 +506,8 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	UpdateUndoBuffer() {
-		if (!this.SupportsUndo()) return
+		if (!this.SupportsUndo())
+			return
 		console.trace("Updating undo buffer")
 		let currentState = this.undoBuffer.staticBuffer[this.undoBuffer.virtualIndex]
 		currentState.id = this.currentLayer
@@ -678,7 +684,8 @@ class CanvasDrawer extends CanvasPerformer {
 			this._canvas.height = object.height
 			
 			let loadLayerFunction = version1LayerLoad
-			if (object.version === 2) loadLayerFunction = version2LayerLoad
+			if (object.version === 2)
+				loadLayerFunction = version2LayerLoad
 			
 			if (object.buffered) {
 				version1BufferLoad(loadLayerFunction)
@@ -858,8 +865,10 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	//Spray tool (like mspaint)
 	static SprayTool(data, context, drawer) {
-		if (drawer.spraySpread === undefined) drawer.spraySpread = 2
-		if (drawer.sprayRate === undefined) drawer.sprayRate = 1 / 1.5
+		if (drawer.spraySpread === undefined)
+			drawer.spraySpread = 2
+		if (drawer.sprayRate === undefined)
+			drawer.sprayRate = 1 / 1.5
 		
 		if (data.action & CursorActions.Drag) {
 			let x,y,radius=data.lineWidth*drawer.spraySpread

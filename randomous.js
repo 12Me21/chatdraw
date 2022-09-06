@@ -443,9 +443,7 @@ class Color {
 	}
 	
 	ToHexString(includeAlpha) {
-		let string = "#" + this.r.toString(16).padStart(2, "0") + 
-			this.g.toString(16).padStart(2, "0") + 
-			this.b.toString(16).padStart(2, "0")
+		let string = "#" + this.r.toString(16).padStart(2, "0") + this.g.toString(16).padStart(2, "0") + this.b.toString(16).padStart(2, "0")
 		
 		if (includeAlpha)
 			string += (255 * this.a).toString(16).padStart(2, "0")
@@ -503,22 +501,25 @@ let StyleUtilities = {
 		mStyle.appendChild(document.createTextNode(""))
 		mStyle.nextInsert = 0
 		mStyle.Append = function(selectors, rules) {
-			let i, finalSelectors = []
-			if (!Array.isArray(selectors)) selectors = [ selectors ]
-			if (!Array.isArray(rules)) rules = [ rules ]
-			for (i = 0; i < selectors.length; i++) {
-				if (!Array.isArray(selectors[i])) selectors[i] = [ selectors[i] ]
+			let finalSelectors = []
+			if (!Array.isArray(selectors))
+				selectors = [selectors]
+			if (!Array.isArray(rules))
+				rules = [rules]
+			for (let i=0; i<selectors.length; i++) {
+				if (!Array.isArray(selectors[i]))
+					selectors[i] = [selectors[i]]
 				finalSelectors.push(selectors[i].join(" "))
 			}
-			mStyle.sheet.insertRule(
-				finalSelectors.join(",") + "{" + rules.join(";") + "}", mStyle.nextInsert++)
+			mStyle.sheet.insertRule(finalSelectors.join(",") + "{" + rules.join(";") + "}", mStyle.nextInsert++)
 		}
-		mStyle.AppendClasses = function(classnames, rules) {
-			let i, j
-			if (!Array.isArray(classnames)) classnames = [ classnames ]
-			for (i = 0; i < classnames.length; i++) {
-				if (!Array.isArray(classnames[i])) classnames[i] = [ classnames[i] ]
-				for (j = 0; j < classnames[i].length; j++)
+		mStyle.AppendClasses = (classnames, rules)=>{
+			if (!Array.isArray(classnames))
+				classnames = [classnames]
+			for (let i=0; i<classnames.length; i++) {
+				if (!Array.isArray(classnames[i]))
+					classnames[i] = [classnames[i]]
+				for (let j=0; j<classnames[i].length; j++)
 					classnames[i][j] = "." + classnames[i][j]
 			}
 			mStyle.Append(classnames, rules)
@@ -528,7 +529,8 @@ let StyleUtilities = {
 		return mStyle
 	},
 	InsertStylesAtTop(styles) {
-		if (!Array.isArray(styles)) styles = [ styles ]
+		if (!Array.isArray(styles))
+			styles = [styles]
 		for (let i = styles.length - 1; i >= 0; i--)
 			document.head.insertBefore(styles[i], document.head.firstChild)
 	},
@@ -540,16 +542,13 @@ let StyleUtilities = {
 		StyleUtilities.InsertStylesAtTop(s)
 		return s
 	},
-	//Converts width and height into the true width and height on the device (or
-	//as close to it, anyway). Usefull mostly for canvases.
+	//Converts width and height into the true width and height on the device (or as close to it, anyway). Usefull mostly for canvases.
 	GetTrueRect(element) {
 		window.devicePixelRatio = window.devicePixelRatio || 1
 		let pixelRatio = 1
 		let rect = element.getBoundingClientRect()
-		rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / 
-			window.devicePixelRatio
-		rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / 
-			window.devicePixelRatio
+		rect.width = (Math.round(pixelRatio * rect.right) - Math.round(pixelRatio * rect.left)) / window.devicePixelRatio
+		rect.height = (Math.round(pixelRatio * rect.bottom) - Math.round(pixelRatio * rect.top)) / window.devicePixelRatio
 		return rect
 	},
 	NoImageInterpolationRules() {
@@ -583,7 +582,8 @@ let CanvasUtilities = {
 	//Set scaling of canvas. Alternatively, set the scaling of the given element
 	//(canvas will remain unaffected)
 	SetScaling(canvas, scale, element) {
-		if (!Array.isArray(scale)) scale = [scale, scale]
+		if (!Array.isArray(scale))
+			scale = [scale, scale]
 		let oldWidth = canvas.style.width
 		let oldHeight = canvas.style.height
 		canvas.style.width = canvas.width + "px"
@@ -598,13 +598,9 @@ let CanvasUtilities = {
 		element.style.width = (rect.width * scale[0]) + "px"
 		element.style.height = (rect.height * scale[1]) + "px"
 	},
-	CreateCopy(canvas, copyImage, x, y, width, height) {
-		//Width and height are cropping, not scaling. X and Y are the place to
-		//start the copy within the original canvas 
-		x = x || 0; y = y || 0
-		if (width === undefined) width = canvas.width
-		if (height === undefined) height = canvas.height
-		let newCanvas = document.createElement("canvas")
+	CreateCopy(canvas, copyImage, x=0, y=0, width=canvas.width, height=canvas.height) {
+		// Width and height are cropping, not scaling. X and Y are the place to start the copy within the original canvas 
+		let newCanvas = document.createElement('canvas')
 		newCanvas.width = width
 		newCanvas.height = height
 		if (copyImage)
@@ -650,7 +646,6 @@ let CanvasUtilities = {
 			ctx.clearRect(cx, cy, Math.round(width), Math.round(height))
 		else
 			ctx.fillRect(cx, cy, Math.round(width), Math.round(height))
-		//The bounding rectangle for the area that was updated on the canvas.
 		return [cx, cy, width, height]
 	},
 	DrawSolidEllipse(ctx, cx, cy, radius1, radius2, clear) {
@@ -680,7 +675,6 @@ let CanvasUtilities = {
 		
 		ctx.fillRect(cx, cy, width, height)
 		
-		//The bounding rectangle for the area that was updated on the canvas.
 		return [cx, cy, width, height]
 	},
 	//For now, doesn't actually draw an ellipse
@@ -689,7 +683,6 @@ let CanvasUtilities = {
 		ctx.arc(cx, cy, width / 2, 0, Math.PI * 2, 0)
 		ctx.fill()
 		
-		//The bounding rectangle for the area that was updated on the canvas.
 		return [cx - width / 2 - 1, cy - height / 2 - 1, width, width]
 	},
 	//Wraps the given "normal eraser" function in the necessary crap to get the
@@ -708,8 +701,9 @@ let CanvasUtilities = {
 	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {
 		let dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
 		let ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
-		if (dist === 0) dist=0.001
-		for (let i=0;i<dist;i+=0.5) {
+		if (dist === 0)
+			dist=0.001
+		for (let i=0; i<dist; i+=0.5) {
 			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear)
 		}
 		//This is just an approximation and will most likely be larger than
@@ -773,7 +767,8 @@ let CanvasUtilities = {
 		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
 		
 		for (let i = 0; i < boxes.length; i++) {
-			if (!boxes[i] || boxes[i].length < 4) return false
+			if (!boxes[i] || boxes[i].length < 4)
+				return false
 			finalBox[0] = Math.min(boxes[0], finalBox[0])
 			finalBox[1] = Math.min(boxes[1], finalBox[1])
 			finalBox[2] = Math.max(boxes[0] + boxes[2], finalBox[2])
