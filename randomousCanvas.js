@@ -27,7 +27,13 @@ class CursorActionData {
 }
 
 const CursorActions = {
-	Start: 1, End: 2, Drag: 4, Zoom: 8, Pan: 16, Interrupt: 32,
+	Start: 1,
+	End: 2,
+	Drag: 4,
+	Zoom: 8,
+	Pan: 16,
+	Interrupt: 32,
+	EndInterrupt: 2|32,
 }
 
 const CursorModifiers = {
@@ -306,10 +312,6 @@ class CanvasDrawer extends CanvasPerformer {
 			mover: new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
 		}
 		
-		this.constants = {
-			endInterrupt: CursorActions.End | CursorActions.Interrupt
-		}
-		
 		this.tools.slow.stationaryReportInterval = 1
 		this.tools.spray.stationaryReportInterval = 1
 		this.tools.slow.frameLock = 1
@@ -319,14 +321,14 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.overlay = false; //overlay is set with Attach. This false means nothing.
 		this.onlyInnerStrokes = true
-		this.defaultCursor = "crosshair"
+		this.defaultCursor = 'crosshair'
 		this.currentLayer = 0
-		this.currentTool = "freehand"
+		this.currentTool = 'freehand'
 		this.color = "#000000"
 		this.opacity = 1
 		this.lineWidth = 2
 		//this.cursorColor = "rgb(128,128,128)"
-		this.lineShape = "hardcircle"
+		this.lineShape = 'hardcircle'
 		
 		this.lastAction = false
 		this.ignoreCurrentStroke = false
@@ -336,23 +338,21 @@ class CanvasDrawer extends CanvasPerformer {
 		let frameCount = 0
 		
 		this.StrokeCount = ()=>strokeCount
-		this.FrameCount = ()=>frameCount
 		
 		this.OnUndoStateChange = false
-		this.OnLayerChange = false
 		this.OnColorChange = false
 		this.OnAction = (data, context)=>{
-			if (this.CheckToolValidity("tool") && (data.action & CursorActions.Drag)) {
+			if (this.CheckToolValidity('tool') && (data.action & CursorActions.Drag)) {
 				data.color = this.color
 				data.lineWidth = this.lineWidth
 				data.lineShape = this.lineShape
 				data.opacity = this.opacity
 				
-				if (this.lineShape === "hardcircle")
+				if (this.lineShape === 'hardcircle')
 					data.lineFunction = CanvasUtilities.DrawSolidRoundLine
-				else if (this.lineShape === "hardsquare")
+				else if (this.lineShape === 'hardsquare')
 					data.lineFunction = CanvasUtilities.DrawSolidSquareLine
-				else if (this.lineShape === "normalsquare")
+				else if (this.lineShape === 'normalsquare')
 					data.lineFunction = CanvasUtilities.DrawNormalSquareLine
 				else
 					data.lineFunction = CanvasUtilities.DrawNormalRoundLine
@@ -375,8 +375,8 @@ class CanvasDrawer extends CanvasPerformer {
 					data.startY = this.lastAction.startY
 				}
 				
-				if (this.CheckToolValidity("frameLock"))
-					this.frameActions.push({"data": data, "context": context})
+				if (this.CheckToolValidity('frameLock'))
+					this.frameActions.push({data, context})
 				else
 					this.PerformDrawAction(data, context)
 			}
@@ -388,11 +388,9 @@ class CanvasDrawer extends CanvasPerformer {
 			if (!this._canvas)
 				return
 			
-			//I don't care what the tool wants or what the settings are, all I care
-			//about is whether or not there are actions for me to perform. Maybe some
-			//other thing added actions; I shouldn't ignore those.
+			//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
 			if (this.frameActions.length) {
-				for (let i = 0; i < this.frameActions.length; i++) {
+				for (let i=0; i < this.frameActions.length; i++) {
 					if (this.frameActions[i].data.action & (CursorActions.Start | CursorActions.End) || i === this.frameActions.length - 1) {
 						this.PerformDrawAction(this.frameActions[i].data, this.frameActions[i].context)
 					}
@@ -400,10 +398,7 @@ class CanvasDrawer extends CanvasPerformer {
 				
 				this.frameActions = []
 			}
-			//Only reperform the last action if there was no action this frame, both
-			//the tool and the reportInterval are valid, there even WAS a lastAction
-			//which had Drag but not Start/End, and it's far enough away from the
-			//last stationary report.
+			//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
 			else if (this.CheckToolValidity("stationaryReportInterval") && this.CheckToolValidity("tool") && this.lastAction && (this.lastAction.action & CursorActions.Drag) && !(this.lastAction.action & (CursorActions.End)) && (frameCount % this.tools[this.currentTool].stationaryReportInterval) === 0) {
 				this.PerformDrawAction(this.lastAction, this.GetCurrentCanvas().getContext("2d"))
 			}
@@ -412,23 +407,9 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 	}
 	
-	CurrentLayerIndex() {
-		return this.LayerIDToBufferIndex(this.currentLayer)
-	}
-	
-	//Only works if it's buffered. Otherwise, you'll actually get an error.
-	GetCurrentLayer() {
-		return this.GetLayerByID(this.currentLayer)
-	}
-	
 	//Get the canvas that the user should currently be drawing on. 
 	GetCurrentCanvas() {
 		return this._canvas
-	}
-	
-	ClearLayer(layer) {
-		this.UpdateUndoBuffer()
-		CanvasUtilities.Clear(this.GetCurrentCanvas(), false)
 	}
 	
 	CheckToolValidity(field) { 
@@ -452,19 +433,9 @@ class CanvasDrawer extends CanvasPerformer {
 			this.OnUndoStateChange()
 	}
 	
-	DoLayerChange() {
-		if (this.OnLayerChange)
-			this.OnLayerChange(this.currentLayer)
-	}
-	
 	DoColorChange() {
 		if (this.OnColorChange)
 			this.OnColorChange(this.color)
-	}
-	
-	SetLayer(layer) {
-		this.currentLayer = layer
-		this.DoLayerChange()
 	}
 	
 	SetColor(color) {
@@ -484,7 +455,6 @@ class CanvasDrawer extends CanvasPerformer {
 		//Now we simply put our current drawing into the buffer and apply the bufferr's state
 		CanvasUtilities.CopyInto(currentState.canvas.getContext("2d"), this.GetCurrentCanvas())
 		CanvasUtilities.CopyInto(this.GetCurrentCanvas().getContext("2d"), nextState.canvas)
-		this.DoLayerChange()
 		this.DoUndoStateChange()
 	}
 	
@@ -549,7 +519,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//A special case: The last stroke that was valid was interrupted, so we need
 		//to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && (data.action & this.constants.endInterrupt) === this.constants.endInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
+		if (!this.ignoreCurrentStroke && (data.action & CursorActions.EndInterrupt) === CursorActions.EndInterrupt && this.CheckToolValidity("updateUndoBuffer")) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
@@ -627,17 +597,17 @@ class CanvasDrawer extends CanvasPerformer {
 		let object = {version:2, width: this._canvas.width, height: this._canvas.height}
 		let layers = []
 		
-		let layerToObject = function(layer) {
+		let layerToObject = (layer)=>{
 			return {
-				canvas:CanvasUtilities.ToString(layer.canvas),
-				opacity:layer.opacity
+				canvas: CanvasUtilities.ToString(layer.canvas),
+				opacity: layer.opacity
 			}
 		}
 		
 		object.buffered = false
 		layers.push({
-			canvas:CanvasUtilities.ToString(this._canvas),
-			opacity:1.0
+			canvas: CanvasUtilities.ToString(this._canvas),
+			opacity: 1.0
 		})
 		
 		object.layers = layers
@@ -896,14 +866,6 @@ class CanvasDrawer extends CanvasPerformer {
 			let sy = Math.floor(data.y)
 			console.debug("Flood filling starting from " + sx + ", " + sy)
 			
-			//We create a COPY so that it takes the colors from ALL layers into
-			//account (not just the current one). This unfortunately means that
-			//layers that are completely occluded will be filled based on the upper
-			//layer's colors and shapes, not the current layer. If this is not
-			//desireable, replace this fill function with the generic one from
-			//CanvasUtilities.
-			//let canvasCopy = CanvasUtilities.CreateCopy(drawer._canvas)
-			//drawer.DrawIntoCanvas(undefined, canvasCopy, 1, 0, 0)
 			let canvasCopy = drawer._canvas
 			let copyContext = canvasCopy.getContext("2d")
 			let copyData = copyContext.getImageData(0,0,canvasCopy.width,canvasCopy.height).data

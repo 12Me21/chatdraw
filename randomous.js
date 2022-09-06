@@ -381,14 +381,9 @@ let MathUtilities = {
 	LinearInterpolate(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},
-	CosInterpolate (y1, y2, mu) {
+	CosInterpolate(y1, y2, mu) {
 		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
-	},
-	NewGuid() {
-		return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
-			return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-		})
 	},
 	GetSquare(x, y, x2, y2) {
 		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
@@ -396,51 +391,6 @@ let MathUtilities = {
 	IsPointInSquare(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]
 	},
-	Color: {
-		SetGray(f, arr) {
-			arr[0] = f
-			arr[1] = f
-			arr[2] = f
-		},
-		SetRGB(f, arr) {
-			//Duplicate code but fewer branches
-			if (f < 0.5) {
-				arr[0] = 1 - 2 * f
-				arr[2] = 0
-			} else {
-				arr[0] = 0
-				arr[2] = 2 * f - 1
-			}
-			arr[1] = 1 - Math.abs(f * 2 - 1)
-		},
-		SetHue(f, arr) {
-			if (f < 1 / 6) {
-				arr[0] = 1
-				arr[1] = f * 6
-				arr[2] = 0
-			} else if (f < 2 / 6) {
-				arr[0] = 1 - (f - 1 / 6) * 6
-				arr[1] = 1
-				arr[2] = 0
-			} else if (f < 0.5) {
-				arr[0] = 0
-				arr[1] = 1
-				arr[2] = (f - 2 / 6) * 6
-			} else if (f < 4 / 6) {
-				arr[0] = 0
-				arr[1] = 1 - (f - 0.5) * 6
-				arr[2] = 1
-			} else if (f < 5 / 6) {
-				arr[0] = (f - 4 / 6) * 6
-				arr[1] = 0
-				arr[2] = 1
-			} else {
-				arr[0] = 1
-				arr[1] = 0
-				arr[2] = 1 - (f - 5 / 6) * 6
-			}
-		}
-	}
 }
 
 // --- UndoBuffer ---
