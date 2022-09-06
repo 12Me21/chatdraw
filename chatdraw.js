@@ -111,7 +111,8 @@ class ChatDraw {
 			
 			btn.dataset.index = i
 			this.color_buttons.push(btn)
-			this.palette.push(BaseColors[i])
+			this.palette.push(null)
+			this.setButtonColor(i, BaseColors[i])
 		}
 		this.$color_p.replaceWith(...this.color_buttons)
 		this.colorButtonSelect(1)
