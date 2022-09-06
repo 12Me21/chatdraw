@@ -56,43 +56,28 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer = new CanvasDrawer()
 		this.drawer.Attach(this.canvas, 5, true)
-		
-		this.maxLineWidth = 7
-		let defaultLineWidth = 2
-		
-		this.tool_buttons = []
-		let freehandButton = this.createToolButton(["✏️","✒️","🚿️"], ["freehand","slow","spray"])
-		let lineButton = this.createToolButton(["📏️","🔲️"], ["line", "square"])
-		let fillButton = this.createToolButton(["🪣️","❎️"], ["fill","clear"])
-		let moveButton = this.createToolButton(["↔️"], ["mover"])
-		this.$tool1.replaceWith(moveButton)
-		this.$tool2.replaceWith(fillButton, lineButton, freehandButton)
-		
 		this.drawer.OnUndoStateChange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
 		}
+		this.drawer.DoUndoStateChange()
 		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
-		this.$color_picker.onchange = event=>{
-			let e = event.currentTarget
-			let index = +e.dataset.index
-			
-			let newColor = Color.from_hex(e.value)
-			
-			this.set_color(index, newColor)
-			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
+		this.$color_picker.onchange = ev=>{
+			let e = ev.target
+			this.set_color(+e.dataset.index, Color.from_hex(e.value))
 		}
 		let selected_color
 		let selected_tool
 		
 		this.$form.onchange = ev=>{
-			if (ev.target.name=='color') {
+			let name = ev.target.name
+			if (name=='color') {
 				selected_color = ev.target
 				this.colorButtonSelect(+ev.target.dataset.index)
-			} else if (ev.target.name=='tool') {
+			} else if (name=='tool') {
 				selected_tool = ev.target
 				this.drawer.currentTool = ev.target.dataset.tool
 			}
@@ -120,42 +105,55 @@ class ChatDraw extends HTMLElement {
 			} else if (name=='clear') {
 				if (this.drawer.StrokeCount())
 					this.drawer.UpdateUndoBuffer()
-				CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
+				this.clear()
 			}
 		}
 		
-		//Set up the various control buttons (like submit, clear, etc.)
+		this.maxLineWidth = 7
+		let defaultLineWidth = 2
 		this.$thickness.value = defaultLineWidth - 1
 		this.$thickness.dataset.width = defaultLineWidth - 1
-		this.drawer.DoUndoStateChange()
+		this.$thickness.click()
 		
-		this.color_buttons = []
 		this.palette = []
+		this.color_buttons = []
 		
 		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
 			let btn = document.createElement('input')
 			btn.type = 'radio'
 			btn.name = 'color'
-			
 			btn.textContent = "■"
-			btn.className = 'colorChange'
-			
 			btn.dataset.index = i
+			
 			this.color_buttons.push(btn)
 			this.palette.push(null)
 			this.set_color(i, BaseColors[i])
 		}
 		this.$colors.replaceWith(...this.color_buttons)
 		
+		
+		this.$tool1.replaceWith(
+			this.createToolButton(["↔️"], ['mover'])
+		)
+		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
+		this.$tool2.replaceWith(
+			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
+			this.createToolButton(["📏️", "🔲️"], ['line',' square']),
+			def_tool
+		)
+		
+		def_tool.click()
 		this.color_buttons[1].click()
-		this.$thickness.click()
-		freehandButton.click()
 		this.drawer.moveToolClearColor = this.getClearColor().to_hex()
+		this.clear()
+	}
+	
+	clear() {
 		CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 	}
 	
-	set_color(index, color) {
+	set_color(index, color, init) {
 		let oldColor = this.palette[index]
 		if (oldColor)
 			this.SwapColor(oldColor, color)
@@ -165,6 +163,8 @@ class ChatDraw extends HTMLElement {
 		btn.value = color.to_hex()
 		if (btn.checked)
 			this.drawer.color = color.to_hex()
+		if (!init)
+			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 	}
 	
 	show_picker(index) {

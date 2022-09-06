@@ -287,25 +287,16 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.frameActions = []
 		this.undoBuffer = false
-		this.tools = {
-			freehand: new CanvasDrawerTool(CanvasDrawer.FreehandTool),
-			eraser: new CanvasDrawerTool(CanvasDrawer.EraserTool),
-			slow: new CanvasDrawerTool(CanvasDrawer.SlowTool),
-			spray: new CanvasDrawerTool(CanvasDrawer.SprayTool),
-			line: new CanvasDrawerTool(CanvasDrawer.LineTool, CanvasDrawer.LineOverlay),
-			square: new CanvasDrawerTool(CanvasDrawer.SquareTool, CanvasDrawer.SquareOverlay),
-			clear: new CanvasDrawerTool(CanvasDrawer.ClearTool),
-			fill: new CanvasDrawerTool(CanvasDrawer.FillTool),
-			dropper: new CanvasDrawerTool(CanvasDrawer.DropperTool),
-			mover: new CanvasDrawerTool(CanvasDrawer.MoveTool, CanvasDrawer.MoveOverlay)
-		}
+		this.tools = {}
+		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','dropper','mover'])
+			this.tools[tool] = new CanvasDrawerTool(CanvasDrawer.tools[tool], CanvasDrawer.tools[tool+"_overlay"])
 		
 		this.tools.slow.stationaryReportInterval = 1
 		this.tools.spray.stationaryReportInterval = 1
 		this.tools.slow.frameLock = 1
 		this.tools.spray.frameLock = 1
 		this.tools.dropper.updateUndoBuffer = 0
-		this.tools.mover.interrupt = CanvasDrawer.MoveInterrupt
+		this.tools.mover.interrupt = CanvasDrawer.tools.move_interrupt
 		
 		this.overlay = false; //overlay is set with Attach. This false means nothing.
 		this.onlyInnerStrokes = true
@@ -648,55 +639,48 @@ class CanvasDrawer extends CanvasPerformer {
 			throw "Unknown CanvasDrawer version: " + object.version
 		}
 	}
-	
-	// --- CanvasDrawer Tools ---
-	// A bunch of predefined tools for your drawing pleasure
-	
+}
+// --- CanvasDrawer Tools ---
+// A bunch of predefined tools for your drawing pleasure
+CanvasDrawer.tools = {
 	//The most basic of tools: freehand (just like mspaint)
-	static FreehandTool(data, context) {
+	freehand(data, context) {
 		return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
-	}
-	
-	static EraserTool(data, context) {
+	},
+	eraser(data, context) {
 		return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth, true)
-	}
-	
+	},
 	//Line tool (uses overlay)
-	static LineTool(data, context) {
+	line(data, context) {
 		if (data.action & CursorActions.End)
 			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-	}
-	
-	static LineOverlay(data, context) {
+	},
+	line_overlay(data, context) {
 		if ((data.action & CursorActions.End) === 0)
 			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
 		else
 			return false
-	}
-	
+	},
 	//Square tool (uses overlay)
-	static SquareTool(data, context) {
+	square(data, context) {
 		if (data.action & CursorActions.End) {
 			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
 		}
-	}
-	
-	static SquareOverlay(data, context) {
+	},
+	square_overlay(data, context) {
 		if ((data.action & CursorActions.End) === 0) {
 			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
 		} else {
 			return false
 		}
-	}
-	
+	},
 	//Clear tool (just completely fills the current layer with color)
-	static ClearTool(data, context) {
+	clear(data, context) {
 		if (data.action & CursorActions.End && data.onTarget) {
 			CanvasUtilities.Clear(context.canvas, data.color)
 		}
-	}
-	
-	static MoveTool(data, context, drawer) {
+	},
+	move(data, context, drawer) {
 		if (data.action & CursorActions.Start) {
 			drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
 			drawer.moveToolOffset = [0,0]
@@ -711,24 +695,20 @@ class CanvasDrawer extends CanvasPerformer {
 			drawer.moveToolOffset[1] += (data.y - data.oldY)
 			return false
 		}
-	}
-	
-	static MoveOverlay(data, context, drawer) {
+	},
+	move_overlay(data, context, drawer) {
 		if ((data.action & CursorActions.End) === 0) {
 			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
 			return true
 		} else {
 			return false
 		}
-	}
-	
-	static MoveInterrupt(data, context, drawer) {
-		//UXUtilities.Toast("Fixing move for interrupt")
+	},
+	move_interrupt(data, context, drawer) {
 		//Just put the layer back.
 		CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer)
 		return true
-	}
-	
+	},
 	//CanvasDrawer.MoveTool = function(data, context, drawer)
 	//{
 	//   if (!drawer.moveToolStage) drawer.moveToolStage = 0
@@ -791,7 +771,7 @@ class CanvasDrawer extends CanvasPerformer {
 	//}
 	
 	//Slow tool (courtesy of 12me21)
-	static SlowTool(data, context, drawer) {
+	slow(data, context, drawer) {
 		if (drawer.slowAlpha === undefined)
 			drawer.slowAlpha = 0.15
 		
@@ -813,10 +793,9 @@ class CanvasDrawer extends CanvasPerformer {
 		if (data.action & (CursorActions.Drag | CursorActions.End)) {
 			return data.lineFunction(context, drawer.oldX, drawer.oldY, drawer.avgX, drawer.avgY, data.lineWidth)
 		}
-	}
-	
+	},
 	//Spray tool (like mspaint)
-	static SprayTool(data, context, drawer) {
+	spray(data, context, drawer) {
 		if (drawer.spraySpread === undefined)
 			drawer.spraySpread = 2
 		if (drawer.sprayRate === undefined)
@@ -837,9 +816,8 @@ class CanvasDrawer extends CanvasPerformer {
 				CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
 			}
 		}
-	}
-	
-	static FillTool(data, context, drawer) {
+	},
+	fill(data, context, drawer) {
 		if (data.action & CursorActions.End) {
 			let sx = Math.floor(data.x)
 			let sy = Math.floor(data.y)
@@ -860,9 +838,8 @@ class CanvasDrawer extends CanvasPerformer {
 				return false
 			})
 		}
-	}
-	
-	static DropperTool(data, context, drawer) {
+	},
+	dropper(data, context, drawer) {
 		if (data.action & CursorActions.End) {
 			let sx = Math.floor(data.x)
 			let sy = Math.floor(data.y)
@@ -872,5 +849,5 @@ class CanvasDrawer extends CanvasPerformer {
 			let pickupColor = CanvasUtilities.GetColor(copyContext, sx, sy)
 			drawer.SetColor(pickupColor.to_hex())
 		}
-	}
+	},
 }

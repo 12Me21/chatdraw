@@ -382,7 +382,7 @@ class UndoBuffer {
 		this.undoBuffer.push(currentState)
 		this.redoBuffer = []
 		this._ShiftVirtualIndex(1)
-		while(this.undoBuffer.length > this.maxSize)
+		while (this.undoBuffer.length > this.maxSize)
 			this.undoBuffer.shift()
 		return this.UndoCount()
 	}
