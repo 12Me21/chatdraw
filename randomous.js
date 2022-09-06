@@ -263,15 +263,13 @@ let CanvasUtilities = {
 		context.putImageData(iData, 0, 0)
 	},
 	SwapColor(context, original, newColor) {
-		for (let undo of this.undoBuffer.staticBuffer) {
-			let iData = context.getImageData(0, 0, context.canvas.width, context.canvas.height)
-			let data = iData.data
-			for (let i=0; i<data.length; i+=4) {
-				if (original.compare_data(data, i))
-					newColor.write_data(data, i)
-			}
-			context.putImageData(iData, 0, 0)
+		let iData = CanvasUtilities.GetAllData(context)
+		let data = iData.data
+		for (let i=0; i<data.length; i+=4) {
+			if (original.compare_data(data, i))
+				newColor.write_data(data, i)
 		}
+		context.putImageData(iData, 0, 0)
 	}
 }
 

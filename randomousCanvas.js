@@ -454,9 +454,6 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//All private stuff that's only used for our internal functions.
 		this.strokeCount = 0
-		
-		this.OnUndoStateChange = null
-		this.OnColorChange = null
 	}
 	
 	OnAction(data, context) {
@@ -552,15 +549,21 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	get_state_data() {
 		let data = CanvasUtilities.GetAllData(this.context)
-		return {data}
+		let extra = null
+		if (this.get_extra)
+			extra = this.get_extra()
+		return {data, extra}
 	}
 	
 	//This is for both undos and redos
 	_PerformUndoRedoSwap(which) {
 		let current = this.get_state_data()
 		let next = this.undoBuffer[which](current)
-		if (next && next.data)
+		if (next) {
 			this.context.putImageData(next.data, 0, 0)
+			if (this.set_extra)
+				this.set_extra(next.extra)
+		}
 	}
 	
 	Undo() {
@@ -579,7 +582,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer.Clear()
 	}
 	
-	UpdateUndoBuffer(extra=null) {
+	UpdateUndoBuffer() {
 		if (!this.SupportsUndo())
 			return
 		console.trace("Updating undo buffer")

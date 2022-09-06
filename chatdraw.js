@@ -62,6 +62,15 @@ class ChatDraw extends HTMLElement {
 		}
 		this.drawer.undoBuffer.DoUndoStateChange()
 		
+		this.drawer.get_extra = ()=>{
+			return {
+				palette: this.palette.map(x=>x.to_hex())
+			}
+		}
+		this.drawer.set_extra = ({palette})=>{
+			this.restore_colors(palette)
+		}
+		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
@@ -128,7 +137,7 @@ class ChatDraw extends HTMLElement {
 			
 			this.color_buttons.push(btn)
 			this.palette.push(null)
-			this.set_color(i, BaseColors[i])
+			this.set_color(i, BaseColors[i], true)
 		}
 		this.$colors.replaceWith(...this.color_buttons)
 		
@@ -153,7 +162,22 @@ class ChatDraw extends HTMLElement {
 		CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
 	}
 	
+	restore_colors(list) {
+		for (let i=0; i<this.palette.length; i++) {
+			let hex = list[i]
+			this.palette[i] = Color.from_hex(hex)
+			let btn = this.color_buttons[i]
+			btn.style.color = hex
+			btn.value = hex
+			if (btn.checked)
+				this.drawer.color = hex
+		}
+	}
+	
 	set_color(index, color, init) {
+		if (!init) {
+			this.drawer.UpdateUndoBuffer()
+		}
 		let oldColor = this.palette[index]
 		color.color[0] &= ~1
 		color.color[0] |= (index>>1&1)
@@ -167,8 +191,9 @@ class ChatDraw extends HTMLElement {
 		btn.value = color.to_hex()
 		if (btn.checked)
 			this.drawer.color = color.to_hex()
-		if (!init)
+		if (!init) {
 			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
+		}
 	}
 	
 	show_picker(index) {
