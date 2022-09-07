@@ -238,7 +238,7 @@ class CanvasPerformer {
 			ev.preventDefault()
 		
 		if (this.OnAction)
-			this.OnAction(ca, this.context)
+			this.OnAction(ca)
 	}
 }
 CanvasPerformer.prototype.OnAction = null
@@ -456,7 +456,7 @@ class CanvasDrawer extends CanvasPerformer {
 		this.strokeCount = 0
 	}
 	
-	OnAction(data, context) {
+	OnAction(data) {
 		if (!this.tool_has('tool'))
 			return
 		if (!data.Drag)
@@ -492,9 +492,9 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 		
 		if (this.tool_has('frameLock'))
-			this.frameActions.push({data, context})
+			this.frameActions.push(data)
 		else
-			this.PerformDrawAction(data, context)
+			this.PerformDrawAction(data)
 	}
 	
 	do_frame() {
@@ -506,14 +506,14 @@ class CanvasDrawer extends CanvasPerformer {
 				let data = this.lastAction
 				if (data && data.Drag && !data.End)
 					if (this.frameCount % this.tools[this.currentTool].stationaryReportInterval == 0)
-						fa.push({data, context:this.context})
+						fa.push(data)
 			}
 		}
 		//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
 		while (fa.length) {
-			let {data, context} = fa.shift()
+			let data = fa.shift()
 			if (data.Start || data.End || fa.length==0)
-				this.PerformDrawAction(data, context)
+				this.PerformDrawAction(data)
 		}
 	}
 	
@@ -576,9 +576,8 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 	}
 	
-	PerformDrawAction(data, context) {
+	PerformDrawAction(data) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
-		context.fillStyle = this.color
 		this.context.fillStyle = this.color
 		
 		if (data.Interrupt) {
