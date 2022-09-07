@@ -64,20 +64,20 @@ let CanvasUtilities = {
 		context.drawImage(source, x, y)
 		context.restore()
 	},
-	OptimizedDrawImage(context, image, x, y, scaleX=image.width, scaleY=image.height) {
+	OptimizedDrawImage(context, image, x, y, width=image.width, height=image.height) {
 		context.save()
 		context.imageSmoothingEnabled = false
-		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
+		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(width), Math.floor(height))
 		context.restore()
 	},
-	Clear(context, color) {
+	Clear(context, color=null) {
 		context.save()
 		if (color) {
 			context.globalAlpha = 1
 			context.fillStyle = color
-			context.fillRect(0, 0, canvas.width, canvas.height)
+			context.fillRect(0, 0, context.canvas.width, context.canvas.height)
 		} else {
-			context.clearRect(0, 0, canvas.width, canvas.height)
+			context.clearRect(0, 0, context.canvas.width, context.canvas.height)
 		}
 		context.restore()
 	},
@@ -103,7 +103,7 @@ let CanvasUtilities = {
 		for (y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
 			for (x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
 				if (x*x*rs2+y*y*rs1 <= rss) {
-					ctx[line](Math.round(cx+x),Math.round(cy+y),Math.round(-x*2 + 0.5),1)
+					ctx[line](Math.round(cx+x), Math.round(cy+y), Math.round(-x*2 + 0.5), 1)
 					break
 				}
 			}
@@ -201,61 +201,48 @@ let CanvasUtilities = {
 			Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1
 		]
 	},
-	ComputeTotalBoundingBox(boxes) {
-		let finalBox = [ Infinity, Infinity, -Infinity, -Infinity]
-		
-		for (let i = 0; i < boxes.length; i++) {
-			if (!boxes[i] || boxes[i].length < 4)
-				return false
-			finalBox[0] = Math.min(boxes[0], finalBox[0])
-			finalBox[1] = Math.min(boxes[1], finalBox[1])
-			finalBox[2] = Math.max(boxes[0] + boxes[2], finalBox[2])
-			finalBox[3] = Math.max(boxes[1] + boxes[3], finalBox[3])
-		}
-		
-		return finalBox
-	},
 	GetColor(context, x, y) {
 		let data = context.getImageData(x, y, 1, 1).data
 		return new Color(data[0], data[1], data[2], data[3])
 	},
-	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate falls outside the canvas.
-	ImageDataCoordinate(context, x, y) {
-		if (x < 0 || x >= context.canvas.width || y < 0 || y >= context.canvas.height)
+	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate falls outside the data
+	ImageDataCoordinate({width, height}, x, y) {
+		if (x<0 || x>=width || y<0 || y>=height)
 			return -1
-		return 4 * (x + y * context.canvas.width)
+		return (x + y * width) * 4
 	},
-	GenericFlood(context, x, y, floodFunction) {
+	async GenericFlood(context, x, y, func) {
 		x = Math.floor(x)
 		y = Math.floor(y)
-		let canvas = context.canvas
-		let iData = context.getImageData(0, 0, canvas.width, canvas.height)
-		let data = iData.data
+		let data = CanvasUtilities.GetAllData(context)
+		let {width, height} = data
 		let queueX = [], queueY = []
-		let enqueue = (qx, qy)=>{
-			queueX.push(qx)
-			queueY.push(qy)
-		}
-		if (floodFunction(context, x, y, data))
-			enqueue(x, y)
-		while (queueX.length) {
-			let column = queueX.shift()
-			let row = queueY.shift()
-			//Move west until it is just outside the range we want to fill. Move east in a similar manner.
-			let west, east
-			for (west = column-1; west>=-1 && floodFunction(context, west, row, data); west--)
-				;
-			for (east = column+1; east<=canvas.width && floodFunction(context, east, row, data); east++)
-				;
-			//Move from west to east EXCLUSIVE and fill the queue with matching north and south nodes.
-			for (column = west+1; column<east; column++) {
-				if (row+1 < canvas.height && floodFunction(context, column, row+1, data))
-					enqueue(column, row+1)
-				if (row-1 >= 0 && floodFunction(context, column, row-1, data))
-					enqueue(column, row-1)
+		let enqueue = (x, y)=>{
+			if (func(data, x, y)) {
+				queueX.push(x)
+				queueY.push(y)
 			}
 		}
-		context.putImageData(iData, 0, 0)
+		enqueue(x, y)
+		while (queueX.length) {
+			//Move west until it is just outside the range we want to fill. Move east in a similar manner.
+			let west = queueX.shift(), east = west
+			let y = queueY.shift()
+			do {
+				west--;
+			} while (west>=0 && func(data, west, y))
+			do {
+				east++;
+			} while (east<width && func(data, east, y))
+			//Move from west to east EXCLUSIVE and fill the queue with matching north and south nodes.
+			if (y+1 < height)
+				for (let x=west+1; x<east; x++)
+					enqueue(x, y+1)
+			if (y-1 >= 0)
+				for (let x=west+1; x<east; x++)
+					enqueue(x, y-1)
+		}
+		context.putImageData(data, 0, 0)
 	},
 	SwapColor(context, original, newColor) {
 		let iData = CanvasUtilities.GetAllData(context)

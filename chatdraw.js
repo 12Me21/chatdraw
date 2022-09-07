@@ -60,7 +60,7 @@ class ChatDraw extends HTMLElement {
 		this.$container.append(this.canvas)
 		
 		this.drawer = new CanvasDrawer()
-		this.drawer.Attach(this.canvas, 5, true)
+		this.drawer.Attach(this.canvas, 10, true)
 		this.drawer.undoBuffer.OnUndoStateChange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
@@ -81,51 +81,37 @@ class ChatDraw extends HTMLElement {
 		let selected_color
 		let selected_tool
 		this.$form.onchange = ev=>{
-			let name = ev.target.name
-			if (name=='color') {
-				selected_color = ev.target
-				console.log(ev.target)
-				this.colorButtonSelect(+ev.target.value)
-			} else if (name=='tool') {
-				selected_tool = ev.target
-				this.drawer.currentTool = ev.target.value
+			let e = ev.target
+			if (e.name=='color') {
+				selected_color = e
+				this.colorButtonSelect(+e.value)
+			} else if (e.name=='tool') {
+				selected_tool = e
+				this.drawer.currentTool = e.value
 			}
 		}
 		this.$form.onclick = ev=>{
-			let name = ev.target.name
-			if (name=='color') {
-				if (ev.target === selected_color) {
-					this.show_picker(+ev.target.value)
-				}
-			} else if (name=='tool') {
-				if (ev.target === selected_tool) {
-					this.cycle_tool(ev.target)
-				}
-			} else if (name=='thickness') {
-				this.widthToggle(ev.target)
-			} else if (name=='send') {
-				this.sendDrawing()
-			} else if (name=='zoom') {
-				this.scaleInterface()
-			} else if (name=='undo') {
-				this.drawer.Undo()
-			} else if (name=='redo') {
-				this.drawer.Redo()
-			} else if (name=='clear') {
-				if (this.drawer.strokeCount)
-					this.drawer.UpdateUndoBuffer()
-				this.clear()
+			let e = ev.target
+			if (e.name=='color') {
+				if (e === selected_color)
+					this.show_picker(+e.value)
+			} else if (e.name=='tool') {
+				if (e === selected_tool)
+					this.cycle_tool(e)
+			} else {
+				let p = e.onplay
+				p && p(ev)
 			}
 		}
 		
 		this.$row1.append(
-			this.create_button('button', 'zoom', '1', "◲").parentNode,
-			this.create_button('button', 'undo', null, "↶").parentNode,
-			this.create_button('button', 'redo', null, "↷").parentNode
+			this.button('zoom', '1', "◲", ev=>{ this.scaleInterface() }).parentNode,
+			this.button('undo', null, "↶", ev=>{ this.drawer.Undo() }).parentNode,
+			this.button('redo', null, "↷", ev=>{ this.drawer.Redo() }).parentNode
 		)
 		
 		for (let i=0; i<BaseColors.length; i++) {
-			let input = this.create_button('radio', 'color', i, "■")
+			let input = this.button('color', i, "■")
 			this.color_buttons.push(input)
 			this.palette.push(null)
 			this.set_color(i, BaseColors[i])
@@ -133,30 +119,33 @@ class ChatDraw extends HTMLElement {
 		}
 		
 		this.$row1.append(
-			this.create_button('button', 'send', null, "➥").parentNode
+			this.button('send', null, "➥", ev=>{ this.sendDrawing() }).parentNode
 		)
 		
-		let thickness = this.create_button('button', 'thickness', defaultLineWidth-1, defaultLineWidth-1)
+		let thickness = this.button('thickness', 1, 1, ev=>{ this.widthToggle(ev.target) })
 		
 		this.$row2.append(
 			this.createToolButton(["↔️"], ['mover']),
-			this.create_button('button', 'clear', null, "❌️").parentNode,
+			this.button('clear', null, "❌️", ev=>{
+				if (this.drawer.strokeCount)
+					this.drawer.UpdateUndoBuffer()
+				this.clear()
+			}).parentNode,
 			thickness.parentNode
 		)
 		
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
 		this.$row2.append(
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
-			this.createToolButton(["📏️", "🔲️"], ['line',' square']),
+			this.createToolButton(["📏️", "🔲️"], ['line', 'square']),
 			def_tool,
-			this.create_button('button', 'toggle', null, "✎")
+			this.button('toggle', null, "✎", ev=>{	/* ... */ }).parentNode
 		)
 		
 		this.drawer.undoBuffer.DoUndoStateChange()
 		def_tool.firstChild.click()
 		thickness.click()
 		this.color_buttons[1].click()
-		this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 		this.clear()
 	}
 	
@@ -183,10 +172,6 @@ class ChatDraw extends HTMLElement {
 		btn.nextSibling.style.color = hex
 		if (btn.checked)
 			this.drawer.color = hex
-		
-		if (swap) {
-			this.drawer.moveToolClearColor = this.getClearColor().to_hex()
-		}
 	}
 	
 	show_picker(index) {
@@ -252,21 +237,21 @@ class ChatDraw extends HTMLElement {
 		super.style.setProperty('--scale', scale)
 	}
 	
-	create_button(type, name, value, text=null) {
-		let cont = document.createElement('label')
+	// could be separate class?
+	button(name, value, text, onplay=null) {
 		let input = document.createElement('input')
+		Object.assign(input, {type:onplay?'button':'radio', name, value, onplay, hidden:true})
+		
 		let btn = document.createElement('span')
-		input.type = type
-		input.name = name
-		input.value = value
-		input.hidden = true
-		cont.append(input, btn)
 		btn.textContent = text
+		
+		document.createElement('label').append(input, btn)
+		
 		return input
 	}
 	
 	createToolButton(labels, toolNames) {
-		let input = this.create_button('radio', 'tool', toolNames[0], labels[0])
+		let input = this.button('tool', toolNames[0], labels[0])
 		input.dataset.tools = toolNames.join(",")
 		input.dataset.labels = labels.join(",")
 		return input.parentNode
@@ -281,7 +266,6 @@ class ChatDraw extends HTMLElement {
 		btn.value = tools[index]
 		btn.nextSibling.textContent = labels[index]
 		this.drawer.currentTool = btn.value
-		console.log(this.drawer.currentTool, 'current tool')
 	}
 	
 	CreateCanvas() {

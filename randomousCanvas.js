@@ -7,7 +7,6 @@
 
 console.trace = ()=>{}
 
-
 
 // --- CursorActionData ---
 // Auxiliary object for describing generic cursor actions and data. Useful for unified mouse/touch systems (like CanvasPerformer)
@@ -402,10 +401,10 @@ CanvasDrawerTool.tools = {
 				if (originalColor.compare_data(color.ToArray()))
 					return
 				
-				CanvasUtilities.GenericFlood(context, sx, sy, (c, x, y, d)=>{
-					let i = CanvasUtilities.ImageDataCoordinate(c, x, y)
-					if (originalColor.compare_data(d, i)) {
-						color.write_data(d, i)
+				CanvasUtilities.GenericFlood(context, sx, sy, (d, x, y)=>{
+					let i = CanvasUtilities.ImageDataCoordinate(d, x, y)
+					if (originalColor.compare_data(d.data, i)) {
+						color.write_data(d.data, i)
 						return true
 					}
 					return false
