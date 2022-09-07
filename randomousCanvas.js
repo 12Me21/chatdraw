@@ -14,7 +14,15 @@ console.trace = ()=>{}
 
 class CursorActionData {
 	constructor(action, [x, y], target, zoomDelta=null) {
-		this.action = action
+		//this.action = action
+		this.Start = (action & 1)==1
+		this.End = (action & 2)==2
+		this.Drag = (action & 4)==4
+		this.Zoom = (action & 8)==8
+		this.Pan = (action & 16)==16
+		this.Interrupt = (action & 32)==32
+		this.EndInterrupt = (action & (2|32))==(2|32)
+		
 		this.x = x
 		this.y = y
 		this.realX = x //The real x and y relative to the canvas.
@@ -25,7 +33,6 @@ class CursorActionData {
 		this.time = Date.now()
 		this.modifiers = 0
 		this.existent = true
-		
 		if (target) {
 			let rect = target.getBoundingClientRect()
 			let sx = rect.width / target.width
@@ -39,14 +46,6 @@ class CursorActionData {
 			}
 		}
 	}
-	get_action(bit) { return (this.action & bit)==bit }
-	get Start() { return this.get_action(1) }
-	get End() { return this.get_action(2) }
-	get Drag() { return this.get_action(4) }
-	get Zoom() { return this.get_action(8) }
-	get Pan() { return this.get_action(16) }
-	get Interrupt() { return this.get_action(32) }
-	get EndInterrupt() { return this.get_action(2|32) }
 }
 
 
@@ -224,15 +223,14 @@ class CanvasPerformer {
 	}
 	
 	Perform(ev, action, pos, zoomDelta) {
-		let canvas = this._canvas
-		let ca = new CursorActionData(action, pos, canvas, zoomDelta)
+		let ca = new CursorActionData(action, pos, this._canvas, zoomDelta)
 		
 		if (!ca.existent)
 			return
 		
 		if (ev.ctrlKey)
 			ca.modifiers |= CanvasPerformer.CTRL
-		ca.onTarget = ev.target===canvas
+		ca.onTarget = ev.target===this._canvas
 		
 		if (ev && this.ShouldCapture(ca))
 			ev.preventDefault()
