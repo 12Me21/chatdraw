@@ -309,87 +309,73 @@ CanvasDrawerTool.tools = {
 		}
 	},
 	mover: class extends CanvasDrawerTool {
-		tool(data, context, drawer) {
+		tool(data, context) {
 			if (data.Start) {
-				//drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
-				drawer.moveToolOffset = [0, 0]
-				//CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
-				return true; //just redraw everything. No point optimizing
-			} else if (data.Drag || data.End) {
-				if (data.Drag) {
-					drawer.moveToolOffset[0] += (data.x - data.oldX)
-					drawer.moveToolOffset[1] += (data.y - data.oldY)
-				}
-				let [x, y] = drawer.moveToolOffset
-				let can = context.canvas
+				this.layer = CanvasUtilities.CreateCopy(context.canvas, true)
+				this.offset = [0, 0]
+				return false
+			}
+			if (data.Drag) {
+				this.offset[0] += (data.x - data.oldX)
+				this.offset[1] += (data.y - data.oldY)
+			}
+			if (data.Drag || data.End) {
+				let [x, y] = this.offset
+				let can = this.layer.canvas
 				let w = context.canvas.width
 				let h = context.canvas.height
 				while (x < 0) x += w
 				while (x >= w) x -= w
 				while (y < 0) y += h
 				while (y >= h) y -= h
+				CanvasUtilities.Clear(context.canvas, "#000000")
 				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
 				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
 				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
 				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
+				if (data.End)
+					this.layer = null
 				return true; //just redraw everything. No point optimizing.
-			} else {
-				drawer.moveToolOffset[0] += (data.x - data.oldX)
-				drawer.moveToolOffset[1] += (data.y - data.oldY)
-				return false
 			}
-		}
-		overlay(data, context, drawer) {
-			if (!data.End) {
-				//CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
-				return true
-			} else {
-				return false
-			}
-		}
-		interrupt(data, context, drawer) {
-			//Just put the layer back.
-			CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas)
-			return true
 		}
 	},
 	slow: class extends CanvasDrawerTool {
-		tool(data, context, drawer) {
-			if (drawer.slowAlpha == undefined)
-				drawer.slowAlpha = 0.15
+		tool(data, context) {
+			if (this.slowAlpha == undefined)
+				this.slowAlpha = 0.15
 			
 			if (data.Start) {
-				drawer.avgX = data.x
-				drawer.avgY = data.y
+				this.avgX = data.x
+				this.avgY = data.y
 			}
-			drawer.oldX = drawer.avgX
-			drawer.oldY = drawer.avgY
+			this.oldX = this.avgX
+			this.oldY = this.avgY
 			if (data.Drag && !data.End) {
 				//var alpha=0.1
-				drawer.avgX = drawer.avgX*(1-drawer.slowAlpha)+data.x*drawer.slowAlpha
-				drawer.avgY = drawer.avgY*(1-drawer.slowAlpha)+data.y*drawer.slowAlpha
+				this.avgX = this.avgX*(1-this.slowAlpha)+data.x*this.slowAlpha
+				this.avgY = this.avgY*(1-this.slowAlpha)+data.y*this.slowAlpha
 			}
 			if (data.End) {
-				drawer.oldX = data.x
-				drawer.oldY = data.y
+				this.oldX = data.x
+				this.oldY = data.y
 			}
 			if (data.Drag || data.End) {
-				return data.lineFunction(context, drawer.oldX, drawer.oldY, drawer.avgX, drawer.avgY, data.lineWidth)
+				return data.lineFunction(context, this.oldX, this.oldY, this.avgX, this.avgY, data.lineWidth)
 			}
 		}
 	},
 	spray: class extends CanvasDrawerTool {
-		tool(data, context, drawer) {
-			if (drawer.spraySpread == undefined)
-				drawer.spraySpread = 2
-			if (drawer.sprayRate == undefined)
-				drawer.sprayRate = 1 / 1.5
+		tool(data, context) {
+			if (this.spraySpread == undefined)
+				this.spraySpread = 2
+			if (this.sprayRate == undefined)
+				this.sprayRate = 1 / 1.5
 			
 			if (data.Drag) {
-				let x, y, radius=data.lineWidth*drawer.spraySpread
-				let count = data.lineWidth * drawer.sprayRate
+				let x, y, radius=data.lineWidth*this.spraySpread
+				let count = data.lineWidth * this.sprayRate
 				//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
-				//data.lineWidth * drawer.sprayRate
+				//data.lineWidth * this.sprayRate
 				for (let i=0;i<count;i+=0.1) {
 					if (MathUtilities.IntRandom(10))
 						continue
@@ -403,7 +389,7 @@ CanvasDrawerTool.tools = {
 		}
 	},
 	fill: class extends CanvasDrawerTool {
-		tool(data, context, drawer) {
+		tool(data, context) {
 			if (data.End) {
 				let sx = Math.floor(data.x)
 				let sy = Math.floor(data.y)
