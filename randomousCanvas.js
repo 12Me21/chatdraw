@@ -311,13 +311,27 @@ CanvasDrawerTool.tools = {
 	mover: class extends CanvasDrawerTool {
 		tool(data, context, drawer) {
 			if (data.Start) {
-				drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
+				//drawer.moveToolLayer = CanvasUtilities.CreateCopy(context.canvas, true)
 				drawer.moveToolOffset = [0, 0]
-				CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
+				//CanvasUtilities.Clear(context.canvas, drawer.moveToolClearColor)
 				return true; //just redraw everything. No point optimizing
-			} else if (data.End) {
-				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
-				drawer.moveToolLayer = null
+			} else if (data.Drag || data.End) {
+				if (data.Drag) {
+					drawer.moveToolOffset[0] += (data.x - data.oldX)
+					drawer.moveToolOffset[1] += (data.y - data.oldY)
+				}
+				let [x, y] = drawer.moveToolOffset
+				let can = context.canvas
+				let w = context.canvas.width
+				let h = context.canvas.height
+				while (x < 0) x += w
+				while (x >= w) x -= w
+				while (y < 0) y += h
+				while (y >= h) y -= h
+				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
+				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
+				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
+				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
 				return true; //just redraw everything. No point optimizing.
 			} else {
 				drawer.moveToolOffset[0] += (data.x - data.oldX)
@@ -327,7 +341,7 @@ CanvasDrawerTool.tools = {
 		}
 		overlay(data, context, drawer) {
 			if (!data.End) {
-				CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
+				//CanvasUtilities.OptimizedDrawImage(context, drawer.moveToolLayer.canvas, drawer.moveToolOffset[0], drawer.moveToolOffset[1])
 				return true
 			} else {
 				return false

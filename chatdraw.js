@@ -50,6 +50,11 @@ class ChatDraw extends HTMLElement {
 		this.width = 200
 		this.height = 100
 		
+		this.maxLineWidth = 7
+		let defaultLineWidth = 2
+		this.palette = []
+		this.color_buttons = []
+		
 		this.canvas = this.CreateCanvas()
 		this.context = this.canvas.getContext('2d')
 		this.$container.append(this.canvas)
@@ -60,7 +65,6 @@ class ChatDraw extends HTMLElement {
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
 		}
-		this.drawer.undoBuffer.DoUndoStateChange()
 		
 		this.drawer.get_extra = ()=>{
 			return {
@@ -76,22 +80,22 @@ class ChatDraw extends HTMLElement {
 		
 		let selected_color
 		let selected_tool
-		
 		this.$form.onchange = ev=>{
 			let name = ev.target.name
 			if (name=='color') {
 				selected_color = ev.target
-				this.colorButtonSelect(+ev.target.dataset.index)
+				console.log(ev.target)
+				this.colorButtonSelect(+ev.target.value)
 			} else if (name=='tool') {
 				selected_tool = ev.target
-				this.drawer.currentTool = ev.target.dataset.tool
+				this.drawer.currentTool = ev.target.value
 			}
 		}
 		this.$form.onclick = ev=>{
 			let name = ev.target.name
 			if (name=='color') {
 				if (ev.target === selected_color) {
-					this.show_picker(+ev.target.dataset.index)
+					this.show_picker(+ev.target.value)
 				}
 			} else if (name=='tool') {
 				if (ev.target === selected_tool) {
@@ -114,40 +118,43 @@ class ChatDraw extends HTMLElement {
 			}
 		}
 		
-		this.maxLineWidth = 7
-		let defaultLineWidth = 2
-		this.$thickness.value = defaultLineWidth - 1
-		this.$thickness.dataset.width = defaultLineWidth - 1
-		this.$thickness.click()
+		this.$row1.append(
+			this.create_button('button', 'zoom', '1', "◲").parentNode,
+			this.create_button('button', 'undo', null, "↶").parentNode,
+			this.create_button('button', 'redo', null, "↷").parentNode
+		)
 		
-		this.palette = []
-		this.color_buttons = []
-		
-		//Create the color picking buttons
 		for (let i=0; i<BaseColors.length; i++) {
-			let btn = document.createElement('input')
-			btn.type = 'radio'
-			btn.name = 'color'
-			btn.textContent = "■"
-			btn.dataset.index = i
-			
-			this.color_buttons.push(btn)
+			let input = this.create_button('radio', 'color', i, "■")
+			this.color_buttons.push(input)
 			this.palette.push(null)
 			this.set_color(i, BaseColors[i])
+			this.$row1.append(input.parentNode)
 		}
-		this.$colors.replaceWith(...this.color_buttons)
 		
-		this.$tool1.replaceWith(
-			this.createToolButton(["↔️"], ['mover'])
+		this.$row1.append(
+			this.create_button('button', 'send', null, "➥").parentNode
 		)
+		
+		let thickness = this.create_button('button', 'thickness', defaultLineWidth-1, defaultLineWidth-1)
+		
+		this.$row2.append(
+			this.createToolButton(["↔️"], ['mover']),
+			this.create_button('button', 'clear', null, "❌️").parentNode,
+			thickness.parentNode
+		)
+		
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
-		this.$tool2.replaceWith(
+		this.$row2.append(
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
 			this.createToolButton(["📏️", "🔲️"], ['line',' square']),
-			def_tool
+			def_tool,
+			this.create_button('button', 'toggle', null, "✎")
 		)
 		
-		def_tool.click()
+		this.drawer.undoBuffer.DoUndoStateChange()
+		def_tool.firstChild.click()
+		thickness.click()
 		this.color_buttons[1].click()
 		this.drawer.moveToolClearColor = this.getClearColor().to_hex()
 		this.clear()
@@ -173,8 +180,7 @@ class ChatDraw extends HTMLElement {
 		
 		let btn = this.color_buttons[index]
 		let hex = color.to_hex()
-		btn.style.color = hex
-		btn.value = hex
+		btn.nextSibling.style.color = hex
 		if (btn.checked)
 			this.drawer.color = hex
 		
@@ -211,10 +217,10 @@ class ChatDraw extends HTMLElement {
 		}
 	}
 	
-	widthToggle(button) {
-		let width = (+button.dataset.width % this.maxLineWidth) + 1
-		button.value = width
-		button.dataset.width = width
+	widthToggle(input) {
+		let width = (+input.value % this.maxLineWidth) + 1
+		input.nextSibling.textContent = width
+		input.value = width
 		this.drawer.lineWidth = width
 	}
 	
@@ -246,29 +252,35 @@ class ChatDraw extends HTMLElement {
 		super.style.setProperty('--scale', scale)
 	}
 	
+	create_button(type, name, value, text=null) {
+		let cont = document.createElement('label')
+		let input = document.createElement('input')
+		let btn = document.createElement('span')
+		input.type = type
+		input.name = name
+		input.value = value
+		input.hidden = true
+		cont.append(input, btn)
+		btn.textContent = text
+		return input
+	}
+	
 	createToolButton(labels, toolNames) {
-		let nextTool = 0
-		let btn = document.createElement('input')
-		btn.type = 'radio'
-		btn.name = 'tool'
-		
-		btn.dataset.tools = toolNames.join(",")
-		btn.dataset.labels = labels.join(",")
-		btn.dataset.tool = toolNames[nextTool]
-		btn.textContent = labels[nextTool]
-		
-		return btn
+		let input = this.create_button('radio', 'tool', toolNames[0], labels[0])
+		input.dataset.tools = toolNames.join(",")
+		input.dataset.labels = labels.join(",")
+		return input.parentNode
 	}
 	
 	cycle_tool(btn) {
 		let tools = btn.dataset.tools.split(",")
 		let labels = btn.dataset.labels.split(",")
-		let tool = btn.dataset.tool
+		let tool = btn.value
 		let index = tools.indexOf(tool)
 		index = (index+1) % tools.length
-		btn.dataset.tool = tools[index]
-		btn.textContent = labels[index]
-		this.drawer.currentTool = btn.dataset.tool
+		btn.value = tools[index]
+		btn.nextSibling.textContent = labels[index]
+		this.drawer.currentTool = btn.value
 		console.log(this.drawer.currentTool, 'current tool')
 	}
 	
@@ -283,21 +295,9 @@ class ChatDraw extends HTMLElement {
 
 ChatDraw.template = HTML`
 <canvas-container $=container></canvas-container>
-<form $=form class=controls>
-	<div>
-		<input type=button name=zoom value="◲">
-		<input type=button name=undo value="↶">
-		<input type=button name=redo value="↷">
-		<br $=colors>
-		<input type=button name=send value="➥">
-	</div>
-	<div>
-		<br $=tool1>
-		<input type=button name=clear value="❌️">
-		<input type=button name=thickness value="0" $=thickness>
-		<br $=tool2>
-		<input type=button name=toggle value="✎">
-	</div>
+<form $=form class=controls autocomplete=off>
+	<div $=row1></div>
+	<div $=row2></div>
 </form>
 <input $=color_picker type=color hidden>
 
@@ -343,14 +343,12 @@ canvas-container canvas {
 	background: #E9E9E6;
 }
 
-.controls input {
+.controls label {
+	display: contents;
+}
+
+.controls label > span {
 	flex: none;
-	appearance: none;
-	border: none;
-	border-radius: unset;
-	outline: none;
-	padding: 0;
-	margin: 0;
 	text-align: center;
 	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
@@ -358,18 +356,19 @@ canvas-container canvas {
 	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
 	background: ButtonFace;
+	-webkit-user-select: none; -moz-user-select: none; user-select: none;
 }
 
-.controls input:hover {
+.controls label > span:hover {
 	background: #2929291A;
 }
 
-.controls input:disabled {
+.controls label > :disabled + span {
 	color: #666;
 	background: #2929291A;
 }
 
-.controls input:checked {
+.controls label > :checked + span {
 	color: #E9E9E6;
 	background: #666;
 }

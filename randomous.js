@@ -62,13 +62,13 @@ let CanvasUtilities = {
 		context.save()
 		context.globalCompositeOperation = 'copy'
 		context.drawImage(source, x, y)
-		context.load()
+		context.restore()
 	},
-	OptimizedDrawImage(context, image, x, y, scaleX=image.width, scaleY=image.width) {
+	OptimizedDrawImage(context, image, x, y, scaleX=image.width, scaleY=image.height) {
 		context.save()
 		context.imageSmoothingEnabled = false
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
-		context.load()
+		context.restore()
 	},
 	Clear(canvas, color) {
 		let context = canvas.getContext("2d")
