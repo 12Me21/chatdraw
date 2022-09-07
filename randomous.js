@@ -294,17 +294,6 @@ let MathUtilities = {
 	SlopeAngle(x,y) { 
 		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
 	},
-	IntRandom(max, min) {
-		min = min || 0; //getOrDefault(min, 0)
-		
-		if (min > max) {
-			let temp = min
-			min = max
-			max = temp
-		}
-		
-		return Math.floor((Math.random() * (max - min)) + min)
-	},
 	LinearInterpolate(y1, y2, mu) {
 		return y1 + mu * (y2 - y1)
 	},

@@ -252,8 +252,6 @@ CanvasPerformer.INTERRUPT = 32
 
 CanvasPerformer.CTRL = 1
 
-
-
 
 class CanvasDrawerTool {
 }
@@ -309,6 +307,11 @@ CanvasDrawerTool.tools = {
 		}
 	},
 	mover: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.layer = null
+			this.offset = null
+		}
 		tool(data, context) {
 			if (data.Start) {
 				this.layer = CanvasUtilities.CreateCopy(context.canvas, true)
@@ -333,57 +336,57 @@ CanvasDrawerTool.tools = {
 				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
 				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
 				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
-				if (data.End)
+				if (data.End) // todo: actually make sure we always get rid of this layer all the time
 					this.layer = null
-				return true; //just redraw everything. No point optimizing.
+				return true
 			}
 		}
 	},
 	slow: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.smoothing = 0.15
+			this.avgX = this.avgY = null
+		}
 		tool(data, context) {
-			if (this.slowAlpha == undefined)
-				this.slowAlpha = 0.15
-			
 			if (data.Start) {
 				this.avgX = data.x
 				this.avgY = data.y
 			}
-			this.oldX = this.avgX
-			this.oldY = this.avgY
+			let oldX = this.avgX
+			let oldY = this.avgY
 			if (data.Drag && !data.End) {
-				//var alpha=0.1
-				this.avgX = this.avgX*(1-this.slowAlpha)+data.x*this.slowAlpha
-				this.avgY = this.avgY*(1-this.slowAlpha)+data.y*this.slowAlpha
+				this.avgX = this.avgX*(1-this.smoothing)+data.x*this.smoothing
+				this.avgY = this.avgY*(1-this.smoothing)+data.y*this.smoothing
 			}
 			if (data.End) {
-				this.oldX = data.x
-				this.oldY = data.y
+				oldX = data.x
+				oldY = data.y
 			}
 			if (data.Drag || data.End) {
-				return data.lineFunction(context, this.oldX, this.oldY, this.avgX, this.avgY, data.lineWidth)
+				return data.lineFunction(context, oldX, oldY, this.avgX, this.avgY, data.lineWidth)
 			}
 		}
 	},
 	spray: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.spread = 2
+			this.rate = 1 / 1.5
+		}
 		tool(data, context) {
-			if (this.spraySpread == undefined)
-				this.spraySpread = 2
-			if (this.sprayRate == undefined)
-				this.sprayRate = 1 / 1.5
-			
 			if (data.Drag) {
-				let x, y, radius=data.lineWidth*this.spraySpread
-				let count = data.lineWidth * this.sprayRate
-				//Math.max(MathUtilities.Distance(data.x,data.y,data.oldX,data.oldY), 1) * 
-				//data.lineWidth * this.sprayRate
-				for (let i=0;i<count;i+=0.1) {
-					if (MathUtilities.IntRandom(10))
-						continue
-					do {
-						x = (Math.random()*2-1)*radius
-						y = (Math.random()*2-1)*radius
-					} while (x*x+y*y>radius*radius)
-					CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
+				let radius = data.lineWidth*this.spread
+				let count = data.lineWidth*this.rate
+				for (let i=0; i<count*10; i++) {
+					if (Math.random()<0.1) {
+						let x, y
+						do {
+							x = (Math.random()*2-1)*radius
+							y = (Math.random()*2-1)*radius
+						} while (x*x+y*y>radius*radius)
+						CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
+					}
 				}
 			}
 		}
@@ -422,7 +425,6 @@ CanvasDrawerTool.tools.spray.prototype.frameLock = true
 class CanvasDrawerLayer {
 	constructor(context) {
 		this.context = context
-		this.opacity = 1.0
 		this.id = 0
 	}
 }
@@ -431,7 +433,6 @@ class CanvasDrawer extends CanvasPerformer {
 	constructor() {
 		super()
 		
-		this.frameActions = []
 		this.undoBuffer = null
 		this.tools = {}
 		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','mover']) {
@@ -441,13 +442,12 @@ class CanvasDrawer extends CanvasPerformer {
 		this.overlay = null
 		this.onlyInnerStrokes = true
 		this.defaultCursor = 'crosshair'
-		this.currentLayer = 0
 		this.currentTool = 'freehand'
 		this.color = "#000000"
-		this.opacity = 1
 		this.lineWidth = 2
 		this.lineShape = 'hardcircle'
 		
+		this.frameActions = []
 		this.lastAction = null
 		this.ignoreCurrentStroke = false
 		this.frameCount = 0
@@ -464,7 +464,6 @@ class CanvasDrawer extends CanvasPerformer {
 		data.color = this.color
 		data.lineWidth = this.lineWidth
 		data.lineShape = this.lineShape
-		data.opacity = this.opacity
 		
 		if (this.lineShape === 'hardcircle')
 			data.lineFunction = CanvasUtilities.DrawSolidRoundLine
@@ -500,29 +499,21 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	do_frame() {
 		this.frameCount++
-		//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
-		if (this.frameActions.length) {
-			for (let i=0; i<this.frameActions.length; i++) {
-				let data = this.frameActions[i].data
-				if (data.Start || data.End || i==this.frameActions.length-1) {
-					this.PerformDrawAction(
-						this.frameActions[i].data,
-						this.frameActions[i].context
-					)
-				}
-			}
-			
-			this.frameActions = []
-		}
 		//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
-		else if (this.tool_has('stationaryReportInterval')) {
-			if (this.tool_has('tool')) {
-				let la = this.lastAction
-				if (la && la.Drag && !la.End) {
-					if ((this.frameCount % this.tools[this.currentTool].stationaryReportInterval)==0)
-						this.PerformDrawAction(la, this.context)
-				}
+		let fa = this.frameActions
+		if (!fa.length) {
+			if (this.tool_has('stationaryReportInterval') && this.tool_has('tool')) {
+				let data = this.lastAction
+				if (data && data.Drag && !data.End)
+					if (this.frameCount % this.tools[this.currentTool].stationaryReportInterval == 0)
+						fa.push({data, context:this.context})
 			}
+		}
+		//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
+		while (fa.length) {
+			let {data, context} = fa.shift()
+			if (data.Start || data.End || fa.length==0)
+				this.PerformDrawAction(data, context)
 		}
 	}
 	
@@ -535,16 +526,12 @@ class CanvasDrawer extends CanvasPerformer {
 		return curr && (!field || curr[field])
 	}
 	
-	SupportsUndo() {
-		return (this.undoBuffer ? true : false)
-	}
-	
 	CanUndo() {
-		return this.SupportsUndo() && this.undoBuffer.UndoCount() > 0
+		return this.undoBuffer && this.undoBuffer.UndoCount() > 0
 	}
 	
 	CanRedo() {
-		return this.SupportsUndo() && this.undoBuffer.RedoCount() > 0
+		return this.undoBuffer && this.undoBuffer.RedoCount() > 0
 	}
 	
 	get_state_data() {
@@ -583,18 +570,16 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	UpdateUndoBuffer() {
-		if (!this.SupportsUndo())
-			return
-		console.trace("Updating undo buffer")
-		this.undoBuffer.Add(this.get_state_data())
+		if (this.undoBuffer) {
+			console.trace("Updating undo buffer")
+			this.undoBuffer.Add(this.get_state_data())
+		}
 	}
 	
 	PerformDrawAction(data, context) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
 		context.fillStyle = this.color
 		this.context.fillStyle = this.color
-		context.globalAlpha = 1.0; //this.opacity
-		this.context.globalAlpha = this.opacity
 		
 		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
@@ -631,7 +616,6 @@ class CanvasDrawer extends CanvasPerformer {
 			if (overlay && this.overlay.context) {
 				let overlayContext = this.overlay.context
 				overlayContext.fillStyle = this.color
-				overlayContext.globalAlpha = this.opacity
 				overlayContext.clearRect(0, 0, this.overlay.context.canvas.width, this.overlay.context.canvas.height)
 				this.overlay.active = (overlay(data, overlayContext, this) !== false)
 			}
