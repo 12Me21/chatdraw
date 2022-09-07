@@ -70,10 +70,8 @@ let CanvasUtilities = {
 		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(scaleX), Math.floor(scaleY))
 		context.restore()
 	},
-	Clear(canvas, color) {
-		let context = canvas.getContext("2d")
-		let oldStyle = context.fillStyle
-		let oldAlpha = context.globalAlpha
+	Clear(context, color) {
+		context.save()
 		if (color) {
 			context.globalAlpha = 1
 			context.fillStyle = color
@@ -81,8 +79,7 @@ let CanvasUtilities = {
 		} else {
 			context.clearRect(0, 0, canvas.width, canvas.height)
 		}
-		context.fillStyle = oldStyle
-		context.globalAlpha = oldAlpha
+		context.restore()
 	},
 	DrawSolidCenteredRectangle(ctx, cx, cy, width, height, clear) {
 		cx = Math.round(cx - width / 2)
@@ -132,13 +129,11 @@ let CanvasUtilities = {
 	},
 	//Wraps the given "normal eraser" function in the necessary crap to get the eraser to function properly. Then you just have to fill wherever necessary.
 	PerformNormalEraser(ctx, func) {
-		let oldStyle = ctx.fillStyle
-		let oldComposition = ctx.globalCompositeOperation
+		ctx.save()
 		ctx.fillStyle = "#000000"
 		ctx.globalCompositeOperation = "destination-out"
 		let result = func()
-		ctx.fillStyle = oldStyle
-		ctx.globalCompositeOperation = oldComposition
+		ctx.restore()
 		return result
 	},
 	//Draws a general line using the given function to generate each point.

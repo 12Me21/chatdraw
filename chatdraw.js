@@ -161,7 +161,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	clear() {
-		CanvasUtilities.Clear(this.canvas, this.getClearColor().to_hex())
+		CanvasUtilities.Clear(this.context, this.getClearColor().to_hex())
 	}
 	
 	restore_colors(list) {

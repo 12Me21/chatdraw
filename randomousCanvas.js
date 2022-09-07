@@ -301,7 +301,7 @@ CanvasDrawerTool.tools = {
 	clear: class extends CanvasDrawerTool {
 		tool(data, context) {
 			if (data.End && data.onTarget)
-				CanvasUtilities.Clear(context.canvas, data.color)
+				CanvasUtilities.Clear(context, data.color)
 		}
 	},
 	mover: class extends CanvasDrawerTool {
@@ -329,7 +329,7 @@ CanvasDrawerTool.tools = {
 				while (x >= w) x -= w
 				while (y < 0) y += h
 				while (y >= h) y -= h
-				CanvasUtilities.Clear(context.canvas, "#000000")
+				CanvasUtilities.Clear(context, "#000000")
 				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
 				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
 				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
@@ -584,8 +584,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let interruptHandler = this.tool_has("interrupt")
 			if (interruptHandler)
 				interruptHandler(data, this.context, this)
-			//CanvasUtilities.Clear(this.overlay.context.canvas)
-			//UXUtilities.Toast("Disabling overlay")
+			//CanvasUtilities.Clear(this.overlay.context)
 		}
 		
 		if (data.Start) {
@@ -628,7 +627,7 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	ResetUndoBuffer(size) {
-		this.undoBuffer = new UndoBuffer(size, size+1)
+		this.undoBuffer = new UndoBuffer(size)
 	}
 	
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
