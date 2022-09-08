@@ -225,13 +225,16 @@ let CanvasUtilities = {
 			if (ok)
 				return y+1<height && check(x, y+1), y-1>=0 && check(x, y-1), true
 		}
-		check(x, y)
-		while (queue.length) {
-			let [x, y] = queue.shift()
-			check3(x, y, true)
+		if (!check3(x, y))
+			return
+		while (1) {
 			let west = x, east = x
 			do;while (--west>=0 && check3(west, y))
 			do;while (++east<width && check3(east, y))
+			if (!queue.length)
+				break
+			;[x, y] = queue.shift()
+			check3(x, y, true)
 		}
 		context.putImageData(data, 0, 0)
 	},
