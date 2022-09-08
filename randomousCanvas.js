@@ -64,8 +64,8 @@ class CanvasPerformer {
 		this.context = null
 		this._oldStyle = ""
 		
-		let last_mouse_action = 0
-		let last_touch_action = 0
+		let last_mouse_action = null
+		let last_touch_action = null
 		let startZDistance = 0
 		let lastZDistance = 0
 		let last_touch = [-1, -1]
@@ -103,12 +103,12 @@ class CanvasPerformer {
 		let evpd = ev=>{ev.preventDefault()}
 		
 		this._listeners = [
-			['mousedown', false, ev=>{
+			['mousedown', true, ev=>{
 				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
 				let action = CanvasPerformer.START | last_mouse_action
 				this.Perform(ev, action, this.MouseToXY(ev))
 			}],
-			['touchstart', false, evtc],
+			['touchstart', true, evtc],
 			['touchstart', false, evpd],
 			['wheel', false, ev=>{
 				let action = CanvasPerformer.START | CanvasPerformer.END | CanvasPerformer.ZOOM
@@ -118,7 +118,7 @@ class CanvasPerformer {
 			['mouseup', true, ev=>{
 				let action = CanvasPerformer.END | last_mouse_action
 				this.Perform(ev, action, this.MouseToXY(ev))
-				last_mouse_action = 0
+				last_mouse_action = null
 			}],
 			['touchend', true, evtc],
 			['touchcancel', true, evtc],
@@ -127,15 +127,15 @@ class CanvasPerformer {
 				this.Perform(ev, action, this.MouseToXY(ev))
 			}],
 			['touchmove', true, ev=>{
-				let action = this.TouchesToAction(e.touches.length)
-				last_touch = this.TouchesToXY(action, e.touches)
+				let action = this.TouchesToAction(ev.touches.length)
+				last_touch = this.TouchesToXY(action, ev.touches)
 				
 				if (action & CanvasPerformer.ZOOM) {
-					let z = this.PinchZoom(this.PinchDistance(e.touches), startZDistance)
+					let z = this.PinchZoom(this.PinchDistance(ev.touches), startZDistance)
 					this.Perform(e, action, last_touch, z - lastZDistance)
 					lastZDistance = z
 				} else {
-					this.Perform(e, action, last_touch)
+					this.Perform(ev, action, last_touch)
 				}
 			}],
 		]
@@ -229,7 +229,7 @@ class CanvasPerformer {
 		
 		if (ev.ctrlKey)
 			ca.modifiers |= CanvasPerformer.CTRL
-		ca.onTarget = ev.target===this._canvas
+		ca.onTarget = ev.composedPath()[0]===this._canvas
 		
 		if (ev && this.ShouldCapture(ca))
 			ev.preventDefault()

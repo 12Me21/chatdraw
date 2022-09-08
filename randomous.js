@@ -212,33 +212,27 @@ let CanvasUtilities = {
 		return (x + y * width) * 4
 	},
 	GenericFlood(context, x, y, func) {
+		x = Math.floor(x)
+		y = Math.floor(y)
 		let data = CanvasUtilities.GetAllData(context)
 		let {width, height} = data
 		let queue = []
-		let check3 = (x, y, ok=func(data, x, y))=>{
+		let check3 = (ok=func(data, x, y))=>{
 			if (ok) {
-				if (y+1<height && func(data, x, y+1))
-					queue.push([x, y+1])
-				if (y-1>=0 && func(data, x, y-1))
-					queue.push([x, y-1])
+				if (y+1<height && func(data, x, y+1)) queue.push([x, y+1])
+				if (y-1>=0 && func(data, x, y-1)) queue.push([x, y-1])
 				return true
 			}
 		}
-		x = Math.floor(x)
-		y = Math.floor(y)
-		if (!check3(x, y))
+		if (!check3())
 			return
-		while (1) {
-			let west = x, east = x
-			do;while (--west>=0 && check3(west, y))
-			do;while (++east<width && check3(east, y))
-			if (!queue.length) {
-				context.putImageData(data, 0, 0)
-				return
-			}
-			;[x, y] = queue.shift()
-			check3(x, y, true)
-		}
+		do {
+			let s = x
+			do;while (--x>=0 && check3())
+			x = s
+			do;while (++x<width && check3())
+		} while (queue.length && check3([x,y]=queue.shift()))
+		context.putImageData(data, 0, 0)
 	},
 	SwapColor(context, original, newColor) {
 		let iData = CanvasUtilities.GetAllData(context)
