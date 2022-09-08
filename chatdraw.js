@@ -161,9 +161,14 @@ class ChatDraw extends HTMLElement {
 		this.style.setProperty('--height', this.height)
 		
 		this.drawer.Attach(this.canvas, true)
+		
+		this.overlay = this.drawer.overlay.canvas
+		this.overlay.style.pointerEvents = 'none'
+		this.$container.append(this.overlay)
 	}
 	
 	disconnectedCallback() {
+		this.overlay.remove()
 		this.drawer.Detach()
 	}
 	

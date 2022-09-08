@@ -20,7 +20,6 @@ class CursorActionData {
 		this.Zoom = (action & 8)==8
 		this.Pan = (action & 16)==16
 		this.Interrupt = (action & 32)==32
-		this.EndInterrupt = (action & (2|32))==(2|32)
 		
 		this.x = x
 		this.y = y
@@ -254,6 +253,7 @@ class CanvasDrawerTool {
 }
 // why isn't there a syntax for this?
 CanvasDrawerTool.prototype.tool = null
+CanvasDrawerTool.prototype.cursor = null
 CanvasDrawerTool.prototype.overlay = null
 CanvasDrawerTool.prototype.interrupt = null
 CanvasDrawerTool.prototype.stationaryReportInterval = null
@@ -419,13 +419,6 @@ CanvasDrawerTool.tools.spray.prototype.stationaryReportInterval = 1
 CanvasDrawerTool.tools.spray.prototype.frameLock = true
 
 
-class CanvasDrawerLayer {
-	constructor(context) {
-		this.context = context
-		this.id = 0
-	}
-}
-
 class CanvasDrawer extends CanvasPerformer {
 	constructor() {
 		super()
@@ -437,7 +430,10 @@ class CanvasDrawer extends CanvasPerformer {
 		}
 		
 		this.overlay = null
+		this.overlayActive = false
+		
 		this.onlyInnerStrokes = true
+		
 		this.defaultCursor = 'crosshair'
 		this.currentTool = 'freehand'
 		this.color = "#000000"
@@ -454,7 +450,8 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	OnAction(data) {
-		if (!this.tool_has('tool'))
+		let tool = this.tools[this.currentTool]
+		if (!tool)
 			return
 		if (!data.Drag)
 			return
@@ -472,7 +469,7 @@ class CanvasDrawer extends CanvasPerformer {
 			data.lineFunction = CanvasUtilities.DrawNormalRoundLine
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
-		if (!this.tool_has("cursor") && data.Start) 
+		if (!tool.cursor && data.Start) 
 			;//this._canvas.style.cursor = this.defaultCursor
 		
 		if (data.Start) {
@@ -488,7 +485,7 @@ class CanvasDrawer extends CanvasPerformer {
 			data.startY = this.lastAction.startY
 		}
 		
-		if (this.tool_has('frameLock'))
+		if (tool.framelock)
 			this.frameActions.push(data)
 		else
 			this.PerformDrawAction(data)
@@ -499,7 +496,8 @@ class CanvasDrawer extends CanvasPerformer {
 		//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
 		let fa = this.frameActions
 		if (!fa.length) {
-			if (this.tool_has('stationaryReportInterval') && this.tool_has('tool')) {
+			let tool = this.tools[this.currentTool]
+			if (tool.stationaryReportInterval && tool.tool) {
 				let data = this.lastAction
 				if (data && data.Drag && !data.End)
 					if (this.frameCount % this.tools[this.currentTool].stationaryReportInterval == 0)
@@ -516,11 +514,6 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	SwapColor(original, newColor) {
 		CanvasUtilities.SwapColor(this.context, original, newColor)
-	}
-	
-	tool_has(field) { 
-		let curr = this.tools[this.currentTool]
-		return curr && (!field || curr[field])
 	}
 	
 	CanUndo() {
@@ -576,14 +569,14 @@ class CanvasDrawer extends CanvasPerformer {
 	PerformDrawAction(data) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
 		this.context.fillStyle = this.color
+		let tool = this.tools[this.currentTool]
 		
 		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
-			this.overlay.active = false
-			let interruptHandler = this.tool_has("interrupt")
-			if (interruptHandler)
-				interruptHandler(data, this.context, this)
-			//CanvasUtilities.Clear(this.overlay.context)
+			this.overlayActive = false
+			if (tool.interrupt)
+				tool.interrupt(data, this.context, this)
+			//CanvasUtilities.Clear(this.overlay)
 		}
 		
 		if (data.Start) {
@@ -591,13 +584,13 @@ class CanvasDrawer extends CanvasPerformer {
 				this.ignoreCurrentStroke = true
 				//console.debug("ignoring stroke. Interrupt: " + data.Interrupt)
 			} else {
-				if (this.tool_has('updateUndoBuffer'))
+				if (tool.updateUndoBuffer)
 					this.UpdateUndoBuffer()
 			}
 		}
 		
 		//A special case: The last stroke that was valid was interrupted, so we need to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && data.EndInterrupt && this.tool_has('updateUndoBuffer')) {
+		if (!this.ignoreCurrentStroke && (data.End && data.Interrupt) && tool.updateUndoBuffer) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
@@ -605,14 +598,13 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//Now actually perform the action.
 		if (!this.ignoreCurrentStroke) {
-			let bounding = this.tools[this.currentTool].tool(data, this.context, this)
-			let overlay = this.tool_has('overlay')
+			let bounding = tool.tool(data, this.context, this)
 			
-			if (overlay && this.overlay.context) {
-				let overlayContext = this.overlay.context
-				overlayContext.fillStyle = this.color
-				overlayContext.clearRect(0, 0, this.overlay.context.canvas.width, this.overlay.context.canvas.height)
-				this.overlay.active = (overlay(data, overlayContext, this) !== false)
+			if (tool.overlay && this.overlay) {
+				let oc = this.overlay
+				oc.fillStyle = this.color
+				oc.clearRect(0, 0, oc.canvas.width, oc.canvas.height)
+				this.overlayActive = tool.overlay(data, oc, this)!==false
 			}
 		}
 		
@@ -629,13 +621,9 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = new UndoBuffer(size)
 	}
 	
-	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
-	//overlays will be the same size as mainCanvas.
 	Attach(canvas, useToolOverlay=true) {
 		if (useToolOverlay)
-			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvas))
-		else
-			this.overlay = new CanvasDrawerLayer(null)
+			this.overlay = CanvasUtilities.CreateCopy(canvas)
 		
 		super.Attach(canvas)
 		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
