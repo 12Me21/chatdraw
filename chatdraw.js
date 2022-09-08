@@ -142,7 +142,7 @@ class ChatDraw extends HTMLElement {
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
 		this.$row2.append(
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
-			this.createToolButton(["📏️", "🔲️"], ['line', 'square']),
+			this.createToolButton(["📏️", "🔲️", "()"], ['line', 'square', 'circle']),
 			def_tool,
 			this.button('toggle', null, "✎", ev=>{	/* ... */ }).parentNode
 		)

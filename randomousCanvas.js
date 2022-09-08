@@ -283,6 +283,24 @@ CanvasDrawerTool.tools = {
 				return false
 		}
 	},
+	circle: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End) {
+				let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
+				let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
+				return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
+			}
+		}
+		overlay(data, context) {
+			if (!data.End) {
+				let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
+				let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
+				return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
+			} else {
+				return false
+			}
+		}
+	},
 	square: class extends CanvasDrawerTool {
 		tool(data, context) {
 			if (data.End) {
@@ -425,7 +443,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.undoBuffer = null
 		this.tools = {}
-		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','mover']) {
+		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','mover','circle']) {
 			this.tools[tool] = new CanvasDrawerTool.tools[tool]()
 		}
 		
