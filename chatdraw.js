@@ -110,7 +110,7 @@ class ChatDraw extends HTMLElement {
 		}
 		
 		this.$row1.append(
-			this.button('zoom', '1', "◲", ev=>{ this.scaleInterface() }).parentNode,
+			this.button('zoom', '1', "🔍", ev=>{ this.scaleInterface() }).parentNode,
 			this.button('undo', null, "↶", ev=>{ this.drawer.Undo() }).parentNode,
 			this.button('redo', null, "↷", ev=>{ this.drawer.Redo() }).parentNode
 		)
@@ -130,7 +130,7 @@ class ChatDraw extends HTMLElement {
 		let thickness = this.button('thickness', 1, 1, ev=>{ this.widthToggle(ev.target) })
 		
 		this.$row2.append(
-			this.createToolButton(["↔️"], ['mover']),
+			this.createToolButton(["🤚"], ['mover']),
 			this.button('clear', null, "❌️", ev=>{
 				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
@@ -142,7 +142,7 @@ class ChatDraw extends HTMLElement {
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
 		this.$row2.append(
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
-			this.createToolButton(["📏️", "🔲️", "()"], ['line', 'square', 'circle']),
+			this.createToolButton(["📏️", "🔲️", "🔵"], ['line', 'square', 'disc']),
 			def_tool,
 			this.button('toggle', null, "✎", ev=>{	/* ... */ }).parentNode
 		)
@@ -223,6 +223,7 @@ class ChatDraw extends HTMLElement {
 		index = (index+1) % tools.length
 		btn.value = tools[index]
 		btn.nextSibling.textContent = labels[index]
+		//btn.nextSibling.title = tools[index]
 		if (btn.checked)
 			this.use_tool(btn.value)
 	}
@@ -275,15 +276,16 @@ class ChatDraw extends HTMLElement {
 		
 		let btn = document.createElement('span')
 		btn.textContent = text
+		//btn.title = onplay?name:value
 		
 		document.createElement('label').append(input, btn)
 		
 		return input
 	}
 	
-	createToolButton(labels, toolNames) {
-		let input = this.button('tool', toolNames[0], labels[0])
-		input.dataset.tools = toolNames.join(",")
+	createToolButton(labels, tools) {
+		let input = this.button('tool', tools[0], labels[0])
+		input.dataset.tools = tools.join(",")
 		input.dataset.labels = labels.join(",")
 		return input.parentNode
 	}
@@ -346,6 +348,7 @@ canvas-container canvas {
 .controls label > span {
 	flex: none;
 	text-align: center;
+	box-sizing: border-box;
 	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
@@ -353,6 +356,9 @@ canvas-container canvas {
 	cursor: pointer;
 	background: ButtonFace;
 	-webkit-user-select: none; -moz-user-select: none; user-select: none;
+	color: #888;
+	text-shadow:
+		1px 1px 0px black;
 }
 
 .controls label > span:hover {
@@ -366,8 +372,13 @@ canvas-container canvas {
 
 .controls label > :checked + span {
 	color: #E9E9E6;
-	background: #666;
+	background: #888;
 }
+/*.controls label > [name="color"] + span {
+	outline: 10px solid currentColor;
+	outline-offset: -10px;
+}*/
+
 </style>
 `
 //#A7E258

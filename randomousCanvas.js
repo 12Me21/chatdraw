@@ -260,182 +260,18 @@ CanvasDrawerTool.prototype.stationaryReportInterval = null
 CanvasDrawerTool.prototype.frameLock = false
 CanvasDrawerTool.prototype.updateUndoBuffer = true
 
-CanvasDrawerTool.tools = {
-	freehand: class extends CanvasDrawerTool {
-		tool(data, context) {
-			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
-		}
-	},
-	eraser: class extends CanvasDrawerTool {
-		tool(data, context) {
-			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth, true)
-		}
-	},
-	line: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End)
-				return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-		}
-		overlay(data, context) {
-			if (!data.End)
-				return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-			else
-				return false
-		}
-	},
-	circle: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End) {
-				let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
-				let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
-				return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
-			}
-		}
-		overlay(data, context) {
-			if (!data.End) {
-				let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
-				let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
-				return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
-			} else {
-				return false
-			}
-		}
-	},
-	square: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End) {
-				return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-			}
-		}
-		overlay(data, context) {
-			if (!data.End) {
-				return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
-			} else {
-				return false
-			}
-		}
-	},
-	clear: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End && data.onTarget)
-				CanvasUtilities.Clear(context, data.color)
-		}
-	},
-	mover: class extends CanvasDrawerTool {
-		constructor() {
-			super()
-			this.layer = null
-			this.offset = null
-		}
-		tool(data, context) {
-			if (data.Start) {
-				this.layer = CanvasUtilities.CreateCopy(context.canvas, true)
-				this.offset = [0, 0]
-				return false
-			}
-			if (data.Drag) {
-				this.offset[0] += (data.x - data.oldX)
-				this.offset[1] += (data.y - data.oldY)
-			}
-			if (data.Drag || data.End) {
-				let [x, y] = this.offset
-				let can = this.layer.canvas
-				let w = context.canvas.width
-				let h = context.canvas.height
-				while (x < 0) x += w
-				while (x >= w) x -= w
-				while (y < 0) y += h
-				while (y >= h) y -= h
-				CanvasUtilities.Clear(context, "#000000")
-				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
-				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
-				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
-				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
-				if (data.End) // todo: actually make sure we always get rid of this layer all the time
-					this.layer = null
-				return true
-			}
-		}
-	},
-	slow: class extends CanvasDrawerTool {
-		constructor() {
-			super()
-			this.smoothing = 0.15
-			this.avgX = this.avgY = null
-		}
-		tool(data, context) {
-			if (data.Start) {
-				this.avgX = data.x
-				this.avgY = data.y
-			}
-			let oldX = this.avgX
-			let oldY = this.avgY
-			if (data.Drag && !data.End) {
-				this.avgX = this.avgX*(1-this.smoothing)+data.x*this.smoothing
-				this.avgY = this.avgY*(1-this.smoothing)+data.y*this.smoothing
-			}
-			if (data.End) {
-				oldX = data.x
-				oldY = data.y
-			}
-			if (data.Drag || data.End) {
-				return data.lineFunction(context, oldX, oldY, this.avgX, this.avgY, data.lineWidth)
-			}
-		}
-	},
-	spray: class extends CanvasDrawerTool {
-		constructor() {
-			super()
-			this.spread = 2
-			this.rate = 1 / 1.5
-		}
-		tool(data, context) {
-			if (data.Drag) {
-				let radius = data.lineWidth*this.spread
-				let count = data.lineWidth*this.rate
-				for (let i=0; i<count*10; i++) {
-					if (Math.random()<0.1) {
-						let x, y
-						do {
-							x = (Math.random()*2-1)*radius
-							y = (Math.random()*2-1)*radius
-						} while (x*x+y*y>radius*radius)
-						CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
-					}
-				}
-			}
-		}
-	},
-	fill: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End) {
-				let sx = Math.floor(data.x)
-				let sy = Math.floor(data.y)
-				console.debug("Flood filling starting from " + sx + ", " + sy)
-				
-				let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-				let color = Color.from_hex(data.color)
-				
-				if (originalColor.compare_data(color.ToArray()))
-					return
-				
-				CanvasUtilities.GenericFlood(context, sx, sy, (d, x, y)=>{
-					let i = CanvasUtilities.ImageDataCoordinate(d, x, y)
-					if (originalColor.compare_data(d.data, i)) {
-						color.write_data(d.data, i)
-						return true
-					}
-					return false
-				})
-			}
-		}
-	},
+class CanvasDrawerOverlayTool extends CanvasDrawerTool {
+	tool(data, context) {
+		if (data.End)
+			return this._draw(data, context)
+	}
+	overlay(data, context) {
+		if (!data.End)
+			return this._draw(data, context)
+		return false
+	}
 }
-CanvasDrawerTool.tools.slow.prototype.stationaryReportInterval = 1
-CanvasDrawerTool.tools.slow.prototype.frameLock = true
-CanvasDrawerTool.tools.spray.prototype.stationaryReportInterval = 1
-CanvasDrawerTool.tools.spray.prototype.frameLock = true
-
+CanvasDrawerOverlayTool.prototype._draw = null
 
 class CanvasDrawer extends CanvasPerformer {
 	constructor() {
@@ -443,8 +279,8 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.undoBuffer = null
 		this.tools = {}
-		for (let tool of ['freehand','eraser','slow','spray','line','square','clear','fill','mover','circle']) {
-			this.tools[tool] = new CanvasDrawerTool.tools[tool]()
+		for (let tool of ['freehand','slow','spray','line','square','clear','fill','mover','disc']) {
+			this.tools[tool] = new CanvasDrawer.tools[tool]()
 		}
 		
 		this.overlay = null
@@ -660,3 +496,149 @@ class CanvasDrawer extends CanvasPerformer {
 		super.Detach()
 	}
 }
+
+CanvasDrawer.tools = {
+	freehand: class extends CanvasDrawerTool {
+		tool(data, context) {
+			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
+		}
+	},
+	slow: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.smoothing = 0.15
+			this.avgX = this.avgY = null
+		}
+		tool(data, context) {
+			if (data.Start) {
+				this.avgX = data.x
+				this.avgY = data.y
+			}
+			let oldX = this.avgX
+			let oldY = this.avgY
+			if (data.Drag && !data.End) {
+				this.avgX = this.avgX*(1-this.smoothing)+data.x*this.smoothing
+				this.avgY = this.avgY*(1-this.smoothing)+data.y*this.smoothing
+			}
+			if (data.End) {
+				oldX = data.x
+				oldY = data.y
+			}
+			if (data.Drag || data.End) {
+				return data.lineFunction(context, oldX, oldY, this.avgX, this.avgY, data.lineWidth)
+			}
+		}
+	},
+	spray: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.spread = 2
+			this.rate = 1 / 1.5
+		}
+		tool(data, context) {
+			if (data.Drag) {
+				let radius = data.lineWidth*this.spread
+				let count = data.lineWidth*this.rate
+				for (let i=0; i<count*10; i++) {
+					if (Math.random()<0.1) {
+						let x, y
+						do {
+							x = (Math.random()*2-1)*radius
+							y = (Math.random()*2-1)*radius
+						} while (x*x+y*y>radius*radius)
+						CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
+					}
+				}
+			}
+		}
+	},
+	
+	fill: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End) {
+				let sx = Math.floor(data.x)
+				let sy = Math.floor(data.y)
+				console.debug("Flood filling starting from " + sx + ", " + sy)
+				
+				let originalColor = CanvasUtilities.GetColor(context, sx, sy)
+				let color = Color.from_hex(data.color)
+				
+				if (originalColor.compare_data(color.ToArray()))
+					return
+				
+				CanvasUtilities.GenericFlood(context, sx, sy, (d, x, y)=>{
+					let i = CanvasUtilities.ImageDataCoordinate(d, x, y)
+					if (originalColor.compare_data(d.data, i)) {
+						color.write_data(d.data, i)
+						return true
+					}
+					return false
+				})
+			}
+		}
+	},
+	clear: class extends CanvasDrawerTool {
+		tool(data, context) {
+			if (data.End && data.onTarget)
+				CanvasUtilities.Clear(context, data.color)
+		}
+	},
+	mover: class extends CanvasDrawerTool {
+		constructor() {
+			super()
+			this.layer = null
+			this.offset = null
+		}
+		tool(data, context) {
+			if (data.Start) {
+				this.layer = CanvasUtilities.CreateCopy(context.canvas, true)
+				this.offset = [0, 0]
+				return false
+			}
+			if (data.Drag) {
+				this.offset[0] += (data.x - data.oldX)
+				this.offset[1] += (data.y - data.oldY)
+			}
+			if (data.Drag || data.End) {
+				let [x, y] = this.offset
+				let can = this.layer.canvas
+				let w = context.canvas.width
+				let h = context.canvas.height
+				while (x < 0) x += w
+				while (x >= w) x -= w
+				while (y < 0) y += h
+				while (y >= h) y -= h
+				CanvasUtilities.Clear(context, "#000000")
+				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
+				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
+				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
+				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
+				if (data.End) // todo: actually make sure we always get rid of this layer all the time
+					this.layer = null
+				return true
+			}
+		}
+	},
+	
+	line: class extends CanvasDrawerOverlayTool {
+		_draw(data, context) {
+			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+		}
+	},
+	square: class extends CanvasDrawerOverlayTool {
+		_draw(data, context) {
+			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+		}
+	},
+	disc: class extends CanvasDrawerOverlayTool {
+		_draw(data, context) {
+			let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
+			let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
+			return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
+		}
+	},
+}
+CanvasDrawer.tools.slow.prototype.stationaryReportInterval = 1
+CanvasDrawer.tools.slow.prototype.frameLock = true
+CanvasDrawer.tools.spray.prototype.stationaryReportInterval = 1
+CanvasDrawer.tools.spray.prototype.frameLock = true
