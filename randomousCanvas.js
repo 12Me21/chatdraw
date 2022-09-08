@@ -631,18 +631,13 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	//Assumes mainCanvas is the same size as all the layers. All undo buffers and
 	//overlays will be the same size as mainCanvas.
-	Attach(mainCanvas, undoCount=5, useToolOverlay=true) {
+	Attach(canvas, useToolOverlay=true) {
 		if (useToolOverlay)
-			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(mainCanvas))
+			this.overlay = new CanvasDrawerLayer(CanvasUtilities.CreateCopy(canvas))
 		else
 			this.overlay = new CanvasDrawerLayer(null)
 		
-		if (undoCount)
-			this.ResetUndoBuffer(undoCount)
-		else
-			this.undoBuffer = false
-		
-		super.Attach(mainCanvas)
+		super.Attach(canvas)
 		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
 		
 		let do_frame = ()=>{
@@ -655,7 +650,6 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	Detach() {
-		this.undoBuffer = null
 		this.overlay = null
 		super.Detach()
 	}

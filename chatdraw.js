@@ -44,23 +44,28 @@ class ChatDraw extends HTMLElement {
 	constructor() {
 		super()
 		new.target.template(this)
-		this.attachShadow({mode: 'open'})
-		this.shadowRoot.append(this.$root)
+		super.attachShadow({mode: 'open'})
+		super.shadowRoot.append(this.$root)
 		
 		this.width = 200
 		this.height = 100
 		
 		this.maxLineWidth = 7
-		let defaultLineWidth = 2
+		
 		this.palette = []
 		this.color_buttons = []
 		
-		this.canvas = this.CreateCanvas()
-		this.context = this.canvas.getContext('2d')
+		this.canvas = document.createElement('canvas')
+		this.canvas.width = this.width
+		this.canvas.height = this.height
 		this.$container.append(this.canvas)
 		
+		this.context = this.canvas.getContext('2d')
+		this.context.imageSmoothingEnabled = false
+		
 		this.drawer = new CanvasDrawer()
-		this.drawer.Attach(this.canvas, 10, true)
+		
+		this.drawer.ResetUndoBuffer(10)
 		this.drawer.undoBuffer.OnUndoStateChange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
@@ -78,26 +83,26 @@ class ChatDraw extends HTMLElement {
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
-		let selected_color
-		let selected_tool
+		let selected = {}
 		this.$form.onchange = ev=>{
 			let e = ev.target
 			if (e.name=='color') {
-				selected_color = e
-				this.colorButtonSelect(+e.value)
+				selected[e.name] = e
+				this.use_color(+e.value)
 			} else if (e.name=='tool') {
-				selected_tool = e
-				this.drawer.currentTool = e.value
+				selected[e.name] = e
+				this.use_tool(e.value)
 			}
 		}
 		this.$form.onclick = ev=>{
 			let e = ev.target
 			if (e.name=='color') {
-				if (e === selected_color)
+				if (e===selected[e.name])
 					this.show_picker(+e.value)
 			} else if (e.name=='tool') {
-				if (e === selected_tool)
+				if (e===selected[e.name]) {
 					this.cycle_tool(e)
+				}
 			} else {
 				let p = e.onplay
 				p && p(ev)
@@ -142,11 +147,24 @@ class ChatDraw extends HTMLElement {
 			this.button('toggle', null, "✎", ev=>{	/* ... */ }).parentNode
 		)
 		
-		this.drawer.undoBuffer.DoUndoStateChange()
 		def_tool.firstChild.click()
 		thickness.click()
 		this.color_buttons[1].click()
 		this.clear()
+		this.drawer.undoBuffer.DoUndoStateChange()
+	}
+	
+	connectedCallback() {
+		let scale = Math.floor((window.screen.width - this.width) / this.width)
+		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
+		this.style.setProperty('--width', this.width)
+		this.style.setProperty('--height', this.height)
+		
+		this.drawer.Attach(this.canvas, true)
+	}
+	
+	disconnectedCallback() {
+		this.drawer.Detach()
 	}
 	
 	clear() {
@@ -157,6 +175,13 @@ class ChatDraw extends HTMLElement {
 		for (let i=0; i<this.palette.length; i++) {
 			this.set_color(i, Color.from_hex(list[i]))
 		}
+	}
+	
+	use_color(index) {
+		this.drawer.color = this.palette[index].to_hex()
+	}
+	use_tool(name) {
+		this.drawer.currentTool = name
 	}
 	
 	set_color(index, color, swap=false) {
@@ -171,7 +196,7 @@ class ChatDraw extends HTMLElement {
 		let hex = color.to_hex()
 		btn.nextSibling.style.color = hex
 		if (btn.checked)
-			this.drawer.color = hex
+			this.use_color(index)
 	}
 	
 	show_picker(index) {
@@ -185,11 +210,16 @@ class ChatDraw extends HTMLElement {
 		picker.click()
 	}
 	
-	connectedCallback() {
-		let scale = Math.floor((window.screen.width - this.width) / this.width)
-		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
-		this.style.setProperty('--width', this.width)
-		this.style.setProperty('--height', this.height)
+	cycle_tool(btn) {
+		let tools = btn.dataset.tools.split(",")
+		let labels = btn.dataset.labels.split(",")
+		let tool = btn.value
+		let index = tools.indexOf(tool)
+		index = (index+1) % tools.length
+		btn.value = tools[index]
+		btn.nextSibling.textContent = labels[index]
+		if (btn.checked)
+			this.use_tool(btn.value)
 	}
 	
 	//Send the current drawing to the chat.
@@ -215,10 +245,6 @@ class ChatDraw extends HTMLElement {
 			return col.clear_score()
 		})
 		return col
-	}
-	
-	colorButtonSelect(index) {
-		this.drawer.color = this.palette[index].to_hex()
 	}
 	
 	scaleInterface() {
@@ -255,25 +281,6 @@ class ChatDraw extends HTMLElement {
 		input.dataset.tools = toolNames.join(",")
 		input.dataset.labels = labels.join(",")
 		return input.parentNode
-	}
-	
-	cycle_tool(btn) {
-		let tools = btn.dataset.tools.split(",")
-		let labels = btn.dataset.labels.split(",")
-		let tool = btn.value
-		let index = tools.indexOf(tool)
-		index = (index+1) % tools.length
-		btn.value = tools[index]
-		btn.nextSibling.textContent = labels[index]
-		this.drawer.currentTool = btn.value
-	}
-	
-	CreateCanvas() {
-		let canvas = document.createElement('canvas')
-		canvas.width = this.width
-		canvas.height = this.height
-		canvas.getContext('2d').imageSmoothingEnabled = false
-		return canvas
 	}
 }
 
