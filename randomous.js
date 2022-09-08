@@ -211,32 +211,34 @@ let CanvasUtilities = {
 			return -1
 		return (x + y * width) * 4
 	},
-	async GenericFlood(context, x, y, func) {
-		x = Math.floor(x)
-		y = Math.floor(y)
+	GenericFlood(context, x, y, func) {
 		let data = CanvasUtilities.GetAllData(context)
 		let {width, height} = data
 		let queue = []
-		let check = (x, y)=>{
-			if (func(data, x, y))
-				queue.push([x, y])
-		}
 		let check3 = (x, y, ok=func(data, x, y))=>{
-			if (ok)
-				return y+1<height && check(x, y+1), y-1>=0 && check(x, y-1), true
+			if (ok) {
+				if (y+1<height && func(data, x, y+1))
+					queue.push([x, y+1])
+				if (y-1>=0 && func(data, x, y-1))
+					queue.push([x, y-1])
+				return true
+			}
 		}
+		x = Math.floor(x)
+		y = Math.floor(y)
 		if (!check3(x, y))
 			return
 		while (1) {
 			let west = x, east = x
 			do;while (--west>=0 && check3(west, y))
 			do;while (++east<width && check3(east, y))
-			if (!queue.length)
-				break
+			if (!queue.length) {
+				context.putImageData(data, 0, 0)
+				return
+			}
 			;[x, y] = queue.shift()
 			check3(x, y, true)
 		}
-		context.putImageData(data, 0, 0)
 	},
 	SwapColor(context, original, newColor) {
 		let iData = CanvasUtilities.GetAllData(context)
