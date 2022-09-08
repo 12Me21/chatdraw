@@ -216,31 +216,23 @@ let CanvasUtilities = {
 		y = Math.floor(y)
 		let data = CanvasUtilities.GetAllData(context)
 		let {width, height} = data
-		let queueX = [], queueY = []
+		let queue = []
 		let enqueue = (x, y)=>{
-			if (func(data, x, y)) {
-				queueX.push(x)
-				queueY.push(y)
-			}
+			if (func(data, x, y)) queue.push([x, y])
+		}
+		let check = (x, y)=>{
+			if (y+1 < height) enqueue(x, y+1)
+			if (y-1 >= 0) enqueue(x, y-1)
 		}
 		enqueue(x, y)
-		while (queueX.length) {
+		while (queue.length) {
 			//Move west until it is just outside the range we want to fill. Move east in a similar manner.
-			let west = queueX.shift(), east = west
-			let y = queueY.shift()
-			do {
-				west--;
-			} while (west>=0 && func(data, west, y))
-			do {
-				east++;
-			} while (east<width && func(data, east, y))
-			//Move from west to east EXCLUSIVE and fill the queue with matching north and south nodes.
-			if (y+1 < height)
-				for (let x=west+1; x<east; x++)
-					enqueue(x, y+1)
-			if (y-1 >= 0)
-				for (let x=west+1; x<east; x++)
-					enqueue(x, y-1)
+			let [x, y] = queue.shift()
+			check(x, y)
+			for (let west=x-1; west>=0 && func(data, west, y); west--)
+				check(west, y)
+			for (let east=x+1; east<width && func(data, east, y); east++)
+				check(east, y)
 		}
 		context.putImageData(data, 0, 0)
 	},
