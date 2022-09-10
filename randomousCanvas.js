@@ -12,10 +12,10 @@ console.trace = ()=>{}
 // Auxiliary object for describing generic cursor actions and data. Useful for unified mouse/touch systems (like CanvasPerformer)
 
 class CursorActionData {
-	constructor(action, [x, y], target, zoomDelta=null) {
+	constructor(action, start, end, [x, y], target, zoomDelta=null) {
 		//this.action = action
-		this.Start = (action & 1)==1
-		this.End = (action & 2)==2
+		this.Start = start
+		this.End = end
 		this.Drag = (action & 4)==4
 		this.Zoom = (action & 8)==8
 		this.Pan = (action & 16)==16
@@ -23,12 +23,8 @@ class CursorActionData {
 		
 		this.x = x
 		this.y = y
-		this.realX = x //The real x and y relative to the canvas.
-		this.realY = y
 		this.zoomDelta = zoomDelta
 		this.onTarget = true
-		this.targetElement = target
-		this.time = Date.now()
 		this.modifiers = 0
 		this.existent = true
 		if (target) {
@@ -59,43 +55,37 @@ class CanvasPerformer {
 		this.PanTouches = 2
 		this.WheelZoom = 0.5
 		
-		this._canvas = null
-		this.context = null
+		this.element = null
 		this._oldStyle = ""
 		
 		let last_mouse_action = null
-		let last_touch_action = null
+		let lta = null
 		let startZDistance = 0
 		let lastZDistance = 0
-		let last_touch = [-1, -1]
+		this.last_touch = [-1, -1]
 		
 		let evtc = ev=>{
 			if (this.ZoomTouches !== 2)
 				throw "Zoom must use 2 fingers!"
 			
-			let extraAction = 0
 			let nextAction = this.TouchesToAction(ev.touches.length)
 			
+			let interrupt = (lta && nextAction) ? CanvasPerformer.INTERRUPT : 0
+			
 			//If we enter evTC and there is a last_touch_action, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
-			if (last_touch_action) {
-				if (nextAction)
-					extraAction |= CanvasPerformer.INTERRUPT
-				let action = CanvasPerformer.END | last_touch_action | extraAction
-				this.Perform(ev, action, last_touch)
+			if (lta) {
+				this.Perform(ev, 0, 1, lta | interrupt)
 			}
 			
-			//Move to the "next" action.
-			last_touch_action = nextAction
-			
 			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
-			if (last_touch_action) {
-				if (last_touch_action & CanvasPerformer.ZOOM) {
+			lta = nextAction
+			if (lta) {
+				if (lta & CanvasPerformer.ZOOM) {
 					startZDistance = this.PinchDistance(ev.touches)
 					lastZDistance = 0
 				}
-				last_touch = this.TouchesToXY(last_touch_action, ev.touches)
-				let action = CanvasPerformer.START | last_touch_action | extraAction
-				this.Perform(ev, action, last_touch)
+				this.last_touch = this.TouchesToXY(lta, ev.touches)
+				this.Perform(ev, 1, 0, lta | interrupt)
 			}
 		}
 		
@@ -104,43 +94,43 @@ class CanvasPerformer {
 		this._listeners = [
 			['mousedown', true, ev=>{
 				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
-				let action = CanvasPerformer.START | last_mouse_action
-				this.Perform(ev, action, this.MouseToXY(ev))
+				this.Perform(ev, 1, 0, last_mouse_action)
 			}],
-			['touchstart', true, evtc],
-			['touchstart', false, evpd],
-			['wheel', false, ev=>{
-				let action = CanvasPerformer.START | CanvasPerformer.END | CanvasPerformer.ZOOM
-				this.Perform(ev, action, this.MouseToXY(ev), -Math.sign(ev.deltaY) * this.WheelZoom)
+			['mousemove', true, ev=>{
+				this.Perform(ev, 0, 0, this.ButtonsToAction(ev.buttons))
+			}],
+			['mouseup', true, ev=>{
+				this.Perform(ev, 0, 1, last_mouse_action)
+				last_mouse_action = null
 			}],
 			['contextmenu', false, evpd],
-			['mouseup', true, ev=>{
-				let action = CanvasPerformer.END | last_mouse_action
-				this.Perform(ev, action, this.MouseToXY(ev))
-				last_mouse_action = null
+			
+			['wheel', false, ev=>{
+				let z = -Math.sign(ev.deltaY) * this.WheelZoom
+				this.Perform(ev, 1, 1, CanvasPerformer.ZOOM, z)
+			}],
+			
+			['touchstart', true, evtc],
+			['touchstart', false, evpd],
+			['touchmove', true, ev=>{
+				let action = this.TouchesToAction(ev.touches.length)
+				this.last_touch = this.TouchesToXY(action, ev.touches)
+				
+				let dz = undefined
+				if (action & CanvasPerformer.ZOOM) {
+					dz = this.PinchZoom(this.PinchDistance(ev.touches), startZDistance) - lastZDistance
+					lastZDistance += dz
+				}
+				this.Perform(ev, 0, 0, dz)
 			}],
 			['touchend', true, evtc],
 			['touchcancel', true, evtc],
-			['mousemove', true, ev=>{
-				let action = this.ButtonsToAction(ev.buttons)
-				this.Perform(ev, action, this.MouseToXY(ev))
-			}],
-			['touchmove', true, ev=>{
-				let action = this.TouchesToAction(ev.touches.length)
-				last_touch = this.TouchesToXY(action, ev.touches)
-				
-				if (action & CanvasPerformer.ZOOM) {
-					let z = this.PinchZoom(this.PinchDistance(ev.touches), startZDistance)
-					this.Perform(e, action, last_touch, z - lastZDistance)
-					lastZDistance = z
-				} else {
-					this.Perform(ev, action, last_touch)
-				}
-			}],
 		]
 	}
 	
-	MouseToXY(ev) {
+	event_pos(ev) {
+		if (ev.type.startsWith("touch"))
+			return this.last_touch
 		return [ev.clientX, ev.clientY]
 	}
 	
@@ -192,43 +182,37 @@ class CanvasPerformer {
 	
 	do_listeners(state) {
 		for (let [type, is_doc, func] of this._listeners) {
-			let target = is_doc ? document : this._canvas
+			let target = is_doc ? document : this.element
 			target[state?'addEventListener':'removeEventListener'](type, func)
 		}
 	}
 	
-	Attach(context) {
-		if (this._canvas)
-			throw "This CanvasPerformer is already attached to a canvas!"
+	Attach(element) {
+		if (this.element)
+			throw "This CanvasPerformer is already attached to an element!"
 		
-		this._canvas = context.canvas
-		this.context = context
-		this._oldStyle = context.canvas.style.touchAction
-		context.canvas.style.touchAction = "none"
+		this.element = element
+		element.style.touchAction = 'none'
 		
 		this.do_listeners(true)
 	}
 	
 	Detach() {
-		if (!this._canvas)
-			throw "This CanvasPerformer is is not attached to a canvas!"
+		if (!this.element)
+			throw "This CanvasPerformer is is not attached to an element!"
 		
 		this.do_listeners(false)
 		
-		this._canvas.style.touchAction = this._oldStyle
-		this._canvas = null
-		this.context = null
+		this.element = null
 	}
 	
-	Perform(ev, action, pos, zoomDelta) {
-		let ca = new CursorActionData(action, pos, this._canvas, zoomDelta)
-		
+	Perform(ev, start, end, action, zoomDelta) {
+		let ca = new CursorActionData(action, start, end, this.event_pos(ev), this.element, zoomDelta)
 		if (!ca.existent)
 			return
-		
 		if (ev.ctrlKey)
 			ca.modifiers |= CanvasPerformer.CTRL
-		ca.onTarget = ev.composedPath()[0]===this._canvas
+		ca.onTarget = ev.composedPath()[0]===this.element
 		
 		if (ev && this.ShouldCapture(ca))
 			ev.preventDefault()
@@ -238,8 +222,6 @@ class CanvasPerformer {
 }
 CanvasPerformer.prototype.OnAction = null
 
-CanvasPerformer.START = 1
-CanvasPerformer.END = 2
 CanvasPerformer.DRAG = 4
 CanvasPerformer.ZOOM = 8
 CanvasPerformer.PAN = 16
@@ -315,7 +297,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
-			;//this._canvas.style.cursor = this.defaultCursor
+			;//this.element.style.cursor = this.defaultCursor
 		
 		if (data.Start) {
 			data.oldX = data.x
@@ -471,12 +453,11 @@ class CanvasDrawer extends CanvasPerformer {
 	Attach(context, useToolOverlay=true) {
 		if (useToolOverlay)
 			this.overlay = CanvasUtilities.CreateCopy(context.canvas)
-		
-		super.Attach(context)
-		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
+		this.context = context
+		super.Attach(context.canvas)
 		
 		let do_frame = ()=>{
-			if (!this._canvas)
+			if (!this.context)
 				return
 			this.do_frame()
 			requestAnimationFrame(do_frame)
@@ -486,13 +467,14 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	Detach() {
 		this.overlay = null
+		this.context = null
 		super.Detach()
 	}
 }
 
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
-		tool({x,y,oldX,oldY,lineFunction}, context) {
+		tool({x, y, oldX, oldY, lineFunction}, context) {
 			lineFunction(context, oldX, oldY, x, y)
 		}
 	},

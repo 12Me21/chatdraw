@@ -164,17 +164,6 @@ class ChatDraw extends HTMLElement {
 		this.color_buttons[1].click()
 		this.clear()
 		this.drawer.undoBuffer.DoUndoStateChange()
-	}
-	
-	adoptedCallback() {
-		console.log('adopted??')
-	}
-	
-	connectedCallback() {
-		let scale = Math.floor((window.screen.width - this.width) / this.width)
-		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
-		this.style.setProperty('--width', this.width)
-		this.style.setProperty('--height', this.height)
 		
 		this.drawer.Attach(this.context, true)
 		//this.context.filter = 'url("#f")'
@@ -183,6 +172,13 @@ class ChatDraw extends HTMLElement {
 		this.overlay = this.drawer.overlay.canvas
 		this.overlay.style.pointerEvents = 'none'
 		this.$container.append(this.overlay)
+	}
+	
+	connectedCallback() {
+		let scale = Math.floor((window.screen.width - this.width) / this.width)
+		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
+		this.style.setProperty('--width', this.width)
+		this.style.setProperty('--height', this.height)
 	}
 	
 	disconnectedCallback() {
