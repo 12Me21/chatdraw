@@ -586,22 +586,16 @@ CanvasDrawer.tools = {
 	mover: class extends CanvasDrawerTool {
 		constructor() {
 			super()
-			this.layer = null
-			this.offset = null
+			this.data = null
 		}
 		tool(data, context) {
 			if (data.Start) {
-				this.layer = CanvasUtilities.CreateCopy(context.canvas, true)
-				this.offset = [0, 0]
+				this.data = CanvasUtilities.GetAllData(context)
 				return false
 			}
-			if (data.Drag) {
-				this.offset[0] += (data.x - data.oldX)
-				this.offset[1] += (data.y - data.oldY)
-			}
 			if (data.Drag || data.End) {
-				let [x, y] = this.offset
-				let can = this.layer.canvas
+				let x = data.x - data.startX
+				let y = data.y - data.startY
 				let w = context.canvas.width
 				let h = context.canvas.height
 				while (x < 0) x += w
@@ -609,12 +603,12 @@ CanvasDrawer.tools = {
 				while (y < 0) y += h
 				while (y >= h) y -= h
 				CanvasUtilities.Clear(context, "#000000")
-				CanvasUtilities.OptimizedDrawImage(context, can, x, y)
-				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y)
-				CanvasUtilities.OptimizedDrawImage(context, can, x, y-h)
-				CanvasUtilities.OptimizedDrawImage(context, can, x-w, y-h)
+				context.putImageData(this.data, x, y)
+				context.putImageData(this.data, x-w, y)
+				context.putImageData(this.data, x, y-h)
+				context.putImageData(this.data, x-w, y-h)
 				if (data.End) // todo: actually make sure we always get rid of this layer all the time
-					this.layer = null
+					this.data = null
 				return true
 			}
 		}

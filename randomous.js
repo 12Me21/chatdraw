@@ -64,10 +64,10 @@ let CanvasUtilities = {
 		context.drawImage(source, x, y)
 		context.restore()
 	},
-	OptimizedDrawImage(context, image, x, y, width=image.width, height=image.height) {
+	OptimizedDrawImage(context, image, x, y) {
 		context.save()
 		context.imageSmoothingEnabled = false
-		context.drawImage(image, Math.floor(x), Math.floor(y), Math.floor(width), Math.floor(height))
+		context.drawImage(image, Math.floor(x), Math.floor(y))
 		context.restore()
 	},
 	Clear(context, color=null) {
@@ -90,6 +90,7 @@ let CanvasUtilities = {
 			ctx.fillRect(cx, cy, Math.round(width), Math.round(height))
 		return [cx, cy, width, height]
 	},
+	// todo: optimize this, since there's a fixed set of shapes
 	DrawSolidEllipse(ctx, cx, cy, radius1, radius2, clear) {
 		radius2 = radius2 || radius1
 		let line = clear ? "clearRect" : "fillRect"
@@ -110,31 +111,6 @@ let CanvasUtilities = {
 		}
 		
 		return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2]
-	},
-	DrawNormalCenteredRectangle(ctx, cx, cy, width, height) {
-		cx = cx - (width - 1) / 2
-		cy = cy - (height - 1) / 2
-		
-		ctx.fillRect(cx, cy, width, height)
-		
-		return [cx, cy, width, height]
-	},
-	//For now, doesn't actually draw an ellipse
-	DrawNormalCenteredEllipse(ctx, cx, cy, width, height) {
-		ctx.beginPath()
-		ctx.arc(cx, cy, width / 2, 0, Math.PI * 2, 0)
-		ctx.fill()
-		
-		return [cx - width / 2 - 1, cy - height / 2 - 1, width, width]
-	},
-	//Wraps the given "normal eraser" function in the necessary crap to get the eraser to function properly. Then you just have to fill wherever necessary.
-	PerformNormalEraser(ctx, func) {
-		ctx.save()
-		ctx.fillStyle = "#000000"
-		ctx.globalCompositeOperation = "destination-out"
-		let result = func()
-		ctx.restore()
-		return result
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {
@@ -161,32 +137,6 @@ let CanvasUtilities = {
 	},
 	DrawSolidRoundLine(ctx, sx, sy, tx, ty, width, clear) {
 		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, CanvasUtilities._DrawSolidRoundLineFunc)
-	},
-	//How to draw a single point on the NormalSquare line
-	_DrawNormalSquareLineFunc(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawNormalCenteredRectangle(ctx, x, y, width, width, clear)
-	},
-	DrawNormalSquareLine(ctx, sx, sy, tx, ty, width, clear) {
-		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
-			})
-		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalSquareLineFunc)
-		}
-	},
-	//How to draw a single point on the NormalRound line
-	_DrawNormalRoundLineFunc(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawNormalCenteredEllipse(ctx, x, y, width, width, clear)
-	},
-	DrawNormalRoundLine(ctx, sx, sy, tx, ty, width, clear) {
-		if (clear) {
-			return CanvasUtilities.PerformNormalEraser(ctx, function() {
-				return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
-			})
-		} else {
-			return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, false, CanvasUtilities._DrawNormalRoundLineFunc)
-		}
 	},
 	DrawHollowRectangle(ctx, x, y, x2, y2, width) {
 		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width)
