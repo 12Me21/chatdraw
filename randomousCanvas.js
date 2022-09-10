@@ -270,7 +270,7 @@ class CanvasDrawer extends CanvasPerformer {
 		data.lineShape = this.lineShape
 		
 		if (this.lineShape === 'hardcircle')
-			data.lineFunction = CanvasUtilities.DrawRoundLine
+			data.lineFunction = CanvasUtilities.DrawLine2
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 

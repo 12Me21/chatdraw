@@ -121,6 +121,42 @@ let CanvasUtilities = {
 			}
 		}
 	},
+	DrawLine2(ctx, x1, y1, x2, y2, func) {
+		let lw = ctx.lineWidth
+		//;[x1,y1] = CanvasUtilities.correct_pos(x1, y1, lw)
+		//;[x2,y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		
+		
+		let [x,y] = CanvasUtilities.correct_pos(x1, y1, lw)
+		let [ex,ey] = CanvasUtilities.correct_pos(x2, y2, lw)
+		//;[x2,y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		
+		//let [x,y] = [x1,y1]
+		let dx = x2-x1
+		let dy = y2-y1
+		function best_dir([sx1, sy1, sx2, sy2]) {
+			let d1 = MathUtilities.point_to_line(x+sx1, y+sy1, x1,y1,x2,y2)
+			let d2 = MathUtilities.point_to_line(x+sx2, y+sy2, x1,y1,x2,y2)
+			if (d1<d2) {
+				x += sx1
+				y += sy1
+			} else {
+				x += sx2
+				y += sy2
+			}
+		}
+		let jumps = [
+			Math.sign(dx)*(dy*dy<dx*dx), Math.sign(dy)*(dy*dy>dx*dx),
+			Math.sign(dx), Math.sign(dy),
+		]
+		for (let i=0;i<50;i++) {
+			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
+			if (MathUtilities.Distance(x,y,ex,ey)<2)
+				break
+			best_dir(jumps)
+		}
+		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
+	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
 		let dx = tx-sx, dy = ty-sy
@@ -206,6 +242,11 @@ let CanvasUtilities = {
 // Functions which provide extra math functionality.
 
 let MathUtilities = {
+	point_to_line(x, y, x1, y1, x2, y2) {
+		let dx = x2-x1, dy = y2-y1
+		let dist = Math.abs(dx*(y1-y)-dy*(x1-x)) / Math.sqrt(dx*dx+dy*dy)
+		return dist
+	},
 	Distance(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
