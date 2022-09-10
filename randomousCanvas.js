@@ -572,11 +572,11 @@ CanvasDrawer.tools = {
 	
 	line: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
-			function dist2(start, end, point) {
+			/*function dist2(start, end, point) {
 				return (end.x-start.x)*(point.y-start.y) - (end.y-start.y)*(point.x-start.x)
 			}
 			
-			$log.textContent = dist2({x:data.startX,y:data.startY}, {x:data.x,y:data.y},{x:100,y:50})
+			$log.textContent = dist2({x:data.startX,y:data.startY}, {x:data.x,y:data.y},{x:100,y:50})*/
 			data.lineFunction(context, data.startX, data.startY, data.x, data.y)
 		}
 	},
