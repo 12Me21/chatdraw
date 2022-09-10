@@ -182,9 +182,9 @@ class CanvasPerformer {
 			End: end,
 			Interrupt: interrupt,
 			
-			Drag: (action & 4)==4,
-			Zoom: (action & 8)==8,
-			Pan: (action & 16)==16,
+			Drag: (action & 1)==1,
+			Zoom: (action & 2)==2,
+			Pan: (action & 4)==4,
 			
 			x: (x - rect.x) / sx,
 			y: (y - rect.y) / sy,
