@@ -182,8 +182,6 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	disconnectedCallback() {
-		this.overlay.remove()
-		this.drawer.Detach()
 	}
 	
 	clear() {

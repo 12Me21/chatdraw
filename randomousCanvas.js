@@ -464,11 +464,13 @@ CanvasDrawer.tools = {
 		}
 		tool(data, context) {
 			if (data.Start) {
-				this.avgX = data.x
-				this.avgY = data.y
+				this.oldX = this.avgX = data.x
+				this.oldY = this.avgY = data.y
 			}
 			let oldX = this.avgX
 			let oldY = this.avgY
+			//let oldX = this.oldX
+			//let oldY = this.oldY
 			if (data.Drag && !data.End) {
 				this.avgX = this.avgX*(1-this.smoothing)+data.x*this.smoothing
 				this.avgY = this.avgY*(1-this.smoothing)+data.y*this.smoothing
@@ -478,6 +480,7 @@ CanvasDrawer.tools = {
 				oldY = data.y
 			}
 			if (data.Drag || data.End) {
+				//;[this.oldX, this.oldY] = 
 				data.lineFunction(context, oldX, oldY, this.avgX, this.avgY)
 			}
 		}
@@ -500,7 +503,7 @@ CanvasDrawer.tools = {
 							x = (Math.random()*2-1)*radius
 							y = (Math.random()*2-1)*radius
 						} while (x*x+y*y>radius*radius)
-						CanvasUtilities.DrawSolidCenteredRectangle(context, data.x+x, data.y+y, 1, 1)
+						context.fillRect(Math.floor(data.x+x), Math.floor(data.y+y), 1, 1)
 					}
 				}
 			}

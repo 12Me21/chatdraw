@@ -123,19 +123,22 @@ let CanvasUtilities = {
 	},
 	DrawLine2(ctx, x1, y1, x2, y2, func) {
 		let lw = ctx.lineWidth
-		let [x,y] = CanvasUtilities.correct_pos(x1, y1, lw)
-		let [ex,ey] = CanvasUtilities.correct_pos(x2, y2, lw)
-		let dx = x2-x1
-		let dy = y2-y1
-		let sx = Math.sign(dx)
-		let sy = Math.sign(dy)
-		let tx = Math.abs(dx)>Math.abs(dy) ? sx : 0
-		let ty = tx==0 ? sy : 0
+		// round start/end points
+		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
+		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
+		// distance
+		let [dx, dy] = [x2-x1, y2-y1]
+		// diagonal step
+		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
+		// orthogonal step
+		let [tx, ty] = Math.abs(dx)>Math.abs(dy) ? [sx, 0] : [0, sy]
+		//
 		let i
 		for (i=0;i<500;i++) {
 			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
 			if (MathUtilities.Distance(x, y, ex, ey)<2)
 				break
+			// move in the direction that takes us closest to the ideal line
 			let orth = Math.abs(dx*(y+ty-y1)-dy*(x+tx-x1))
 			let diag = Math.abs(dx*(y+sy-y1)-dy*(x+sx-x1))
 			if (orth<=diag) {
@@ -148,6 +151,7 @@ let CanvasUtilities = {
 		}
 		//if (!i)
 		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
+		return [ex, ey]
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
