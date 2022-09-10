@@ -452,8 +452,10 @@ class CanvasDrawer extends CanvasPerformer {
 
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
-		tool({x, y, oldX, oldY, lineFunction}, context) {
-			lineFunction(context, oldX, oldY, x, y)
+		tool({Start, x, y, oldX, oldY, lineFunction}, context) {
+			if (Start)
+				this.p = null
+			this.p = lineFunction(context, oldX, oldY, x, y, this.p)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
