@@ -1,44 +1,73 @@
 'use strict'
 
-// Functions objects for working with colors in a generic way. Any canvas functions will use this object rather than some specific format.
-class Color {
-	constructor(r, g, b, a=255) {
-		this.color = [r,g,b,a]
+// ugh this is messy. how do we REALLY store color?
+// varies between "#RRGGBB", "#RRGGBBAA", 0xAABBGGRR (or 0xRRGGBBAA on big endian), and Color class, and [r,g,b,a]
+
+const LITTLE = new Uint8Array(new Uint32Array([5]).buffer)[0] == 5
+
+if (LITTLE) {
+	window.Color = class Color {
+		constructor(r, g, b, a=255) {
+			if (g===undefined)
+				this.color = r
+			else
+				this.color = r|g<<8|b<<16|a<<24
+		}
+		get r() { return this.color & 255 }
+		get g() { return this.color>>>8 & 255 }
+		get b() { return this.color>>>16 & 255 }
+		get a() { return this.color>>>24 & 255 }
+		
+		clear_score() { //idk
+			return Math.pow(this.r + this.g + this.b - (255 * 3/2 - 0.1), 2)
+		}
+		
+		ToArray() {
+			return [this.r, this.g, this.b, this.a]
+		}
+		
+		to_hex() {
+			let num = this.r<<16 | this.g<<8 | this.b
+			return "#"+num.toString(16).padStart(2*3, "0")
+		}
+		
+		static from_hex(value) {
+			let num = parseInt(value.slice(1), 16)
+			return new this(num>>>16&255, num>>>8&255, num&255)
+		}
 	}
-	
-	clear_score() { //idk
-		let col = this.color
-		return Math.pow((col[0] + col[1] + col[2] - (255 * 3 / 2 - 0.1)), 2)
-	}
-	
-	ToArray() {
-		return this.color
-	}
-	
-	write_data(data, index=0) {
-		for (let j=0; j<4; j++)
-			data[index+j] = this.color[j]
-	}
-	
-	compare_data(data, index=0) {
-		for (let j=0; j<4; j++)
-			if (data[index+j] != this.color[j])
-				return false
-		return true
-	}
-	
-	to_hex(includeAlpha) {
-		// todo: alpha
-		let num = this.color[0]<<16 | this.color[1]<<8 | this.color[2]
-		return "#"+num.toString(16).padStart(2*3, "0")
-	}
-	
-	static from_hex(value) {
-		let num = parseInt(value.slice(1), 16)
-		return new this(num>>16&255, num>>8&255, num&255)
+} else {
+	window.Color = class Color {
+		constructor(r, g, b, a=255) {
+			if (g===undefined)
+				this.color = r
+			else
+				this.color = r<<24 | g<<16 | b<<8 | a
+		}
+		get r() { return this.color>>>24 & 255 }
+		get g() { return this.color>>>16 & 255 }
+		get b() { return this.color>>>8 & 255 }
+		get a() { return this.color & 255 }
+		
+		clear_score() { //idk
+			return Math.pow(this.r + this.g + this.b - (255 * 3/2 - 0.1), 2)
+		}
+		
+		ToArray() {
+			return [this.r, this.g, this.b, this.a]
+		}
+		
+		to_hex() {
+			let num = this.r<<16 | this.g<<8 | this.b
+			return "#"+num.toString(16).padStart(2*3, "0")
+		}
+		
+		static from_hex(value) {
+			let num = parseInt(value.slice(1), 16)
+			return new this(num>>>16&255, num>>>8&255, num&255)
+		}
 	}
 }
-
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
@@ -75,17 +104,9 @@ let CanvasUtilities = {
 		context[op](0, 0, context.canvas.width, context.canvas.height)
 		context.restore()
 	},
-	DrawSolidCenteredRectangle(ctx, cx, cy, width, height, clear=null) {
-		cx = Math.round(cx - width / 2)
-		cy = Math.round(cy - height / 2)
-		if (clear)
-			ctx.clearRect(cx, cy, Math.round(width), Math.round(height))
-		else
-			ctx.fillRect(cx, cy, Math.round(width), Math.round(height))
-		return [cx, cy, width, height]
-	},
 	// todo: optimize this, since there's a fixed set of shapes
-	DrawSolidEllipse(ctx, cx, cy, radius1, radius2=radius1, clear) {
+	// note that cx and cy should be integers or int + 0.5, depending on whether the radius is even or odd..
+	DrawEllipse(ctx, cx, cy, radius1, radius2=radius1) {
 		let rs1 = radius1 * radius1
 		let rs2 = radius2 * radius2
 		let rss = rs1 * rs2
@@ -99,46 +120,42 @@ let CanvasUtilities = {
 				}
 			}
 		}
-		return [Math.floor(cx-radius1), Math.floor(cy-radius2), radius1*2+1, radius2*2+1]
 	},
 	//Draws a general line using the given function to generate each point.
-	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {
-		let dist = MathUtilities.Distance(sx,sy,tx,ty);     // length of line
-		let ang = MathUtilities.SlopeAngle(tx-sx,ty-sy);    // angle of line
-		if (dist == 0)
-			dist=0.001
-		for (let i=0; i<dist; i+=0.5) {
-			func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, width, clear)
+	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
+		let dx = tx-sx, dy = ty-sy
+		let dist2 = dx*dx + dy*dy
+		if (dist2 == 0) {
+			func(ctx, sx, sy)
+		} else {
+			let ang = Math.atan2(dy, dx)
+			for (let i=0; i*i<dist2; i+=0.5)
+				func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i)
 		}
-		//This is just an approximation and will most likely be larger than necessary. It is the bounding rectangle for the area that was updated
-		return CanvasUtilities.ComputeBoundingBox(sx, sy, tx, ty, width)
 	},
-	//How to draw a single point on the SolidSquare line
-	_DrawSolidSquareLineFunc(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawSolidCenteredRectangle(ctx, x, y, width, width, clear)
+	DrawRoundLine(ctx, sx, sy, tx, ty) {
+		CanvasUtilities.DrawLineRaw(
+			ctx, sx, sy, tx, ty,
+			(ctx,x,y)=>CanvasUtilities.DrawEllipse(ctx, x, y, ctx.lineWidth/2, ctx.lineWidth/2)
+		)
 	},
-	DrawSolidSquareLine(ctx, sx, sy, tx, ty, width, clear) {
-		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, CanvasUtilities._DrawSolidSquareLineFunc)
+	correct_pos(x, y, bw, bh=bw) {
+		x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
+		y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
+		return [x, y]
 	},
-	//How to draw a single point on the SolidRound line
-	_DrawSolidRoundLineFunc(ctx, x, y, width, clear) { 
-		CanvasUtilities.DrawSolidEllipse(ctx, x, y, width / 2, width / 2, clear)
-	},
-	DrawSolidRoundLine(ctx, sx, sy, tx, ty, width, clear) {
-		return CanvasUtilities.DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, CanvasUtilities._DrawSolidRoundLineFunc)
-	},
-	DrawHollowRectangle(ctx, x, y, x2, y2, width) {
-		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x2, y, width)
-		CanvasUtilities.DrawSolidSquareLine(ctx, x, y2, x2, y2, width)
-		CanvasUtilities.DrawSolidSquareLine(ctx, x, y, x, y2, width)
-		CanvasUtilities.DrawSolidSquareLine(ctx, x2, y, x2, y2, width)
-		return CanvasUtilities.ComputeBoundingBox(x, y, x2, y2, width)
-	},
-	ComputeBoundingBox(x, y, x2, y2, width) {
-		return [
-			Math.min(x, x2) - width, Math.min(y, y2) - width,
-			Math.abs(x - x2) + width * 2 + 1, Math.abs(y - y2) + width * 2 + 1
-		]
+	DrawHollowRectangle(ctx, x, y, x2, y2) {
+		let lw = ctx.lineWidth
+		;[x, y] = CanvasUtilities.correct_pos(x, y, lw)
+		;[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		x -= lw/2
+		y -= lw/2
+		x2 += lw/2
+		y2 += lw/2
+		ctx.fillRect(x, y, x2-x, lw)
+		ctx.fillRect(x, y, lw, y2-y)
+		ctx.fillRect(x, y2-lw, x2-x, lw)
+		ctx.fillRect(x2-lw, y, lw, y2-y)
 	},
 	GetColor(context, x, y) {
 		let data = context.getImageData(x, y, 1, 1).data
@@ -154,12 +171,13 @@ let CanvasUtilities = {
 		x = Math.floor(x)
 		y = Math.floor(y)
 		let data = CanvasUtilities.GetAllData(context)
+		let i32 = new Int32Array(data.data.buffer)
 		let {width, height} = data
 		let queue = []
-		let check3 = (ok=func(data, x, y))=>{
+		let check3 = (ok=func(i32, width, height, x, y))=>{
 			if (ok) {
-				if (y+1<height && func(data, x, y+1)) queue.push([x, y+1])
-				if (y-1>=0 && func(data, x, y-1)) queue.push([x, y-1])
+				if (y+1<height && func(i32, width, height, x, y+1)) queue.push([x, y+1])
+				if (y-1>=0 && func(i32, width, height, x, y-1)) queue.push([x, y-1])
 				return true
 			}
 		}
@@ -175,10 +193,10 @@ let CanvasUtilities = {
 	},
 	SwapColor(context, original, newColor) {
 		let iData = CanvasUtilities.GetAllData(context)
-		let data = iData.data
-		for (let i=0; i<data.length; i+=4) {
-			if (original.compare_data(data, i))
-				newColor.write_data(data, i)
+		let i32 = new Int32Array(iData.data.buffer)
+		for (let i=0; i<i32.length; i++) {
+			if (original.color == data[i])
+				data[i] = newColor.color
 		}
 		context.putImageData(iData, 0, 0)
 	}

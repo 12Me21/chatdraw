@@ -82,6 +82,12 @@ class ChatDraw extends HTMLElement {
 			this.restore_colors(palette)
 		}
 		
+		let make_cursor=(size=1)=>{
+			this.canvas.style.cursor = `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${size+2}" height="${size+2}"><rect x="${size/2+0.5}" y="${size/2+0.5}" width="1" height="1"/><rect x="0.5" y="0.5" width="${size+1}" height="${size+1}" fill="none" stroke="red"/></svg>') ${size/2+0.5} ${size/2+0.5}, none`
+		}
+		
+		make_cursor(3)
+		
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		

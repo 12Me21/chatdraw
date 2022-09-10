@@ -308,18 +308,10 @@ class CanvasDrawer extends CanvasPerformer {
 			return
 		if (!data.Drag)
 			return
-		data.color = this.color
-		data.lineWidth = this.lineWidth
 		data.lineShape = this.lineShape
 		
 		if (this.lineShape === 'hardcircle')
-			data.lineFunction = CanvasUtilities.DrawSolidRoundLine
-		else if (this.lineShape === 'hardsquare')
-			data.lineFunction = CanvasUtilities.DrawSolidSquareLine
-		else if (this.lineShape === 'normalsquare')
-			data.lineFunction = CanvasUtilities.DrawNormalSquareLine
-		else
-			data.lineFunction = CanvasUtilities.DrawNormalRoundLine
+			data.lineFunction = CanvasUtilities.DrawRoundLine
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
@@ -422,6 +414,7 @@ class CanvasDrawer extends CanvasPerformer {
 	PerformDrawAction(data) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
 		this.context.fillStyle = this.color
+		this.context.lineWidth = this.lineWidth
 		let tool = this.tools[this.currentTool]
 		
 		if (data.Interrupt) {
@@ -456,6 +449,7 @@ class CanvasDrawer extends CanvasPerformer {
 			if (tool.overlay && this.overlay) {
 				let oc = this.overlay
 				oc.fillStyle = this.color
+				oc.lineWidth = this.lineWidth
 				oc.clearRect(0, 0, oc.canvas.width, oc.canvas.height)
 				this.overlayActive = tool.overlay(data, oc, this)!==false
 			}
@@ -498,8 +492,8 @@ class CanvasDrawer extends CanvasPerformer {
 
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
-		tool({x,y,oldX,oldY,lineWidth,lineFunction}, context) {
-			return lineFunction(context, oldX, oldY, x, y, lineWidth)
+		tool({x,y,oldX,oldY,lineFunction}, context) {
+			lineFunction(context, oldX, oldY, x, y)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
@@ -524,7 +518,7 @@ CanvasDrawer.tools = {
 				oldY = data.y
 			}
 			if (data.Drag || data.End) {
-				return data.lineFunction(context, oldX, oldY, this.avgX, this.avgY, data.lineWidth)
+				data.lineFunction(context, oldX, oldY, this.avgX, this.avgY)
 			}
 		}
 	},
@@ -536,8 +530,9 @@ CanvasDrawer.tools = {
 		}
 		tool(data, context) {
 			if (data.Drag) {
-				let radius = data.lineWidth*this.spread
-				let count = data.lineWidth*this.rate
+				let w = context.lineWidth
+				let radius = w*this.spread
+				let count = w*this.rate
 				for (let i=0; i<count*10; i++) {
 					if (Math.random()<0.1) {
 						let x, y
@@ -554,21 +549,20 @@ CanvasDrawer.tools = {
 	
 	fill: class extends CanvasDrawerTool {
 		tool(data, context) {
-			if (data.End) {
-				let sx = Math.floor(data.x)
-				let sy = Math.floor(data.y)
+			if (data.Start) {
+				let [sx, sy] = CanvasUtilities.correct_pos(data.x, data.y, 1)
 				console.debug("Flood filling starting from " + sx + ", " + sy)
 				
 				let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-				let color = Color.from_hex(data.color)
+				let color = Color.from_hex(context.fillStyle)
 				
-				if (originalColor.compare_data(color.ToArray()))
+				if (originalColor.color == color.color)
 					return
-				
-				CanvasUtilities.GenericFlood(context, sx, sy, (d, x, y)=>{
-					let i = CanvasUtilities.ImageDataCoordinate(d, x, y)
-					if (originalColor.compare_data(d.data, i)) {
-						color.write_data(d.data, i)
+				console.log(originalColor, color)
+				CanvasUtilities.GenericFlood(context, sx, sy, (i32, w, h, x, y)=>{
+					let i = y*w + x
+					if (i32[i] == originalColor.color) {
+						i32[i] = color.color
 						return true
 					}
 					return false
@@ -579,7 +573,7 @@ CanvasDrawer.tools = {
 	clear: class extends CanvasDrawerTool {
 		tool(data, context) {
 			if (data.End && data.onTarget)
-				CanvasUtilities.Clear(context, data.color)
+				CanvasUtilities.Clear(context, context.fillStyle)
 		}
 	},
 	mover: class extends CanvasDrawerTool {
@@ -615,19 +609,19 @@ CanvasDrawer.tools = {
 	
 	line: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
-			return data.lineFunction(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+			data.lineFunction(context, data.startX, data.startY, data.x, data.y)
 		}
 	},
 	square: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
-			return CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y, data.lineWidth)
+			CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y)
 		}
 	},
 	disc: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
 			let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
 			let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
-			return CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
+			CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
 		}
 	},
 }
