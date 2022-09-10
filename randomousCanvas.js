@@ -8,41 +8,6 @@
 console.trace = ()=>{}
 
 
-// --- CursorActionData ---
-// Auxiliary object for describing generic cursor actions and data. Useful for unified mouse/touch systems (like CanvasPerformer)
-
-class CursorActionData {
-	constructor(action, start, end, [x, y], target, zoomDelta=null) {
-		//this.action = action
-		this.Start = start
-		this.End = end
-		this.Drag = (action & 4)==4
-		this.Zoom = (action & 8)==8
-		this.Pan = (action & 16)==16
-		this.Interrupt = (action & 32)==32
-		
-		this.x = x
-		this.y = y
-		this.zoomDelta = zoomDelta
-		this.onTarget = true
-		this.modifiers = 0
-		this.existent = true
-		if (target) {
-			let rect = target.getBoundingClientRect()
-			let sx = rect.width / target.width
-			let sy = rect.height / target.height
-			
-			if (sx <= 0 || sy <= 0)
-				this.existent = false
-			else {
-				this.x = (this.x - rect.x) / sx
-				this.y = (this.y - rect.y) / sy
-			}
-		}
-	}
-}
-
-
 // --- CanvasPerformer ---
 // Allows simple actions using unified touch and mouse on a canvas. Useful for drawing applications
 
@@ -70,11 +35,11 @@ class CanvasPerformer {
 			
 			let nextAction = this.TouchesToAction(ev.touches.length)
 			
-			let interrupt = (lta && nextAction) ? CanvasPerformer.INTERRUPT : 0
+			let interrupt = lta && nextAction
 			
 			//If we enter evTC and there is a last_touch_action, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
 			if (lta) {
-				this.Perform(ev, 0, 1, lta | interrupt)
+				this.Perform(ev, 0, 1, interrupt, lta)
 			}
 			
 			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
@@ -85,7 +50,7 @@ class CanvasPerformer {
 					lastZDistance = 0
 				}
 				this.last_touch = this.TouchesToXY(lta, ev.touches)
-				this.Perform(ev, 1, 0, lta | interrupt)
+				this.Perform(ev, 1, 0, interrupt, lta)
 			}
 		}
 		
@@ -94,20 +59,20 @@ class CanvasPerformer {
 		this._listeners = [
 			['mousedown', true, ev=>{
 				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
-				this.Perform(ev, 1, 0, last_mouse_action)
+				this.Perform(ev, 1, 0, 0, last_mouse_action)
 			}],
 			['mousemove', true, ev=>{
-				this.Perform(ev, 0, 0, this.ButtonsToAction(ev.buttons))
+				this.Perform(ev, 0, 0, 0, this.ButtonsToAction(ev.buttons))
 			}],
 			['mouseup', true, ev=>{
-				this.Perform(ev, 0, 1, last_mouse_action)
+				this.Perform(ev, 0, 1, 0, last_mouse_action)
 				last_mouse_action = null
 			}],
 			['contextmenu', false, evpd],
 			
 			['wheel', false, ev=>{
 				let z = -Math.sign(ev.deltaY) * this.WheelZoom
-				this.Perform(ev, 1, 1, CanvasPerformer.ZOOM, z)
+				this.Perform(ev, 1, 1, 0, CanvasPerformer.ZOOM, z)
 			}],
 			
 			['touchstart', true, evtc],
@@ -121,7 +86,7 @@ class CanvasPerformer {
 					dz = this.PinchZoom(this.PinchDistance(ev.touches), startZDistance) - lastZDistance
 					lastZDistance += dz
 				}
-				this.Perform(ev, 0, 0, dz)
+				this.Perform(ev, 0, 0, 0, action, dz)
 			}],
 			['touchend', true, evtc],
 			['touchcancel', true, evtc],
@@ -143,31 +108,28 @@ class CanvasPerformer {
 	}
 	
 	//Convert the touch count to an appropriate action
-	TouchesToAction(touches) {
+	TouchesToAction(touch_count) {
 		let action = 0
-		
-		if (touches == this.DragTouches)
+		if (touch_count == this.DragTouches)
 			action |= CanvasPerformer.DRAG
-		if (touches == this.ZoomTouches)
+		if (touch_count == this.ZoomTouches)
 			action |= CanvasPerformer.ZOOM
-		if (touches == this.PanTouches)
+		if (touch_count == this.PanTouches)
 			action |= CanvasPerformer.PAN
-		
 		return action
 	}
 	
 	//Convert a touch array into a certain XY position based on the given action.
-	TouchesToXY(action, touchArray) {
-		if (action & CanvasPerformer.ZOOM) {
-			return MathUtilities.Midpoint(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
-		}
-		
-		return [touchArray[0].clientX, touchArray[0].clientY]
+	TouchesToXY(action, touches) {
+		let {clientX, clientY} = touches[0]
+		if (action & CanvasPerformer.ZOOM)
+			return MathUtilities.Midpoint(clientX, clientY, touches[1].clientX, touches[1].clientY)
+		return [clientX, clientY]
 	}
 
 	//Figure out the distance of a pinch based on the given touches.
-	PinchDistance(touchArray) {
-		return MathUtilities.Distance(touchArray[0].clientX, touchArray[0].clientY, touchArray[1].clientX, touchArray[1].clientY)
+	PinchDistance(touches) {
+		return MathUtilities.Distance(touches[0].clientX, touches[0].clientY, touches[1].clientX, touches[1].clientY)
 	}
 	
 	//Figure out the zoom difference (from the original) for a pinch. This is NOT the delta zoom between actions, just the delta zoom since the start of the pinch (or whatever is passed for oDistance)
@@ -206,28 +168,44 @@ class CanvasPerformer {
 		this.element = null
 	}
 	
-	Perform(ev, start, end, action, zoomDelta) {
-		let ca = new CursorActionData(action, start, end, this.event_pos(ev), this.element, zoomDelta)
-		if (!ca.existent)
-			return
-		if (ev.ctrlKey)
-			ca.modifiers |= CanvasPerformer.CTRL
-		ca.onTarget = ev.composedPath()[0]===this.element
+	Perform(ev, start, end, interrupt, action, zoomDelta) {
+		let [x, y] = this.event_pos(ev)
 		
-		if (ev && this.ShouldCapture(ca))
+		let rect = this.element.getBoundingClientRect()
+		let sx = rect.width / this.element.width
+		let sy = rect.height / this.element.height
+		if (sx <= 0 || sy <= 0)
+			return
+		
+		let data = {
+			Start: start,
+			End: end,
+			Interrupt: interrupt,
+			
+			Drag: (action & 4)==4,
+			Zoom: (action & 8)==8,
+			Pan: (action & 16)==16,
+			
+			x: (x - rect.x) / sx,
+			y: (y - rect.y) / sy,
+			zoomDelta,
+			
+			onTarget: ev.composedPath()[0]===this.element,
+			ctrlKey: ev.ctrlKey,
+		}
+		
+		if (ev && this.ShouldCapture(data))
 			ev.preventDefault()
+		
 		if (this.OnAction)
-			this.OnAction(ca)
+			this.OnAction(data)
 	}
 }
 CanvasPerformer.prototype.OnAction = null
 
-CanvasPerformer.DRAG = 4
-CanvasPerformer.ZOOM = 8
-CanvasPerformer.PAN = 16
-CanvasPerformer.INTERRUPT = 32
-
-CanvasPerformer.CTRL = 1
+CanvasPerformer.DRAG = 1
+CanvasPerformer.ZOOM = 2
+CanvasPerformer.PAN = 4
 
 
 class CanvasDrawerTool {
@@ -407,6 +385,7 @@ class CanvasDrawer extends CanvasPerformer {
 			//CanvasUtilities.Clear(this.overlay)
 		}
 		
+		// TODO: ignoreCurrentStroke should be handled by the CanvasPerformer class yes?
 		if (data.Start) {
 			if (data.Interrupt || (this.onlyInnerStrokes && !data.onTarget)) {
 				this.ignoreCurrentStroke = true
