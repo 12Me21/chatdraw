@@ -45,7 +45,10 @@ class ChatDraw extends HTMLElement {
 		super()
 		new.target.template(this)
 		super.attachShadow({mode: 'open'})
-		super.shadowRoot.append(this.$root)
+		super.shadowRoot.append(
+			new.target.style.cloneNode(true),
+			this.$root
+		)
 		
 		this.width = 200
 		this.height = 100
@@ -83,26 +86,28 @@ class ChatDraw extends HTMLElement {
 		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
 		//drawer.onlyInnerStrokes = false
 		
-		let selected = {}
 		this.$form.onchange = ev=>{
 			let e = ev.target
+			if (e.dataset.timer) {
+				clearTimeout(e.dataset.timer)
+				delete e.dataset.timer
+			}
 			if (e.name=='color') {
-				selected[e.name] = e
 				this.use_color(+e.value)
 			} else if (e.name=='tool') {
-				selected[e.name] = e
 				this.use_tool(e.value)
 			}
 		}
 		this.$form.onclick = ev=>{
 			let e = ev.target
-			if (e.name=='color') {
-				if (e===selected[e.name])
-					this.show_picker(+e.value)
-			} else if (e.name=='tool') {
-				if (e===selected[e.name]) {
-					this.cycle_tool(e)
-				}
+			if (e.type=='radio') {
+				e.dataset.timer = setTimeout(()=>{
+					if (e.name=='color') {
+						this.show_picker(+e.value)
+					} else if (e.name=='tool') {
+						this.cycle_tool(e)
+					}
+				})
 			} else {
 				let p = e.onplay
 				p && p(ev)
@@ -130,7 +135,6 @@ class ChatDraw extends HTMLElement {
 		let thickness = this.button('thickness', 1, 1, ev=>{ this.widthToggle(ev.target) })
 		
 		this.$row2.append(
-			this.createToolButton(["🤚"], ['mover']),
 			this.button('clear', null, "❌️", ev=>{
 				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
@@ -140,7 +144,10 @@ class ChatDraw extends HTMLElement {
 		)
 		
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
+		let p = this.createToolButton(["🤚"], ['mover'])
+		p.lastChild.style.order = "-1"
 		this.$row2.append(
+			p,
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
 			this.createToolButton(["📏️", "🔲️", "🔵"], ['line', 'square', 'disc']),
 			def_tool,
@@ -154,13 +161,19 @@ class ChatDraw extends HTMLElement {
 		this.drawer.undoBuffer.DoUndoStateChange()
 	}
 	
+	adoptedCallback() {
+		console.log('adopted??')
+	}
+	
 	connectedCallback() {
 		let scale = Math.floor((window.screen.width - this.width) / this.width)
 		this.style.setProperty('--scale', Math.min(Math.max(scale, 1), 3))
 		this.style.setProperty('--width', this.width)
 		this.style.setProperty('--height', this.height)
 		
-		this.drawer.Attach(this.canvas, true)
+		this.drawer.Attach(this.context, true)
+		//this.context.filter = 'url("#f")'
+		//this.drawer.lineShape = 'normalcircle'
 		
 		this.overlay = this.drawer.overlay.canvas
 		this.overlay.style.pointerEvents = 'none'
@@ -272,7 +285,7 @@ class ChatDraw extends HTMLElement {
 	// could be separate class?
 	button(name, value, text, onplay=null) {
 		let input = document.createElement('input')
-		Object.assign(input, {type:onplay?'button':'radio', name, value, onplay, hidden:true})
+		Object.assign(input, {type:onplay?'button':'radio', name, value, onplay})
 		
 		let btn = document.createElement('span')
 		btn.textContent = text
@@ -290,16 +303,8 @@ class ChatDraw extends HTMLElement {
 		return input.parentNode
 	}
 }
-
-ChatDraw.template = HTML`
-<canvas-container $=container></canvas-container>
-<form $=form class=controls autocomplete=off>
-	<div $=row1></div>
-	<div $=row2></div>
-</form>
-<input $=color_picker type=color hidden>
-
-<style>
+ChatDraw.style = document.createElement('style')
+ChatDraw.style.textContent = `
 :host {
 	display: flex;
 	flex-flow: column;
@@ -339,18 +344,25 @@ canvas-container canvas {
 	display: flex;
 	justify-content: flex-end;
 	background: #E9E9E6;
+	height: calc(var(--scale) * 25px);
 }
 
 .controls label {
 	display: contents;
 }
+.controls label > input {
+	position: fixed;
+	clip: rect(0,0,0,0);
+}
+.controls label > input:focus-visible + span {
+	outline: auto;
+	outline-offset: -2px;
+}
 
 .controls label > span {
-	flex: none;
 	text-align: center;
 	box-sizing: border-box;
-	width: calc(var(--scale) * 25px);
-	height: calc(var(--scale) * 25px);
+	flex-basis: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
 	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
@@ -378,8 +390,20 @@ canvas-container canvas {
 	outline: 10px solid currentColor;
 	outline-offset: -10px;
 }*/
+`
 
-</style>
+ChatDraw.template = HTML`
+<canvas-container $=container></canvas-container>
+<form $=form class=controls autocomplete=off>
+	<div $=row1></div>
+	<div $=row2></div>
+</form>
+<input $=color_picker type=color hidden>
+<!--<svg>
+	<filter id=f color-interpolation-filters=sRGB>
+		<feComponentTransfer>
+			<feFuncA type=discrete tableValues=0,1>
+</svg>-->
 `
 //#A7E258
 
@@ -387,12 +411,13 @@ let BaseColors = [
 	new Color(255,255,255),
 	new Color(0, 0, 0),
 	new Color(255, 0, 0),
-	new Color(0, 0, 255)
+	new Color(0, 0, 255),
 ]
+/*for (let i=0;i<10;i++) {
+	BaseColors.push(new Color(Math.random()*256|0,Math.random()*256|0,Math.random()*256|0))
+}*/
 
 customElements.define('chat-draw', ChatDraw)
-
-// todo: why don't we just use radio buttons for tools and colors?
 
 // erode/dilate tool would be neat
 

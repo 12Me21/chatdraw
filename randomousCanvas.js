@@ -197,14 +197,14 @@ class CanvasPerformer {
 		}
 	}
 	
-	Attach(canvas) {
+	Attach(context) {
 		if (this._canvas)
 			throw "This CanvasPerformer is already attached to a canvas!"
 		
-		this._canvas = canvas
-		this.context = canvas.getContext('2d')
-		this._oldStyle = canvas.style.touchAction
-		canvas.style.touchAction = "none"
+		this._canvas = context.canvas
+		this.context = context
+		this._oldStyle = context.canvas.style.touchAction
+		context.canvas.style.touchAction = "none"
 		
 		this.do_listeners(true)
 	}
@@ -475,11 +475,11 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer = new UndoBuffer(size)
 	}
 	
-	Attach(canvas, useToolOverlay=true) {
+	Attach(context, useToolOverlay=true) {
 		if (useToolOverlay)
-			this.overlay = CanvasUtilities.CreateCopy(canvas)
+			this.overlay = CanvasUtilities.CreateCopy(context.canvas)
 		
-		super.Attach(canvas)
+		super.Attach(context)
 		//this._canvas.style.cursor = this.defaultCursor; //Assume the default cursor will do. Fix later!
 		
 		let do_frame = ()=>{
@@ -499,8 +499,8 @@ class CanvasDrawer extends CanvasPerformer {
 
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
-		tool(data, context) {
-			return data.lineFunction(context, data.oldX, data.oldY, data.x, data.y, data.lineWidth)
+		tool({x,y,oldX,oldY,lineWidth,lineFunction}, context) {
+			return lineFunction(context, oldX, oldY, x, y, lineWidth+0.5)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
