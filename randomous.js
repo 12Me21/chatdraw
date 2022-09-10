@@ -121,7 +121,12 @@ let CanvasUtilities = {
 			}
 		}
 	},
-	DrawLine2(ctx, x1, y1, x2, y2, func) {
+	DrawLine2(ctx, x1, y1, x2, y2) {
+		/*ctx.save()
+		ctx.fillStyle = "red"
+		CanvasUtilities.DrawRoundLine(ctx,x1,y1,x2,y2)
+		ctx.restore()*/
+		
 		let lw = ctx.lineWidth
 		// round start/end points
 		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
@@ -132,11 +137,14 @@ let CanvasUtilities = {
 		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
 		// orthogonal step
 		let [tx, ty] = Math.abs(dx)>Math.abs(dy) ? [sx, 0] : [0, sy]
+		// comment for thinner lines:
+		sx = tx ? 0 : sx
+		sy = ty ? 0 : sy
 		//
 		let i
 		for (i=0;i<500;i++) {
 			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
-			if (MathUtilities.Distance(x, y, ex, ey)<2)
+			if (MathUtilities.Distance(x, y, ex, ey)<=1)
 				break
 			// move in the direction that takes us closest to the ideal line
 			let orth = Math.abs(dx*(y+ty-y1)-dy*(x+tx-x1))
@@ -151,6 +159,7 @@ let CanvasUtilities = {
 		}
 		//if (!i)
 		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
+		
 		return [ex, ey]
 	},
 	//Draws a general line using the given function to generate each point.
@@ -161,6 +170,7 @@ let CanvasUtilities = {
 			func(ctx, sx, sy)
 		} else {
 			let ang = Math.atan2(dy, dx)
+			let dist2 = dx*dx + dy*dy
 			for (let i=0; i*i<dist2; i+=0.5)
 				func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i)
 		}
