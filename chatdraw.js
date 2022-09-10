@@ -64,7 +64,6 @@ class ChatDraw extends HTMLElement {
 		this.$container.append(this.canvas)
 		
 		this.context = this.canvas.getContext('2d')
-		this.context.imageSmoothingEnabled = false
 		
 		this.drawer = new CanvasDrawer()
 		

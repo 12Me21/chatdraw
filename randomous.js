@@ -64,24 +64,18 @@ let CanvasUtilities = {
 		context.drawImage(source, x, y)
 		context.restore()
 	},
-	OptimizedDrawImage(context, image, x, y) {
-		context.save()
-		context.imageSmoothingEnabled = false
-		context.drawImage(image, Math.floor(x), Math.floor(y))
-		context.restore()
-	},
 	Clear(context, color=null) {
 		context.save()
+		let op = 'clearRect'
 		if (color) {
 			context.globalAlpha = 1
 			context.fillStyle = color
-			context.fillRect(0, 0, context.canvas.width, context.canvas.height)
-		} else {
-			context.clearRect(0, 0, context.canvas.width, context.canvas.height)
+			op = 'fillRect'
 		}
+		context[op](0, 0, context.canvas.width, context.canvas.height)
 		context.restore()
 	},
-	DrawSolidCenteredRectangle(ctx, cx, cy, width, height, clear) {
+	DrawSolidCenteredRectangle(ctx, cx, cy, width, height, clear=null) {
 		cx = Math.round(cx - width / 2)
 		cy = Math.round(cy - height / 2)
 		if (clear)
@@ -91,26 +85,21 @@ let CanvasUtilities = {
 		return [cx, cy, width, height]
 	},
 	// todo: optimize this, since there's a fixed set of shapes
-	DrawSolidEllipse(ctx, cx, cy, radius1, radius2, clear) {
-		radius2 = radius2 || radius1
-		let line = clear ? "clearRect" : "fillRect"
+	DrawSolidEllipse(ctx, cx, cy, radius1, radius2=radius1, clear) {
 		let rs1 = radius1 * radius1
 		let rs2 = radius2 * radius2
 		let rss = rs1 * rs2
-		let x, y
-		cx -= 0.5; //A HACK OOPS
-		cy -= 0.5
-		
-		for (y = -radius2 + 0.5; y <= radius2 - 0.5; y++) {
-			for (x = -radius1 + 0.5; x <= radius1 - 0.5; x++) {
+		radius2 -= 0.5
+		radius1 -= 0.5
+		for (let y=-radius2; y<=radius2; y++) {
+			for (let x=-radius1; x<=radius1; x++) {
 				if (x*x*rs2+y*y*rs1 <= rss) {
-					ctx[line](Math.round(cx+x), Math.round(cy+y), Math.round(-x*2 + 0.5), 1)
+					ctx.fillRect(Math.floor(cx+x), Math.floor(cy+y), Math.floor(-x*2)+1, 1)
 					break
 				}
 			}
 		}
-		
-		return [cx - radius1, cy - radius2, radius1 * 2, radius2 * 2]
+		return [Math.floor(cx-radius1), Math.floor(cy-radius2), radius1*2+1, radius2*2+1]
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, width, clear, func) {

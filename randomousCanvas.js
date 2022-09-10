@@ -232,7 +232,6 @@ class CanvasPerformer {
 		
 		if (ev && this.ShouldCapture(ca))
 			ev.preventDefault()
-		
 		if (this.OnAction)
 			this.OnAction(ca)
 	}
@@ -500,7 +499,7 @@ class CanvasDrawer extends CanvasPerformer {
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
 		tool({x,y,oldX,oldY,lineWidth,lineFunction}, context) {
-			return lineFunction(context, oldX, oldY, x, y, lineWidth+0.5)
+			return lineFunction(context, oldX, oldY, x, y, lineWidth)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
