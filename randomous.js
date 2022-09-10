@@ -149,13 +149,15 @@ let CanvasUtilities = {
 			Math.sign(dx)*(dy*dy<dx*dx), Math.sign(dy)*(dy*dy>dx*dx),
 			Math.sign(dx), Math.sign(dy),
 		]
-		for (let i=0;i<50;i++) {
+		let i
+		for (i=0;i<500;i++) {
 			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
 			if (MathUtilities.Distance(x,y,ex,ey)<2)
 				break
 			best_dir(jumps)
 		}
-		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
+		if (!i)
+			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
