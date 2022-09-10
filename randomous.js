@@ -122,12 +122,8 @@ let CanvasUtilities = {
 		}
 	},
 	DrawLine2(ctx, x1, y1, x2, y2) {
-		/*ctx.save()
-		ctx.fillStyle = "red"
-		CanvasUtilities.DrawRoundLine(ctx,x1,y1,x2,y2)
-		ctx.restore()*/
-		
 		let lw = ctx.lineWidth
+		//;[x1,y1,x2,y2] = [109, 61.66666666666666, 107, 62]
 		// round start/end points
 		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
 		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
@@ -137,43 +133,21 @@ let CanvasUtilities = {
 		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
 		//
 		let i
-		//$log.textContent=[sx,sy,tx,ty].join("\t")+"\n\n"
-		$log.textContent=["n y-","s x-","|","e y+","w x+"].join("\t")+"\n\n"
-		let dmap = [
-			[0,-1],
-			[0,+1],
-			[-1,0],
-			[+1,0],
-		]
 		for (i=0;i<500;i++) {
 			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
-			if (MathUtilities.Distance(x, y, ex, ey)<=1)
+			if (x==ex && y==ey)
 				break
 			// move in the direction that takes us closest to the ideal line
 			let c = dx*(y-y1)-dy*(x-x1)
-			let n = c-dx
-			let e = c-dy
-			let s = c+dx
-			let w = c+dy
-			$log.textContent += [n,s,null,e,w].map(x=>x!=null?x.toFixed(1):"|").join("\t")
-			let horiz = Math.abs(dx*(y-y1)-dy*(x+sx-x1))
-			let vert = Math.abs(dx*(y+sy-y1)-dy*(x-x1))
-			if (horiz<=vert) {
+			let horiz = Math.abs(c-sx*dy)
+			let vert = Math.abs(c+sy*dx)
+			if (sx && horiz<=vert)
 				x += sx
-				if (sx<0)
-					$log.textContent += "\te "+e
-				else
-					$log.textContent += "\tw "+w
-			} else {
+			else
 				y += sy
-				if (sy<0)
-					$log.textContent += "\tn "+n
-				else
-					$log.textContent += "\ts "+s
-			}
-			$log.textContent += "\n"
 		}
-		//if (!i)
+		if (i>400)
+			console.log('failed', x1,y1,x2,y2, x,y,ex,ey)
 		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
 		
 		return [ex, ey]
