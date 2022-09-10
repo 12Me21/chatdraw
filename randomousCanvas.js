@@ -247,7 +247,6 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.onlyInnerStrokes = true
 		
-		this.defaultCursor = 'crosshair'
 		this.currentTool = 'freehand'
 		this.color = "#000000"
 		this.lineWidth = 2
@@ -305,7 +304,7 @@ class CanvasDrawer extends CanvasPerformer {
 			if (tool.stationaryReportInterval && tool.tool) {
 				let data = this.lastAction
 				if (data && data.Drag && !data.End)
-					if (this.frameCount % this.tools[this.currentTool].stationaryReportInterval == 0)
+					if (this.frameCount % tool.stationaryReportInterval == 0)
 						fa.push(data)
 			}
 		}
