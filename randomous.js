@@ -137,7 +137,7 @@ let CanvasUtilities = {
 		let i
 		for (i=0;i<500;i++) {
 			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
-			if (Math.abs(x-x2)<=0.5 && Math.abs(y-y2)<=0.5)
+			if (Math.abs(x-ex)+Math.abs(y-ey)<=1)
 				break
 			// move in the direction that takes us closest to the ideal line
 			let c = dx*(y-y1)-dy*(x-x1)
@@ -152,9 +152,9 @@ let CanvasUtilities = {
 		}
 		if (i>400)
 			console.log('failed', x1,y1,x2,y2, x,y,ex,ey)
-		//CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
+		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
 		
-		return [x, y]
+		//return [x, y]
 	},
 	//Draws a general line using the given function to generate each point.
 	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
