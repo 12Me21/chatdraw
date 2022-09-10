@@ -123,7 +123,7 @@ let CanvasUtilities = {
 	},
 	DrawLine2(ctx, x1, y1, x2, y2) {
 		let lw = ctx.lineWidth
-		//;[x1,y1,x2,y2] = [109, 61.66666666666666, 107, 62]
+		;[x1,y1,x2,y2] = [109, 61.66666666666666, 107, 62]
 		// round start/end points
 		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
 		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
@@ -141,6 +141,8 @@ let CanvasUtilities = {
 			let c = dx*(y-y1)-dy*(x-x1)
 			let horiz = Math.abs(c-sx*dy)
 			let vert = Math.abs(c+sy*dx)
+			if (i<10)
+				console.log(x,y,horiz,vert)
 			if (sx && horiz<=vert)
 				x += sx
 			else
