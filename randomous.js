@@ -1,5 +1,101 @@
 'use strict'
 
+class Pixels extends Int32Array {
+	constructor(image_data) {
+		super(image_data.data.buffer)
+		this._image = image_data
+	}
+	index(x, y) {
+		return x + y*this._image.width
+	}
+	get width() {
+		return this._image.width
+	}
+	get height() {
+		return this._image.height
+	}
+}
+
+class Grp extends CanvasRenderingContext2D {
+	constructor(width, height, options) {
+		let canvas = document.createElement('canvas')
+		canvas.width = width
+		canvas.height = height
+		let context = canvas.getContext('2d', options)
+		return Object.setPrototypeOf(context, new.target.prototype)
+	}
+	get width() { return this.canvas.width }
+	get height() { return this.canvas.height }
+	get_data() {
+		return this.getImageData(0, 0, this.width, this.height)
+	}
+	get_pixels(x=0, y=0, width=this.width, height=this.height) {
+		return new Pixels(this.getImageData(x, y, width, height))
+	}
+	put_pixels(pixels, x=0, y=0) {
+		this.putImageData(pixels._image, x, y)
+	}
+	set fill_color(color) {
+		this._color = color
+		this.fillStyle = color.to_hex()
+	}
+	get fill_color() {
+		return this._color
+	}
+	clear() {
+		this.fillRect(0, 0, this.width, this.height)
+	}
+	flood_fill(x, y) {
+		x = Math.floor(x)
+		y = Math.floor(y)
+		let pixels = this.get_pixels()
+		let {width, height} = pixels
+		let queue = []
+		let old = pixels[x+y*width]
+		let col = this.fill_color.color
+		
+		let check = (x, y)=>{
+			if (x<0 || y<0 || x>=width || y>=height)
+				return false
+			if (old==pixels[x+y*width]) {
+				pixels[x+y*width] = col
+				return true
+			}
+		}
+		let check3 = (ok=check(x, y))=>{
+			if (ok) {
+				if (check(x, y+1))
+					queue.push([x, y+1])
+				if (check(x, y-1))
+					queue.push([x, y-1])
+				return true
+			}
+		}
+		if (!check3())
+			return
+		do {
+			let s = x
+			do
+				x--
+			while (check3())
+			x = s
+			do
+				x++
+			while (check3())
+		} while (queue.length && check3([x,y]=queue.shift()))
+		this.put_pixels(pixels)
+	}
+	replace_color(original) {
+		let pixels = this.get_pixels()
+		let color = this.fill_color.color
+		for (let i=0; i<pixels.length; i++) {
+			if (original.color == pixels[i])
+				pixels[i] = color
+		}
+		this.put_pixels(pixels)
+	}
+}
+
 // ugh this is messy. how do we REALLY store color?
 // varies between "#RRGGBB", "#RRGGBBAA", 0xAABBGGRR (or 0xRRGGBBAA on big endian), and Color class, and [r,g,b,a]
 
@@ -72,26 +168,16 @@ if (LITTLE) {
 // Helper functions for dealing with Canvases.
 
 let CanvasUtilities = {
-	CreateCopy(canvas, copyImage, x=0, y=0, width=canvas.width, height=canvas.height) {
-		// Width and height are cropping, not scaling. X and Y are the place to start the copy within the original canvas 
+	CreateCopy(canvas) {
 		let newCanvas = document.createElement('canvas')
-		newCanvas.width = width
-		newCanvas.height = height
+		newCanvas.width = canvas.width
+		newCanvas.height = canvas.height
 		let context = newCanvas.getContext('2d')
-		if (copyImage)
-			CanvasUtilities.CopyInto(context, canvas, -x, -y)
 		return context
 	},
 	GetAllData(context) {
 		let {width, height} = context.canvas
 		return context.getImageData(0, 0, width, height)
-	},
-	CopyInto(context, source, x=0, y=0) {
-		//x and y are the offset locations to place the copy into on the receiving canvas
-		context.save()
-		context.globalCompositeOperation = 'copy'
-		context.drawImage(source, x, y)
-		context.restore()
 	},
 	Clear(context, color=null) {
 		context.save()
