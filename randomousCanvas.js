@@ -453,9 +453,7 @@ class CanvasDrawer extends CanvasPerformer {
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
 		tool({Start, x, y, oldX, oldY, lineFunction}, context) {
-			if (Start)
-				this.p = null
-			this.p = lineFunction(context, oldX, oldY, x, y, this.p)
+			lineFunction(context, oldX, oldY, x, y)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
@@ -591,7 +589,7 @@ CanvasDrawer.tools = {
 		_draw(data, context) {
 			let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
 			let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
-			CanvasUtilities.DrawSolidEllipse(context, x, y, rad, rad)
+			CanvasUtilities.DrawEllipse(context, x, y, rad, rad)
 		}
 	},
 }

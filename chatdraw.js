@@ -103,20 +103,27 @@ class ChatDraw extends HTMLElement {
 				this.use_tool(e.value)
 			}
 		}
-		this.$form.onclick = ev=>{
+		this.$form.oncontextmenu = ev=>ev.preventDefault()
+		this.$form.onauxclick = this.$form.onclick = ev=>{
 			let e = ev.target
 			if (e.type=='radio') {
-				e.dataset.timer = setTimeout(()=>{
-					if (e.name=='color') {
-						this.show_picker(+e.value)
-					} else if (e.name=='tool') {
-						this.cycle_tool(e)
+				if (ev.type=='click')
+					e.dataset.timer = setTimeout(()=>{
+						if (e.name=='color') {
+							this.show_picker(+e.value)
+						} else if (e.name=='tool') {
+							this.cycle_tool(e)
+						}
+					})
+				else {
+					if (e.name=='tool') {
+						this.cycle_tool(e, -1)
 					}
-				})
-			} else {
-				let p = e.onplay
-				p && p(ev)
+				}
 			}
+			let p = e.onplay
+			if (p)
+				p(ev)
 		}
 		
 		this.$row1.append(
@@ -137,7 +144,15 @@ class ChatDraw extends HTMLElement {
 			this.button('send', null, "➥", ev=>{ this.sendDrawing() }).parentNode
 		)
 		
-		let thickness = this.button('thickness', 1, 1, ev=>{ this.widthToggle(ev.target) })
+		// todo: make this like toolbutotn
+		let thickness = this.button('thickness', 1, 1, ev=>{
+			let e = ev.target
+			let dir = ev.button==2 ? -1 : 1
+			let width = (+e.value-1 + dir + this.maxLineWidth) % this.maxLineWidth + 1
+			e.nextSibling.textContent = width
+			e.value = width
+			this.drawer.lineWidth = width
+		})
 		
 		this.$row2.append(
 			this.button('clear', null, "❌️", ev=>{
@@ -150,7 +165,7 @@ class ChatDraw extends HTMLElement {
 		
 		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
 		let p = this.createToolButton(["🤚"], ['mover'])
-		p.lastChild.style.order = "-1"
+		p.style.order = "-1"
 		this.$row2.append(
 			p,
 			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
@@ -227,12 +242,12 @@ class ChatDraw extends HTMLElement {
 		picker.click()
 	}
 	
-	cycle_tool(btn) {
+	cycle_tool(btn, dir=1) {
 		let tools = btn.dataset.tools.split(",")
 		let labels = btn.dataset.labels.split(",")
 		let tool = btn.value
 		let index = tools.indexOf(tool)
-		index = (index+1) % tools.length
+		index = (index+dir+tools.length) % tools.length
 		btn.value = tools[index]
 		btn.nextSibling.textContent = labels[index]
 		//btn.nextSibling.title = tools[index]
@@ -250,11 +265,7 @@ class ChatDraw extends HTMLElement {
 		}
 	}
 	
-	widthToggle(input) {
-		let width = (+input.value % this.maxLineWidth) + 1
-		input.nextSibling.textContent = width
-		input.value = width
-		this.drawer.lineWidth = width
+	widthToggle(input, direction) {
 	}
 	
 	//Get the color that is best suited to be a clearing color (the color that is closest to either white or black, whichever comes first)
@@ -347,11 +358,16 @@ canvas-container canvas {
 }
 
 .controls label {
-	display: contents;
+	position: relative;
+	/*display: contents;*/
 }
 .controls label > input {
-	position: fixed;
-	clip: rect(0,0,0,0);
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	appearance: none;
+	opacity: 0;
 }
 .controls label > input:focus-visible + span {
 	outline: auto;
@@ -359,9 +375,11 @@ canvas-container canvas {
 }
 
 .controls label > span {
+	display: block;
+	pointer-events: none;
 	text-align: center;
 	box-sizing: border-box;
-	flex-basis: calc(var(--scale) * 25px);
+	width: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
 	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
@@ -372,7 +390,7 @@ canvas-container canvas {
 		1px 1px 0px black;
 }
 
-.controls label > span:hover {
+.controls label > :hover + span {
 	background: #2929291A;
 }
 
