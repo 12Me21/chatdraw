@@ -58,12 +58,8 @@ class ChatDraw extends HTMLElement {
 		this.palette = []
 		this.color_buttons = []
 		
-		this.canvas = document.createElement('canvas')
-		this.canvas.width = this.width
-		this.canvas.height = this.height
-		this.$container.append(this.canvas)
-		
-		this.context = this.canvas.getContext('2d')
+		this.grp = new Grp(this.width, this.height)
+		this.$container.append(this.grp.canvas)
 		
 		this.drawer = new CanvasDrawer()
 		
@@ -83,7 +79,7 @@ class ChatDraw extends HTMLElement {
 		}
 		
 		let make_cursor=(size=1)=>{
-			this.canvas.style.cursor = `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${size+2}" height="${size+2}"><rect x="${size/2+0.5}" y="${size/2+0.5}" width="1" height="1"/><rect x="0.5" y="0.5" width="${size+1}" height="${size+1}" fill="none" stroke="red"/></svg>') ${size/2+0.5} ${size/2+0.5}, none`
+			this.grp.canvas.style.cursor = `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${size+2}" height="${size+2}"><rect x="${size/2+0.5}" y="${size/2+0.5}" width="1" height="1"/><rect x="0.5" y="0.5" width="${size+1}" height="${size+1}" fill="none" stroke="red"/></svg>') ${size/2+0.5} ${size/2+0.5}, none`
 		}
 		
 		make_cursor(3)
@@ -180,7 +176,7 @@ class ChatDraw extends HTMLElement {
 		this.clear()
 		this.drawer.undoBuffer.DoUndoStateChange()
 		
-		this.drawer.Attach(this.context, true)
+		this.drawer.Attach(this.grp, true)
 		//this.context.filter = 'url("#f")'
 		//this.drawer.lineShape = 'normalcircle'
 		
@@ -200,7 +196,10 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	clear() {
-		CanvasUtilities.Clear(this.context, this.getClearColor().to_hex())
+		this.grp.save()
+		this.grp.fill_color = this.getClearColor()
+		this.grp.clear()
+		this.grp.restore()
 	}
 	
 	restore_colors(list) {
@@ -210,7 +209,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	use_color(index) {
-		this.drawer.color = this.palette[index].to_hex()
+		this.drawer.color = this.palette[index]
 	}
 	use_tool(name) {
 		this.drawer.currentTool = name

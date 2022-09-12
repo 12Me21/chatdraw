@@ -314,7 +314,8 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	SwapColor(original, newColor) {
-		CanvasUtilities.SwapColor(this.context, original, newColor)
+		this.grp.fill_color = newColor
+		this.grp.replace_color(original)
 	}
 	
 	CanUndo() {
@@ -326,7 +327,7 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	get_state_data() {
-		let data = CanvasUtilities.GetAllData(this.context)
+		let data = this.grp.get_data()
 		let extra = null
 		if (this.get_extra)
 			extra = this.get_extra()
@@ -338,7 +339,7 @@ class CanvasDrawer extends CanvasPerformer {
 		let current = this.get_state_data()
 		let next = this.undoBuffer[which](current)
 		if (next) {
-			this.context.putImageData(next.data, 0, 0)
+			this.grp.putImageData(next.data, 0, 0)
 			if (this.set_extra)
 				this.set_extra(next.extra)
 		}
@@ -369,15 +370,15 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	PerformDrawAction(data) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
-		this.context.fillStyle = this.color
-		this.context.lineWidth = this.lineWidth
+		this.grp.fill_color = this.color
+		this.grp.lineWidth = this.lineWidth
 		let tool = this.tools[this.currentTool]
 		
 		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
 			this.overlayActive = false
 			if (tool.interrupt)
-				tool.interrupt(data, this.context, this)
+				tool.interrupt(data, this.grp, this)
 			//CanvasUtilities.Clear(this.overlay)
 		}
 		
@@ -401,7 +402,7 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		//Now actually perform the action.
 		if (!this.ignoreCurrentStroke) {
-			tool.tool(data, this.context, this)
+			tool.tool(data, this.grp, this)
 			
 			if (tool.overlay && this.overlay) {
 				let oc = this.overlay
@@ -427,12 +428,12 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	Attach(context, useToolOverlay=true) {
 		if (useToolOverlay)
-			this.overlay = CanvasUtilities.CreateCopy(context.canvas)
-		this.context = context
+			this.overlay = context.create_copy()
+		this.grp = context
 		super.Attach(context.canvas)
 		
 		let do_frame = ()=>{
-			if (!this.context)
+			if (!this.grp)
 				return
 			this.do_frame()
 			requestAnimationFrame(do_frame)
@@ -442,7 +443,7 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	Detach() {
 		this.overlay = null
-		this.context = null
+		this.grp = null
 		super.Detach()
 	}
 }
@@ -497,28 +498,14 @@ CanvasDrawer.tools = {
 			if (data.Start) {
 				let [sx, sy] = CanvasUtilities.correct_pos(data.x, data.y, 1)
 				console.debug("Flood filling starting from " + sx + ", " + sy)
-				
-				let originalColor = CanvasUtilities.GetColor(context, sx, sy)
-				let color = Color.from_hex(context.fillStyle)
-				
-				if (originalColor.color == color.color)
-					return
-				console.log(originalColor, color)
-				CanvasUtilities.GenericFlood(context, sx, sy, (i32, w, h, x, y)=>{
-					let i = y*w + x
-					if (i32[i] == originalColor.color) {
-						i32[i] = color.color
-						return true
-					}
-					return false
-				})
+				context.flood_fill(sx, sy)
 			}
 		}
 	},
 	clear: class extends CanvasDrawerTool {
 		tool(data, context) {
 			if (data.End && data.onTarget)
-				CanvasUtilities.Clear(context, context.fillStyle)
+				context.clear()
 		}
 	},
 	mover: class extends CanvasDrawerTool {
@@ -528,19 +515,18 @@ CanvasDrawer.tools = {
 		}
 		tool(data, context) {
 			if (data.Start) {
-				this.data = CanvasUtilities.GetAllData(context)
+				this.data = context.get_data()
 				return false
 			}
 			if (data.Drag || data.End) {
 				let x = data.x - data.startX
 				let y = data.y - data.startY
-				let w = context.canvas.width
-				let h = context.canvas.height
+				let w = context.width
+				let h = context.height
 				while (x < 0) x += w
 				while (x >= w) x -= w
 				while (y < 0) y += h
 				while (y >= h) y -= h
-				CanvasUtilities.Clear(context, "#000000")
 				context.putImageData(this.data, x, y)
 				context.putImageData(this.data, x-w, y)
 				context.putImageData(this.data, x, y-h)
@@ -559,14 +545,14 @@ CanvasDrawer.tools = {
 	},
 	square: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
-			CanvasUtilities.DrawHollowRectangle(context, data.startX, data.startY, data.x, data.y)
+			context.draw_box(data.startX, data.startY, data.x, data.y)
 		}
 	},
 	disc: class extends CanvasDrawerOverlayTool {
 		_draw(data, context) {
 			let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
 			let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
-			CanvasUtilities.DrawEllipse(context, x, y, rad, rad)
+			context.draw_circle(x, y, rad, rad)
 		}
 	},
 }
