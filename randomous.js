@@ -264,24 +264,11 @@ let CanvasUtilities = {
 // Functions which provide extra math functionality.
 
 let MathUtilities = {
-	point_to_line(x, y, x1, y1, x2, y2) {
-		let dx = x2-x1, dy = y2-y1
-		let dist = Math.abs(dx*(y-y1)-dy*(x-x1)) / Math.sqrt(dx*dx+dy*dy)
-		return dist
-	},
 	Distance(x1, y1, x2, y2) {
 		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
 	},
 	Midpoint(x1, y1, x2, y2) {
 		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
-	},
-	MinMax(value, min, max) {
-		if (min > max) {
-			let temp = min
-			min = max
-			max = temp
-		}
-		return  Math.max(Math.min(value, max), min)
 	},
 	SlopeAngle(x,y) { 
 		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
@@ -292,9 +279,6 @@ let MathUtilities = {
 	CosInterpolate(y1, y2, mu) {
 		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
 		return (y1* (1 - mu2) + y2 * mu2)
-	},
-	GetSquare(x, y, x2, y2) {
-		return [Math.min(x, x2), Math.min(y, y2), Math.abs(x - x2), Math.abs(y - y2)]
 	},
 	IsPointInSquare(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]

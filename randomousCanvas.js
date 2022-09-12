@@ -129,7 +129,7 @@ class CanvasPerformer {
 
 	//Figure out the distance of a pinch based on the given touches.
 	PinchDistance(touches) {
-		return MathUtilities.Distance(touches[0].clientX, touches[0].clientY, touches[1].clientX, touches[1].clientY)
+		return Math.hypot(touches[1].clientX-touches[0].clientX, touches[1].clientY-touches[0].clientY)
 	}
 	
 	//Figure out the zoom difference (from the original) for a pinch. This is NOT the delta zoom between actions, just the delta zoom since the start of the pinch (or whatever is passed for oDistance)
@@ -494,17 +494,17 @@ CanvasDrawer.tools = {
 	},
 	
 	fill: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.Start) {
-				let [sx, sy] = CanvasUtilities.correct_pos(data.x, data.y, 1)
+		tool({Start, x, y}, context) {
+			if (Start) {
+				let [sx, sy] = CanvasUtilities.correct_pos(x, y, 1)
 				console.debug("Flood filling starting from " + sx + ", " + sy)
 				context.flood_fill(sx, sy)
 			}
 		}
 	},
 	clear: class extends CanvasDrawerTool {
-		tool(data, context) {
-			if (data.End && data.onTarget)
+		tool({End, onTarget}, context) {
+			if (End && onTarget)
 				context.clear()
 		}
 	},
@@ -513,25 +513,25 @@ CanvasDrawer.tools = {
 			super()
 			this.data = null
 		}
-		tool(data, context) {
-			if (data.Start) {
+		tool({Start, Drag, End, x, y, startX, startY}, context) {
+			if (Start) {
 				this.data = context.get_data()
 				return false
 			}
-			if (data.Drag || data.End) {
-				let x = data.x - data.startX
-				let y = data.y - data.startY
+			if (Drag || End) {
+				let dx = x - startX
+				let dy = y - startY
 				let w = context.width
 				let h = context.height
-				while (x < 0) x += w
-				while (x >= w) x -= w
-				while (y < 0) y += h
-				while (y >= h) y -= h
-				context.putImageData(this.data, x, y)
-				context.putImageData(this.data, x-w, y)
-				context.putImageData(this.data, x, y-h)
-				context.putImageData(this.data, x-w, y-h)
-				if (data.End) // todo: actually make sure we always get rid of this layer all the time
+				while (dx < 0) dx += w
+				while (dx >= w) dx -= w
+				while (dy < 0) dy += h
+				while (dy >= h) dy -= h
+				context.putImageData(this.data, dx, dy)
+				context.putImageData(this.data, dx-w, dy)
+				context.putImageData(this.data, dx, dy-h)
+				context.putImageData(this.data, dx-w, dy-h)
+				if (End) // todo: actually make sure we always get rid of this layer all the time (actually why dont we just use the overlay layer?)
 					this.data = null
 				return true
 			}
@@ -544,14 +544,14 @@ CanvasDrawer.tools = {
 		}
 	},
 	square: class extends CanvasDrawerOverlayTool {
-		_draw(data, context) {
-			context.draw_box(data.startX, data.startY, data.x, data.y)
+		_draw({startX, startY, x, y}, context) {
+			context.draw_box(startX, startY, x, y)
 		}
 	},
 	disc: class extends CanvasDrawerOverlayTool {
-		_draw(data, context) {
-			let rad = MathUtilities.Distance(data.x, data.y, data.startX, data.startY)/2
-			let [x,y] = MathUtilities.Midpoint(data.x, data.y, data.startX, data.startY)
+		_draw({startX, startY, x, y}, context) {
+			let rad = Math.hypot(x-startX, y-startY)/2
+			0,[x,y] = MathUtilities.Midpoint(x, y, startX, startY)
 			context.draw_circle(x, y, rad, rad)
 		}
 	},
