@@ -243,110 +243,10 @@ if (LITTLE) {
 // Helper functions for dealing with Canvases.
 
 let CanvasUtilities = {
-	CreateCopy(canvas) {
-		let newCanvas = document.createElement('canvas')
-		newCanvas.width = canvas.width
-		newCanvas.height = canvas.height
-		let context = newCanvas.getContext('2d')
-		return context
-	},
-	GetAllData(context) {
-		let {width, height} = context.canvas
-		return context.getImageData(0, 0, width, height)
-	},
-	Clear(context, color=null) {
-		context.save()
-		let op = 'clearRect'
-		if (color) {
-			context.globalAlpha = 1
-			context.fillStyle = color
-			op = 'fillRect'
-		}
-		context[op](0, 0, context.canvas.width, context.canvas.height)
-		context.restore()
-	},
-	// todo: optimize this, since there's a fixed set of shapes
-	// note that cx and cy should be integers or int + 0.5, depending on whether the radius is even or odd..
-	DrawEllipse(ctx, cx, cy, radius1, radius2=radius1) {
-		let rs1 = radius1 * radius1
-		let rs2 = radius2 * radius2
-		let rss = rs1 * rs2
-		radius2 -= 0.5
-		radius1 -= 0.5
-		for (let y=-radius2; y<=radius2; y++) {
-			for (let x=-radius1; x<=radius1; x++) {
-				if (x*x*rs2+y*y*rs1 <= rss) {
-					ctx.fillRect(Math.floor(cx+x), Math.floor(cy+y), Math.floor(-x*2)+1, 1)
-					break
-				}
-			}
-		}
-	},
-	DrawLine2(ctx, x1, y1, x2, y2) {
-		let lw = ctx.lineWidth
-		// round start/end points
-		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
-		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
-		// distance
-		let [dx, dy] = [x2-x1, y2-y1]
-		// steps
-		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
-		//
-		let i
-		for (i=0;i<500;i++) {
-			CanvasUtilities.DrawEllipse(ctx, x, y, lw/2, lw/2)
-			if (Math.abs(x-ex)+Math.abs(y-ey)<=1)
-				break
-			// move in the direction that takes us closest to the ideal line
-			let c = dx*(y-y1)-dy*(x-x1)
-			let horiz = Math.abs(c-sx*dy)
-			let vert = Math.abs(c+sy*dx)
-			
-			if (sx && horiz<=vert)
-				x += sx
-			else
-				y += sy
-		}
-		if (i>400)
-			console.log('failed', x1,y1,x2,y2, x,y,ex,ey)
-		CanvasUtilities.DrawEllipse(ctx, ex, ey, lw/2, lw/2)
-	},
-	//Draws a general line using the given function to generate each point.
-	DrawLineRaw(ctx, sx, sy, tx, ty, func) {
-		let dx = tx-sx, dy = ty-sy
-		let dist2 = dx*dx + dy*dy
-		if (dist2 == 0) {
-			func(ctx, sx, sy)
-		} else {
-			let ang = Math.atan2(dy, dx)
-			let dist2 = dx*dx + dy*dy
-			for (let i=0; i*i<dist2; i+=0.5)
-				func(ctx, sx+Math.cos(ang)*i, sy+Math.sin(ang)*i)
-		}
-	},
-	DrawRoundLine(ctx, sx, sy, tx, ty) {
-		CanvasUtilities.DrawLineRaw(
-			ctx, sx, sy, tx, ty,
-			(ctx,x,y)=>CanvasUtilities.DrawEllipse(ctx, x, y, ctx.lineWidth/2, ctx.lineWidth/2)
-		)
-	},
 	correct_pos(x, y, bw, bh=bw) {
 		x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
 		y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
 		return [x, y]
-	},
-	DrawHollowRectangle(ctx, x, y, x2, y2) {
-		let lw = ctx.lineWidth
-		0,[x, y] = CanvasUtilities.correct_pos(x, y, lw)
-		0,[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
-		x -= lw/2
-		y -= lw/2
-		x2 += lw/2
-		y2 += lw/2
-		ctx.fillRect(x, y, x2-x, lw)
-		ctx.fillRect(x, y, lw, y2-y)
-		ctx.fillRect(x, y2-lw, x2-x, lw)
-		ctx.fillRect(x2-lw, y, lw, y2-y)
 	},
 	GetColor(context, x, y) {
 		let data = context.getImageData(x, y, 1, 1).data
@@ -358,39 +258,6 @@ let CanvasUtilities = {
 			return -1
 		return (x + y * width) * 4
 	},
-	GenericFlood(context, x, y, func) {
-		x = Math.floor(x)
-		y = Math.floor(y)
-		let data = CanvasUtilities.GetAllData(context)
-		let i32 = new Int32Array(data.data.buffer)
-		let {width, height} = data
-		let queue = []
-		let check3 = (ok=func(i32, width, height, x, y))=>{
-			if (ok) {
-				if (y+1<height && func(i32, width, height, x, y+1)) queue.push([x, y+1])
-				if (y-1>=0 && func(i32, width, height, x, y-1)) queue.push([x, y-1])
-				return true
-			}
-		}
-		if (!check3())
-			return
-		do {
-			let s = x
-			do;while (--x>=0 && check3())
-			x = s
-			do;while (++x<width && check3())
-		} while (queue.length && check3([x,y]=queue.shift()))
-		context.putImageData(data, 0, 0)
-	},
-	SwapColor(context, original, newColor) {
-		let iData = CanvasUtilities.GetAllData(context)
-		let i32 = new Int32Array(iData.data.buffer)
-		for (let i=0; i<i32.length; i++) {
-			if (original.color == data[i])
-				data[i] = newColor.color
-		}
-		context.putImageData(iData, 0, 0)
-	}
 }
 
 // --- Math Utilities ---
