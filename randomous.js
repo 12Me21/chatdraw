@@ -94,6 +94,81 @@ class Grp extends CanvasRenderingContext2D {
 		}
 		this.put_pixels(pixels)
 	}
+	// todo: optimize this, since there's a fixed set of shapes
+	// note that cx and cy should be integers or int + 0.5, depending on whether the radius is even or odd..
+	draw_circle(cx, cy, radius1, radius2=radius1) {
+		let rs1 = radius1 * radius1
+		let rs2 = radius2 * radius2
+		let rss = rs1 * rs2
+		radius2 -= 0.5
+		radius1 -= 0.5
+		for (let y=-radius2; y<=radius2; y++) {
+			for (let x=-radius1; x<=radius1; x++) {
+				if (x*x*rs2+y*y*rs1 <= rss) {
+					this.fillRect(Math.floor(cx+x), Math.floor(cy+y), Math.floor(-x*2)+1, 1)
+					break
+				}
+			}
+		}
+	}
+	draw_round_line(x1, y1, x2, y2) {
+		let lw = this.lineWidth
+		// round start/end points
+		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
+		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
+		// distance
+		let [dx, dy] = [x2-x1, y2-y1]
+		// steps
+		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
+		//
+		let i
+		for (i=0;i<500;i++) {
+			this.draw_circle(x, y, lw/2, lw/2)
+			if (Math.abs(x-ex)+Math.abs(y-ey) <= 1)
+				break
+			// move in the direction that takes us closest to the ideal line
+			let c = dx*(y-y1)-dy*(x-x1)
+			let horiz = Math.abs(c-sx*dy)
+			let vert = Math.abs(c+sy*dx)
+			
+			if (sx && horiz<=vert)
+				x += sx
+			else
+				y += sy
+		}
+		if (i>400)
+			console.log('failed', x1,y1,x2,y2, x,y,ex,ey)
+		this.draw_circle(ex, ey, lw/2, lw/2)
+	}
+	draw_box(x, y, x2, y2) {
+		let lw = this.lineWidth
+		0,[x, y] = CanvasUtilities.correct_pos(x, y, lw)
+		0,[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		x -= lw/2
+		y -= lw/2
+		x2 += lw/2
+		y2 += lw/2
+		this.fillRect(x, y, x2-x, lw)
+		this.fillRect(x, y, lw, y2-y)
+		this.fillRect(x, y2-lw, x2-x, lw)
+		this.fillRect(x2-lw, y, lw, y2-y)
+	}
+	draw_round_line_old(sx, sy, tx, ty) {
+		let dx = tx-sx, dy = ty-sy
+		let dist2 = dx*dx + dy*dy
+		let r = this.lineWidth/2
+		if (dist2 == 0) {
+			this.draw_circle(sx, sy, r)
+		} else {
+			let ang = Math.atan2(dy, dx)
+			let dist2 = dx*dx + dy*dy
+			for (let i=0; i*i<dist2; i+=0.5)
+				this.draw_circle(sx+Math.cos(ang)*i, sy+Math.sin(ang)*i, r)
+		}
+	}
+	create_copy() {
+		return new this.constructor(this.width, this.height)
+	}
 }
 
 // ugh this is messy. how do we REALLY store color?
@@ -262,8 +337,8 @@ let CanvasUtilities = {
 	},
 	DrawHollowRectangle(ctx, x, y, x2, y2) {
 		let lw = ctx.lineWidth
-		;[x, y] = CanvasUtilities.correct_pos(x, y, lw)
-		;[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		0,[x, y] = CanvasUtilities.correct_pos(x, y, lw)
+		0,[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
 		x -= lw/2
 		y -= lw/2
 		x2 += lw/2
@@ -356,6 +431,14 @@ let MathUtilities = {
 	},
 	IsPointInSquare(point, square) {
 		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]
+	},
+	random_in_circle(radius) {
+		let x, y
+		do {
+			x = (Math.random()*2-1)*radius
+			y = (Math.random()*2-1)*radius
+		} while (x*x+y*y>radius*radius)
+		return [x,y]
 	},
 	FindBest(list, func) {
 		let best = -Infinity

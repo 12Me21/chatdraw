@@ -269,9 +269,6 @@ class CanvasDrawer extends CanvasPerformer {
 			return
 		data.lineShape = this.lineShape
 		
-		if (this.lineShape === 'hardcircle')
-			data.lineFunction = CanvasUtilities.DrawLine2
-		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
 			;//this.element.style.cursor = this.defaultCursor
@@ -452,59 +449,44 @@ class CanvasDrawer extends CanvasPerformer {
 
 CanvasDrawer.tools = {
 	freehand: class extends CanvasDrawerTool {
-		tool({Start, x, y, oldX, oldY, lineFunction}, context) {
-			lineFunction(context, oldX, oldY, x, y)
+		tool({Start, x, y, oldX, oldY}, context) {
+			context.draw_round_line(oldX, oldY, x, y)
 		}
 	},
 	slow: class extends CanvasDrawerTool {
 		constructor() {
 			super()
-			this.smoothing = 0.15
-			this.avgX = this.avgY = null
+			this.speed = 0.15
+			this.avg = {x:0,y:0}
 		}
-		tool(data, context) {
-			if (data.Start) {
-				this.oldX = this.avgX = data.x
-				this.oldY = this.avgY = data.y
+		tool({Start, End, Drag, x, y}, context) {
+			if (Start) {
+				this.avg = {x,y}
+			} else {
+				x = x*this.speed + this.avg.x*(1-this.speed)
+				y = y*this.speed + this.avg.y*(1-this.speed)
 			}
-			let oldX = this.avgX
-			let oldY = this.avgY
-			//let oldX = this.oldX
-			//let oldY = this.oldY
-			if (data.Drag && !data.End) {
-				this.avgX = this.avgX*(1-this.smoothing)+data.x*this.smoothing
-				this.avgY = this.avgY*(1-this.smoothing)+data.y*this.smoothing
-			}
-			if (data.End) {
-				oldX = data.x
-				oldY = data.y
-			}
-			if (data.Drag || data.End) {
-				//;[this.oldX, this.oldY] = 
-				data.lineFunction(context, oldX, oldY, this.avgX, this.avgY)
-			}
+			if (Drag || End)
+				context.draw_round_line(this.avg.x, this.avg.y, x, y)
+			this.avg = {x,y}
 		}
 	},
 	spray: class extends CanvasDrawerTool {
 		constructor() {
 			super()
 			this.spread = 2
-			this.rate = 1 / 1.5
+			this.rate = 2/3
 		}
-		tool(data, context) {
-			if (data.Drag) {
-				let w = context.lineWidth
-				let radius = w*this.spread
-				let count = w*this.rate
-				for (let i=0; i<count*10; i++) {
-					if (Math.random()<0.1) {
-						let x, y
-						do {
-							x = (Math.random()*2-1)*radius
-							y = (Math.random()*2-1)*radius
-						} while (x*x+y*y>radius*radius)
-						context.fillRect(Math.floor(data.x+x), Math.floor(data.y+y), 1, 1)
-					}
+		tool({Drag, x, y}, context) {
+			if (!Drag)
+				return
+			let lw = context.lineWidth
+			let radius = lw * this.spread
+			let count = lw * this.rate
+			for (let i=0; i<count*10; i++) {
+				if (Math.random()<0.1) {
+					let [ox, oy] = MathUtilities.random_in_circle(radius)
+					context.fillRect(Math.floor(x+ox), Math.floor(y+oy), 1, 1)
 				}
 			}
 		}
@@ -571,13 +553,8 @@ CanvasDrawer.tools = {
 	},
 	
 	line: class extends CanvasDrawerOverlayTool {
-		_draw(data, context) {
-			/*function dist2(start, end, point) {
-				return (end.x-start.x)*(point.y-start.y) - (end.y-start.y)*(point.x-start.x)
-			}
-			
-			$log.textContent = dist2({x:data.startX,y:data.startY}, {x:data.x,y:data.y},{x:100,y:50})*/
-			data.lineFunction(context, data.startX, data.startY, data.x, data.y)
+		_draw({startX, startY, x, y}, context) {
+			context.draw_round_line(startX, startY, x, y)
 		}
 	},
 	square: class extends CanvasDrawerOverlayTool {
