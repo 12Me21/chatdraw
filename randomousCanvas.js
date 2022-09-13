@@ -20,7 +20,7 @@ class CanvasPerformer {
 		this.PanTouches = 2
 		this.WheelZoom = 0.5
 		
-		this.element = null
+		this.canvas = null
 		this._oldStyle = ""
 		
 		let last_mouse_action = null
@@ -123,7 +123,7 @@ class CanvasPerformer {
 	TouchesToXY(action, touches) {
 		let {clientX, clientY} = touches[0]
 		if (action & CanvasPerformer.ZOOM)
-			return MathUtilities.Midpoint(clientX, clientY, touches[1].clientX, touches[1].clientY)
+			return Math2.Midpoint(clientX, clientY, touches[1].clientX, touches[1].clientY)
 		return [clientX, clientY]
 	}
 
@@ -144,36 +144,36 @@ class CanvasPerformer {
 	
 	do_listeners(state) {
 		for (let [type, is_doc, func] of this._listeners) {
-			let target = is_doc ? document : this.element
+			let target = is_doc ? document : this.canvas
 			target[state?'addEventListener':'removeEventListener'](type, func)
 		}
 	}
 	
-	Attach(element) {
-		if (this.element)
-			throw "This CanvasPerformer is already attached to an element!"
+	Attach(canvas) {
+		if (this.canvas)
+			throw "This CanvasPerformer is already attached to an canvas!"
 		
-		this.element = element
-		element.style.touchAction = 'none'
+		this.canvas = canvas
+		canvas.style.touchAction = 'none'
 		
 		this.do_listeners(true)
 	}
 	
 	Detach() {
-		if (!this.element)
-			throw "This CanvasPerformer is is not attached to an element!"
+		if (!this.canvas)
+			throw "This CanvasPerformer is is not attached to an canvas!"
 		
 		this.do_listeners(false)
 		
-		this.element = null
+		this.canvas = null
 	}
 	
 	Perform(ev, start, end, interrupt, action, zoomDelta) {
 		let [x, y] = this.event_pos(ev)
 		
-		let rect = this.element.getBoundingClientRect()
-		let sx = rect.width / this.element.width
-		let sy = rect.height / this.element.height
+		let rect = this.canvas.getBoundingClientRect()
+		let sx = rect.width / this.canvas.width
+		let sy = rect.height / this.canvas.height
 		if (sx <= 0 || sy <= 0)
 			return
 		
@@ -190,7 +190,7 @@ class CanvasPerformer {
 			y: (y - rect.y) / sy,
 			zoomDelta,
 			
-			onTarget: ev.composedPath()[0]===this.element,
+			onTarget: ev.composedPath()[0]===this.canvas,
 			ctrlKey: ev.ctrlKey,
 		}
 		
@@ -247,17 +247,15 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.onlyInnerStrokes = true
 		
-		this.currentTool = 'freehand'
-		this.color = "#000000"
-		this.lineWidth = 2
-		this.lineShape = 'hardcircle'
+		this.currentTool = null
+		this.color = null
+		this.lineWidth = null
 		
 		this.frameActions = []
 		this.lastAction = null
 		this.ignoreCurrentStroke = false
 		this.frameCount = 0
 		
-		//All private stuff that's only used for our internal functions.
 		this.strokeCount = 0
 	}
 	
@@ -267,11 +265,10 @@ class CanvasDrawer extends CanvasPerformer {
 			return
 		if (!data.Drag)
 			return
-		data.lineShape = this.lineShape
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
-			;//this.element.style.cursor = this.defaultCursor
+			;//this.canvas.style.cursor = this.defaultCursor
 		
 		if (data.Start) {
 			data.oldX = data.x
@@ -408,7 +405,7 @@ class CanvasDrawer extends CanvasPerformer {
 				let oc = this.overlay
 				oc.fill_color = this.color
 				oc.lineWidth = this.lineWidth
-				oc.clearRect(0, 0, oc.canvas.width, oc.canvas.height)
+				oc.clearRect(0, 0, oc.width, oc.height)
 				this.overlayActive = tool.overlay(data, oc, this)!==false
 			}
 		}
@@ -486,7 +483,7 @@ CanvasDrawer.tools = {
 			let count = lw * this.rate
 			for (let i=0; i<count*10; i++) {
 				if (Math.random()<0.1) {
-					let [ox, oy] = MathUtilities.random_in_circle(radius)
+					let [ox, oy] = Math2.random_in_circle(radius)
 					context.fillRect(Math.floor(x+ox), Math.floor(y+oy), 1, 1)
 				}
 			}
@@ -496,7 +493,8 @@ CanvasDrawer.tools = {
 	fill: class extends CanvasDrawerTool {
 		tool({Start, x, y}, context) {
 			if (Start) {
-				let [sx, sy] = correct_pos(x, y, 1)
+				// even though linewidth doesn't matter, this is to align with the cursor maybe..
+				let [sx, sy] = Math2.correct_pos(x, y, 1/*context.lineWidth*/)
 				console.debug("Flood filling starting from " + sx + ", " + sy)
 				context.flood_fill(sx, sy)
 			}
@@ -550,8 +548,8 @@ CanvasDrawer.tools = {
 	},
 	disc: class extends CanvasDrawerOverlayTool {
 		_draw({startX, startY, x, y}, context) {
-			let rad = Math.hypot(x-startX, y-startY)/2
-			0,[x,y] = MathUtilities.Midpoint(x, y, startX, startY)
+			let rad = Math2.distance(x,y,startX,startY)/2
+			0,[x,y] = Math2.Midpoint(x,y,startX,startY)
 			context.draw_circle(x, y, rad, rad)
 		}
 	},

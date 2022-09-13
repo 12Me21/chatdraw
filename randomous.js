@@ -114,8 +114,8 @@ class Grp extends CanvasRenderingContext2D {
 	draw_round_line(x1, y1, x2, y2) {
 		let lw = this.lineWidth
 		// round start/end points
-		let [x, y] = correct_pos(x1, y1, lw)
-		let [ex, ey] = correct_pos(x2, y2, lw)
+		let [x, y] = Math2.correct_pos(x1, y1, lw)
+		let [ex, ey] = Math2.correct_pos(x2, y2, lw)
 		// distance
 		let [dx, dy] = [x2-x1, y2-y1]
 		// steps
@@ -142,8 +142,8 @@ class Grp extends CanvasRenderingContext2D {
 	}
 	draw_box(x, y, x2, y2) {
 		let lw = this.lineWidth
-		0,[x, y] = correct_pos(x, y, lw)
-		0,[x2, y2] = correct_pos(x2, y2, lw)
+		0,[x, y] = Math2.correct_pos(x, y, lw)
+		0,[x2, y2] = Math2.correct_pos(x2, y2, lw)
 		x -= lw/2
 		y -= lw/2
 		x2 += lw/2
@@ -242,34 +242,23 @@ if (LITTLE) {
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
-let correct_pos = (x, y, bw, bh=bw)=>{
-	x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
-	y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
-	return [x, y]
-}
-
 // --- Math Utilities ---
 // Functions which provide extra math functionality.
 
-let MathUtilities = {
+// x1 + (x2 - x1) / 2
+// x1/2 + x2/2
+
+let Math2 = {
+	correct_pos(x, y, bw, bh=bw) {
+		x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
+		y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
+		return [x, y]
+	},
 	Distance(x1, y1, x2, y2) {
-		return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
+		return Math.hypot(x2-x1, y2-y1)
 	},
 	Midpoint(x1, y1, x2, y2) {
-		return [x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2]
-	},
-	SlopeAngle(x,y) { 
-		return Math.atan(y/(x===0?0.0001:x))+(x<0?Math.PI:0)
-	},
-	LinearInterpolate(y1, y2, mu) {
-		return y1 + mu * (y2 - y1)
-	},
-	CosInterpolate(y1, y2, mu) {
-		let mu2 = (1 - Math.cos(mu * Math.PI)) / 2
-		return (y1* (1 - mu2) + y2 * mu2)
-	},
-	IsPointInSquare(point, square) {
-		return point[0] >= square[0] && point[0] <= square[0] + square[2] && point[1] >= square[1] && point[1] <= square[1] + square[3]
+		return [(x1+x2)/2, (x1+x2)/2]
 	},
 	random_in_circle(radius) {
 		let x, y

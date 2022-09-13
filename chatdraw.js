@@ -269,7 +269,7 @@ class ChatDraw extends HTMLElement {
 	
 	//Get the color that is best suited to be a clearing color (the color that is closest to either white or black, whichever comes first)
 	getClearColor() {
-		let [col] = MathUtilities.FindBest(this.palette, (col)=>{
+		let [col] = Math2.FindBest(this.palette, (col)=>{
 			return col.clear_score()
 		})
 		return col
