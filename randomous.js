@@ -114,8 +114,8 @@ class Grp extends CanvasRenderingContext2D {
 	draw_round_line(x1, y1, x2, y2) {
 		let lw = this.lineWidth
 		// round start/end points
-		let [x, y] = CanvasUtilities.correct_pos(x1, y1, lw)
-		let [ex, ey] = CanvasUtilities.correct_pos(x2, y2, lw)
+		let [x, y] = correct_pos(x1, y1, lw)
+		let [ex, ey] = correct_pos(x2, y2, lw)
 		// distance
 		let [dx, dy] = [x2-x1, y2-y1]
 		// steps
@@ -142,8 +142,8 @@ class Grp extends CanvasRenderingContext2D {
 	}
 	draw_box(x, y, x2, y2) {
 		let lw = this.lineWidth
-		0,[x, y] = CanvasUtilities.correct_pos(x, y, lw)
-		0,[x2, y2] = CanvasUtilities.correct_pos(x2, y2, lw)
+		0,[x, y] = correct_pos(x, y, lw)
+		0,[x2, y2] = correct_pos(x2, y2, lw)
 		x -= lw/2
 		y -= lw/2
 		x2 += lw/2
@@ -242,22 +242,10 @@ if (LITTLE) {
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
-let CanvasUtilities = {
-	correct_pos(x, y, bw, bh=bw) {
-		x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
-		y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
-		return [x, y]
-	},
-	GetColor(context, x, y) {
-		let data = context.getImageData(x, y, 1, 1).data
-		return new Color(data[0], data[1], data[2], data[3])
-	},
-	//Convert x and y into an ImageDataCoordinate. Returns -1 if the coordinate falls outside the data
-	ImageDataCoordinate({width, height}, x, y) {
-		if (x<0 || x>=width || y<0 || y>=height)
-			return -1
-		return (x + y * width) * 4
-	},
+let correct_pos = (x, y, bw, bh=bw)=>{
+	x = bw%2 ? Math.floor(x)+0.5 : Math.floor(x+0.5)
+	y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
+	return [x, y]
 }
 
 // --- Math Utilities ---

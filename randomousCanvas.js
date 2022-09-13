@@ -496,7 +496,7 @@ CanvasDrawer.tools = {
 	fill: class extends CanvasDrawerTool {
 		tool({Start, x, y}, context) {
 			if (Start) {
-				let [sx, sy] = CanvasUtilities.correct_pos(x, y, 1)
+				let [sx, sy] = correct_pos(x, y, 1)
 				console.debug("Flood filling starting from " + sx + ", " + sy)
 				context.flood_fill(sx, sy)
 			}
