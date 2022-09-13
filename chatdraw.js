@@ -177,8 +177,6 @@ class ChatDraw extends HTMLElement {
 		this.drawer.undoBuffer.DoUndoStateChange()
 		
 		this.drawer.Attach(this.grp, true)
-		//this.context.filter = 'url("#f")'
-		//this.drawer.lineShape = 'normalcircle'
 		
 		this.overlay = this.drawer.overlay.canvas
 		this.overlay.style.pointerEvents = 'none'
@@ -415,23 +413,15 @@ ChatDraw.template = HTML`
 	<div $=row2></div>
 </form>
 <input $=color_picker type=color hidden>
-<!--<svg>
-	<filter id=f color-interpolation-filters=sRGB>
-		<feComponentTransfer>
-			<feFuncA type=discrete tableValues=0,1>
-</svg>-->
 `
 //#A7E258
 
 let BaseColors = [
-	new Color(255,255,255),
-	new Color(0, 0, 0),
-	new Color(255, 0, 0),
-	new Color(0, 0, 255),
+	new Color(50,50,50), // 0 - 63.5 (#000-#333)
+	new Color(100,100,100), // 63.75 - 127.5 (#444-#777)
+	new Color(150,150,150), // 127.5 - 191.25 (#888-#BBB)
+	new Color(200,200,200), // 191.25 - 255 (#CCC-#FFF)
 ]
-/*for (let i=0;i<10;i++) {
-	BaseColors.push(new Color(Math.random()*256|0,Math.random()*256|0,Math.random()*256|0))
-}*/
 
 customElements.define('chat-draw', ChatDraw)
 

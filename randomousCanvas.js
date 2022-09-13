@@ -129,7 +129,7 @@ class CanvasPerformer {
 
 	//Figure out the distance of a pinch based on the given touches.
 	PinchDistance([t0, t1]) {
-		return Math2.Distance(t0.clientX, t0.clientY, t1.clientX, t1.clientY)
+		return Math2.distance(t0.clientX, t0.clientY, t1.clientX, t1.clientY)
 	}
 	
 	//Figure out the zoom difference (from the original) for a pinch. This is NOT the delta zoom between actions, just the delta zoom since the start of the pinch (or whatever is passed for oDistance)

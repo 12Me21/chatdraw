@@ -100,8 +100,9 @@ class Grp extends CanvasRenderingContext2D {
 		let rs1 = radius1 * radius1
 		let rs2 = radius2 * radius2
 		let rss = rs1 * rs2
-		radius2 -= 0.5
-		radius1 -= 0.5
+		radius2 += 0.5
+		radius1 += 0.5
+		// todo: make this work better for non-integer locations?
 		for (let y=-radius2; y<=radius2; y++) {
 			for (let x=-radius1; x<=radius1; x++) {
 				if (x*x*rs2+y*y*rs1 <= rss) {
@@ -127,9 +128,9 @@ class Grp extends CanvasRenderingContext2D {
 			if (Math.abs(x-ex)+Math.abs(y-ey) <= 1)
 				break
 			// move in the direction that takes us closest to the ideal line
-			let c = dx*(y-y1)-dy*(x-x1)
-			let horiz = Math.abs(c-sx*dy)
-			let vert = Math.abs(c+sy*dx)
+			let c = dx*(y-y2)-dy*(x-x2)
+			let horiz = Math.abs(c*sx - dy)
+			let vert = Math.abs(c*sy + dx)
 			
 			if (sx && horiz<=vert)
 				x += sx
@@ -254,11 +255,11 @@ let Math2 = {
 		y = bh%2 ? Math.floor(y)+0.5 : Math.floor(y+0.5)
 		return [x, y]
 	},
-	Distance(x1, y1, x2, y2) {
+	distance(x1, y1, x2, y2) {
 		return Math.hypot(x2-x1, y2-y1)
 	},
 	Midpoint(x1, y1, x2, y2) {
-		return [(x1+x2)/2, (x1+x2)/2]
+		return [(x1+x2)/2, (y1+y2)/2]
 	},
 	random_in_circle(radius) {
 		let x, y
