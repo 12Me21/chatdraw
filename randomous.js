@@ -123,14 +123,16 @@ class Grp extends CanvasRenderingContext2D {
 		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
 		//
 		let i
+		$log.textContent = ""
+		$log.textContent = x1+","+y1+" - "+x2+","+y2+"\n"
 		for (i=0;i<500;i++) {
 			this.draw_circle(x, y, lw/2, lw/2)
-			if (Math.abs(x-ex)+Math.abs(y-ey) <= 1)
+			if (Math.abs(x-x2)<=0.5 && Math.abs(y-y2)<=0.5)
 				break
 			// move in the direction that takes us closest to the ideal line
-			let c = dx*(y-y2)-dy*(x-x2)
-			let horiz = Math.abs(c*sx - dy)
-			let vert = Math.abs(c*sy + dx)
+			let c = dx*(y-y1)-dy*(x-x1)
+			let horiz = Math.abs(c-sx*dy)
+			let vert = Math.abs(c+sy*dx)
 			
 			if (sx && horiz<=vert)
 				x += sx
@@ -245,7 +247,7 @@ if (LITTLE) {
 
 // --- Math Utilities ---
 // Functions which provide extra math functionality.
-
+p
 // x1 + (x2 - x1) / 2
 // x1/2 + x2/2
 

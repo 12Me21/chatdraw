@@ -417,10 +417,10 @@ ChatDraw.template = HTML`
 //#A7E258
 
 let BaseColors = [
-	new Color(50,50,50), // 0 - 63.5 (#000-#333)
-	new Color(100,100,100), // 63.75 - 127.5 (#444-#777)
-	new Color(150,150,150), // 127.5 - 191.25 (#888-#BBB)
-	new Color(200,200,200), // 191.25 - 255 (#CCC-#FFF)
+	new Color(255,255,255),
+	new Color(0,0,0),
+	new Color(255,0,0),
+	new Color(0,0,255),
 ]
 
 customElements.define('chat-draw', ChatDraw)
