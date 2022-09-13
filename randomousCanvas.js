@@ -121,15 +121,15 @@ class CanvasPerformer {
 	
 	//Convert a touch array into a certain XY position based on the given action.
 	TouchesToXY(action, touches) {
-		let {clientX, clientY} = touches[0]
+		let {clientX:x, clientY:y} = touches[0]
 		if (action & CanvasPerformer.ZOOM)
-			return Math2.Midpoint(clientX, clientY, touches[1].clientX, touches[1].clientY)
-		return [clientX, clientY]
+			return Math2.Midpoint(x, y, touches[1].clientX, touches[1].clientY)
+		return [x, y]
 	}
 
 	//Figure out the distance of a pinch based on the given touches.
-	PinchDistance(touches) {
-		return Math.hypot(touches[1].clientX-touches[0].clientX, touches[1].clientY-touches[0].clientY)
+	PinchDistance([t0, t1]) {
+		return Math2.Distance(t0.clientX, t0.clientY, t1.clientX, t1.clientY)
 	}
 	
 	//Figure out the zoom difference (from the original) for a pinch. This is NOT the delta zoom between actions, just the delta zoom since the start of the pinch (or whatever is passed for oDistance)
@@ -172,9 +172,7 @@ class CanvasPerformer {
 		let [x, y] = this.event_pos(ev)
 		
 		let rect = this.canvas.getBoundingClientRect()
-		let sx = rect.width / this.canvas.width
-		let sy = rect.height / this.canvas.height
-		if (sx <= 0 || sy <= 0)
+		if (rect.width <= 0 || rect.height <= 0)
 			return
 		
 		let data = {
@@ -186,8 +184,8 @@ class CanvasPerformer {
 			Zoom: (action & 2)==2,
 			Pan: (action & 4)==4,
 			
-			x: (x - rect.x) / sx,
-			y: (y - rect.y) / sy,
+			x: (x - rect.x) * this.canvas.width / rect.width,
+			y: (y - rect.y) * this.canvas.height / rect.height,
 			zoomDelta,
 			
 			onTarget: ev.composedPath()[0]===this.canvas,
