@@ -164,6 +164,9 @@ class CanvasPerformer {
 		if (rect.width <= 0 || rect.height <= 0)
 			return
 		
+		let sx = rect.width / this.canvas.width
+		let sy = rect.height / this.canvas.height
+		
 		let data = {
 			Start: start,
 			End: end,
@@ -173,8 +176,13 @@ class CanvasPerformer {
 			Zoom: (action & 2)==2,
 			Pan: (action & 4)==4,
 			
-			x: (x - rect.x) * this.canvas.width / rect.width,
-			y: (y - rect.y) * this.canvas.height / rect.height,
+			// adjust the position of the cursor within the pixel to account for the fact that the cursor is 1×1px, not a point.
+			// so if scale is 3 and dpr is 2, and the cursor is "at" (0,0) then,
+			// the cursor's tip pixel will span from (0,0) to (1/(3*2),1/(3*2)) (in canvas pixels)
+			// ...well actually we don't know whether a cursor pixel will scale with DPR.
+			// it's possible that the cursor's tip is 2x2 pixels in that case,
+			x: (x - rect.x + 0.5/(sx*devicePixelRatio)) / sx,
+			y: (y - rect.y + 0.5/(sy*devicePixelRatio)) / sy,
 			zoomDelta,
 			
 			onTarget: ev.composedPath()[0]===this.canvas,

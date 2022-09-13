@@ -247,7 +247,7 @@ if (LITTLE) {
 
 // --- Math Utilities ---
 // Functions which provide extra math functionality.
-p
+
 // x1 + (x2 - x1) / 2
 // x1/2 + x2/2
 

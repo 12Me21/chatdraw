@@ -152,7 +152,6 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	UpdateUndoBuffer() {
 		if (this.undoBuffer) {
-			console.trace("Updating undo buffer")
 			this.undoBuffer.Add(this.get_state_data())
 		}
 	}
