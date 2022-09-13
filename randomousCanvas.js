@@ -406,7 +406,7 @@ class CanvasDrawer extends CanvasPerformer {
 			
 			if (tool.overlay && this.overlay) {
 				let oc = this.overlay
-				oc.fillStyle = this.color
+				oc.fill_color = this.color
 				oc.lineWidth = this.lineWidth
 				oc.clearRect(0, 0, oc.canvas.width, oc.canvas.height)
 				this.overlayActive = tool.overlay(data, oc, this)!==false
