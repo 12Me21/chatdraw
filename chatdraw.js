@@ -1,5 +1,26 @@
 'use strict'
 
+// button
+// features:
+// - cycling (cycles between options when clicked while already selected (or always, if normal button))
+// - toggle (is checkbox)
+// - radio (is radio)
+// - special action when selected radio button clicked
+// - regular button (performs action when clicked)
+
+// click: when a momentary button is clicked
+// reclick: when a selected radio button is clicked again
+// (we can merge the above)
+
+// choose: when a radio button is selected
+// valuechange: when the value of a button changes (due to cycling or otherwise)
+// maybe merge those 2 into onchange. with a flag saying whether the value changed or a different button was selected (so the palette btns can swap colors when needed)
+
+// zoom button: ({type:'button', name:'zoom', cycle:[...], onclick:x=>x.cycle(), onvaluechange:...})
+// tool button: ({type:'radio', name:'tool', cycle:[...], onchoose:..., onreclick:x=>x.cycle(), onvaluechange:...})
+// clear button: ({type:'button', name:'clear', onclick:...})
+// color button: ({type:'radio', name:'color', onchoose:..., onreclick:x=>picker(x), onvaluechange:...})
+
 let HTML = ([html])=>{
 	let temp = document.createElement('template')
 	temp.innerHTML = html.replace(/\s*?\n\s*/g, "")
