@@ -66,27 +66,36 @@ class CanvasDrawer extends CanvasPerformer {
 		//if (tool.framelock)
 		//	this.frameActions.push(data)
 		//else
-		this.PerformDrawAction(data)
+		
+		if (tool.stationaryReportInterval) {
+			if (!data.Start)
+				return
+			if (this.interval)
+				window.cancelAnimationFrame(this.interval)
+			let do_frame = t=>{
+				if (!this.interval)
+					return
+				this.interval = null
+				this.frameCount++
+				let tool = this.tools[this.currentTool]
+				if (!tool)
+					return
+				if (!tool.stationaryReportInterval)
+					return
+				if (this.frameCount % tool.stationaryReportInterval == 0) {
+					this.PerformDrawAction()
+				}
+				this.interval = window.requestAnimationFrame(do_frame)
+			}
+			this.interval = window.requestAnimationFrame(do_frame)
+		}
+		this.PerformDrawAction()
 	}
 	
-	do_frame() {
-		this.frameCount++
-		//Only reperform the last action if there was no action this frame, both the tool and the reportInterval are valid, there even WAS a lastAction which had Drag but not Start/End, and it's far enough away from the last stationary report.
-		let fa = this.frameActions
-		if (!fa.length) {
-			let tool = this.tools[this.currentTool]
-			if (tool && tool.stationaryReportInterval && tool.tool) {
-				let data = this.lastAction
-				if (data && !data.End)
-					if (this.frameCount % tool.stationaryReportInterval == 0)
-						fa.push(data)
-			}
-		}
-		//I don't care what the tool wants or what the settings are, all I care about is whether or not there are actions for me to perform. Maybe some other thing added actions; I shouldn't ignore those.
-		while (fa.length) {
-			let data = fa.shift()
-			if (data.Start || data.End || fa.length==0)
-				this.PerformDrawAction(data)
+	EndStroke() {
+		if (this.interval) {
+			window.cancelAnimationFrame(this.interval)
+			this.interval = null
 		}
 	}
 	
@@ -142,7 +151,8 @@ class CanvasDrawer extends CanvasPerformer {
 		this.undoBuffer.Add(this.get_state_data())
 	}
 	
-	PerformDrawAction(data) {
+	PerformDrawAction() {
+		let data = this.action
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
 		this.grp.fillStyle = this.color
 		this.grp.lineWidth = this.lineWidth
@@ -190,14 +200,6 @@ class CanvasDrawer extends CanvasPerformer {
 			this.overlay = context.create_copy()
 		this.grp = context
 		super.Attach(context.canvas)
-		
-		let do_frame = ()=>{
-			if (!this.grp)
-				return
-			this.do_frame()
-			requestAnimationFrame(do_frame)
-		}
-		do_frame()
 	}
 	
 	Detach() {

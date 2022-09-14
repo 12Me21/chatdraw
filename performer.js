@@ -171,11 +171,11 @@ class CanvasPerformer {
 	}
 	
 	Perform(ev, start, end, interrupt, action, zoomDelta) {
-		let [x, y] = this.event_pos(ev)
-		
 		let rect = this.canvas.getBoundingClientRect()
 		if (rect.width <= 0 || rect.height <= 0)
 			return
+		
+		let [x, y] = this.event_pos(ev)
 		
 		let sx = rect.width / this.canvas.width
 		let sy = rect.height / this.canvas.height
@@ -218,19 +218,23 @@ class CanvasPerformer {
 			return
 		
 		if ((data.Start && data.Interrupt) || !data.onTarget) {
+			data.Drag = false
 			this.ignoring_stroke = true
 			//console.debug("ignoring stroke. Interrupt: " + data.Interr		
 		}
 		if (data.End && data.Interrupt) {
+			data.Drag = false
 			this.ignoring_stroke = true
 			this.Revert()
 		}
-		if (!this.ignoring_stroke)
+		if (!this.ignoring_stroke && data.Drag)
 			this.OnAction()
 		if (data.End) {
 			if (this.ignoring_stroke)
 				; //console.debug("No longer ignoring stroke")
 			this.ignoring_stroke = false
+			data.Drag = false
+			this.EndStroke()
 		}
 	}
 }
