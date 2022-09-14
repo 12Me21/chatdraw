@@ -185,14 +185,6 @@ let Color = {
 		buffer_8[3] = 255
 		return buffer_32[0]
 	},
-	// pick a good background color?
-	clear_score(hex) {
-		let x = parseInt(hex.slice(1), 16)
-		let r = x>>>16 & 255
-		let g = x>>>8 & 255
-		let b = x & 255
-		return Math.pow(r + g + b - (255 * 3/2 - 0.1), 2)
-	}
 }
 
 // --- CanvasUtilities ---

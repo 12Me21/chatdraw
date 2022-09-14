@@ -140,7 +140,6 @@ class ChatDraw extends HTMLElement {
 		
 		this.maxLineWidth = 7
 		
-		this.palette = []
 		this.color_buttons = []
 		
 		this.grp = new Grp(this.width, this.height)
@@ -156,7 +155,7 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer.get_extra = ()=>{
 			return {
-				palette: this.palette.concat()
+				palette: this.color_buttons.map(x=>x.value)
 			}
 		}
 		this.drawer.set_extra = ({palette})=>{
@@ -178,17 +177,16 @@ class ChatDraw extends HTMLElement {
 		)
 		
 		for (let i=0; i<BaseColors.length; i++) {
-			let input = new Button('color', 'radio', "■", i, e=>{
-				this.show_picker(+e.value)
+			let input = new Button('color', 'radio', "■", null, e=>{
+				this.show_picker(e)
 			}, (e,nw)=>{
 				if (nw) {
 					// todo?
 				} else
-					this.use_color(+e.value)
+					this.use_color(e)
 			})
 			this.color_buttons.push(input)
-			this.palette.push(null)
-			this.set_color(i, BaseColors[i])
+			this.set_color(input, BaseColors[i])
 			this.$row1.append(input.parentNode)
 		}
 		
@@ -263,39 +261,37 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	restore_colors(list) {
-		for (let i=0; i<this.palette.length; i++) {
-			this.set_color(i, list[i])
+		for (let i=0; i<this.color_buttons.length; i++) {
+			this.set_color(this.color_buttons[i], list[i])
 		}
 	}
 	
-	use_color(index) {
-		this.drawer.color = this.palette[index]
+	use_color(btn) {
+		this.drawer.color = btn.value
 	}
 	use_tool(name) {
 		this.drawer.currentTool = name
 	}
 	
-	set_color(index, color, swap=false) {
+	set_color(btn, color, swap=false) {
 		if (swap) {
 			this.drawer.UpdateUndoBuffer()
-			this.drawer.SwapColor(this.palette[index], color)
+			this.drawer.SwapColor(btn.value, color)
 		}
 		
-		this.palette[index] = color
-		
-		let btn = this.color_buttons[index]
 		btn.nextSibling.style.color = color
+		btn.value = color
 		if (btn.checked)
-			this.use_color(index)
+			this.use_color(btn)
 	}
 	
-	show_picker(index) {
+	show_picker(btn) {
 		let picker = this.$color_picker
-		picker.value = this.palette[index]
+		picker.value = btn.value
 		picker.onchange = ev=>{
 			picker.onchange = null
 			let e = ev.target
-			this.set_color(index, picker.value, true)
+			this.set_color(btn, picker.value, true)
 		}
 		picker.click()
 	}
@@ -315,10 +311,15 @@ class ChatDraw extends HTMLElement {
 	
 	//Get the color that is best suited to be a clearing color (the color that is closest to either white or black, whichever comes first)
 	getClearColor() {
-		let [col] = Math2.FindBest(this.palette, (col)=>{
-			return Color.clear_score(col)
+		let [btn] = Math2.FindBest(this.color_buttons, (btn)=>{
+			let hex = btn.value
+			let x = parseInt(hex.slice(1), 16)
+			let r = x>>>16 & 255
+			let g = x>>>8 & 255
+			let b = x & 255
+			return Math.pow(r + g + b - (255 * 3/2 - 0.1), 2)
 		})
-		return col
+		return btn.value
 	}
 	
 	scaleInterface() {
