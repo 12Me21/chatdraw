@@ -18,6 +18,9 @@ class CanvasPerformer {
 		let lastZDistance = 0
 		this.last_touch = [-1, -1]
 		
+		this.lastAction = null
+		this.ignoring_stroke = false
+		
 		let evtc = ev=>{
 			if (this.ZoomTouches !== 2)
 				throw "Zoom must use 2 fingers!"
@@ -192,8 +195,37 @@ class CanvasPerformer {
 		if (ev && this.ShouldCapture(data))
 			ev.preventDefault()
 		
-		if (this.OnAction)
+		if (!data.Drag)
+			return
+		
+		if (data.Start) {
+			data.oldX = data.x
+			data.oldY = data.y
+			data.startX = data.x
+			data.startY = data.y
+			if (data.Interrupt || !data.onTarget) {
+				this.ignoring_stroke = true
+				//console.debug("ignoring stroke. Interrupt: " + data.Interr		
+			}
+		} else {
+			// todo: what if lastAction isn't set? if we somehow get a non-start event first
+			data.oldX = this.lastAction.x
+			data.oldY = this.lastAction.y
+			data.startX = this.lastAction.startX
+			data.startY = this.lastAction.startY
+		}
+		if (data.End && data.Interrupt) {
+			this.ignoring_stroke = true
+			this.Revert()
+		}
+		if (!this.ignoring_stroke)
 			this.OnAction(data)
+		if (data.End) {
+			if (this.ignoring_stroke)
+				; //console.debug("No longer ignoring stroke")
+			this.ignoring_stroke = false
+		}
+		this.lastAction = data
 	}
 }
 CanvasPerformer.prototype.OnAction = null

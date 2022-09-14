@@ -45,7 +45,6 @@ class CanvasDrawer extends CanvasPerformer {
 		
 		this.frameActions = []
 		this.lastAction = null
-		this.ignoreCurrentStroke = false
 		this.frameCount = 0
 		
 		this.strokeCount = 0
@@ -55,24 +54,13 @@ class CanvasDrawer extends CanvasPerformer {
 		let tool = this.tools[this.currentTool]
 		if (!tool)
 			return
-		if (!data.Drag)
-			return
 		
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
 			;//this.canvas.style.cursor = this.defaultCursor
 		
 		if (data.Start) {
-			data.oldX = data.x
-			data.oldY = data.y
-			data.startX = data.x
-			data.startY = data.y
 			this.strokeCount++
-		} else {
-			data.oldX = this.lastAction.x
-			data.oldY = this.lastAction.y
-			data.startX = this.lastAction.startX
-			data.startY = this.lastAction.startY
 		}
 		
 		if (tool.framelock)
@@ -89,7 +77,7 @@ class CanvasDrawer extends CanvasPerformer {
 			let tool = this.tools[this.currentTool]
 			if (tool && tool.stationaryReportInterval && tool.tool) {
 				let data = this.lastAction
-				if (data && data.Drag && !data.End)
+				if (data && !data.End)
 					if (this.frameCount % tool.stationaryReportInterval == 0)
 						fa.push(data)
 			}
@@ -151,9 +139,7 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	UpdateUndoBuffer() {
-		if (this.undoBuffer) {
-			this.undoBuffer.Add(this.get_state_data())
-		}
+		this.undoBuffer.Add(this.get_state_data())
 	}
 	
 	PerformDrawAction(data) {
@@ -170,44 +156,29 @@ class CanvasDrawer extends CanvasPerformer {
 			//CanvasUtilities.Clear(this.overlay)
 		}
 		
-		// TODO: ignoreCurrentStroke should be handled by the CanvasPerformer class yes?
-		if (data.Start) {
-			if (data.Interrupt || (this.onlyInnerStrokes && !data.onTarget)) {
-				this.ignoreCurrentStroke = true
-				//console.debug("ignoring stroke. Interrupt: " + data.Interrupt)
-			} else {
-				if (tool && tool.updateUndoBuffer)
-					this.UpdateUndoBuffer()
-			}
-		}
+		if (!tool)
+			return
 		
-		//A special case: The last stroke that was valid was interrupted, so we need to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && (data.End && data.Interrupt) && tool && tool.updateUndoBuffer) {
-			this.ignoreCurrentStroke = true
-			this.Undo()
-			this.undoBuffer.ClearRedos()
+		if (data.Start) {
+			if (tool && tool.updateUndoBuffer)
+				this.UpdateUndoBuffer()
 		}
 		
 		//Now actually perform the action.
-		if (!this.ignoreCurrentStroke && tool) {
-			tool.tool(data, this.grp, this)
-			
-			if (tool.overlay && this.overlay) {
-				let oc = this.overlay
-				oc.fillStyle = this.color
-				oc.lineWidth = this.lineWidth
-				oc.clearRect(0, 0, oc.width, oc.height)
-				this.overlayActive = tool.overlay(data, oc, this)!==false
-			}
-		}
+		tool.tool(data, this.grp, this)
 		
-		if (data.End) {
-			if (this.ignoreCurrentStroke)
-				;//console.debug("No longer ignoring stroke")
-			this.ignoreCurrentStroke = false
+		if (tool.overlay && this.overlay) {
+			let oc = this.overlay
+			oc.fillStyle = this.color
+			oc.lineWidth = this.lineWidth
+			oc.clearRect(0, 0, oc.width, oc.height)
+			this.overlayActive = tool.overlay(data, oc, this)!==false
 		}
-		
-		this.lastAction = data
+	}
+	
+	Revert() {
+		this.Undo()
+		this.undoBuffer.ClearRedos()
 	}
 	
 	ResetUndoBuffer(size) {
@@ -248,15 +219,14 @@ CanvasDrawer.tools = {
 			this.speed = 0.15
 			this.avg = {x:0,y:0}
 		}
-		tool({Start, End, Drag, x, y}, context) {
+		tool({Start, End, x, y}, context) {
 			if (Start) {
 				this.avg = {x,y}
 			} else {
 				x = x*this.speed + this.avg.x*(1-this.speed)
 				y = y*this.speed + this.avg.y*(1-this.speed)
 			}
-			if (Drag || End)
-				context.draw_round_line(this.avg.x, this.avg.y, x, y)
+			context.draw_round_line(this.avg.x, this.avg.y, x, y)
 			this.avg = {x,y}
 		}
 	},
@@ -266,9 +236,7 @@ CanvasDrawer.tools = {
 			this.spread = 2
 			this.rate = 2/3
 		}
-		tool({Drag, x, y}, context) {
-			if (!Drag)
-				return
+		tool({x, y}, context) {
 			let lw = context.lineWidth
 			let radius = lw * this.spread
 			let count = lw * this.rate
@@ -302,28 +270,26 @@ CanvasDrawer.tools = {
 			super()
 			this.data = null
 		}
-		tool({Start, Drag, End, x, y, startX, startY}, context) {
+		tool({Start, End, x, y, startX, startY}, context) {
 			if (Start) {
 				this.data = context.get_data()
 				return false
 			}
-			if (Drag || End) {
-				let dx = x - startX
-				let dy = y - startY
-				let w = context.width
-				let h = context.height
-				while (dx < 0) dx += w
-				while (dx >= w) dx -= w
-				while (dy < 0) dy += h
-				while (dy >= h) dy -= h
-				context.putImageData(this.data, dx, dy)
-				context.putImageData(this.data, dx-w, dy)
-				context.putImageData(this.data, dx, dy-h)
-				context.putImageData(this.data, dx-w, dy-h)
-				if (End) // todo: actually make sure we always get rid of this layer all the time (actually why dont we just use the overlay layer?)
-					this.data = null
-				return true
-			}
+			let dx = x - startX
+			let dy = y - startY
+			let w = context.width
+			let h = context.height
+			while (dx < 0) dx += w
+			while (dx >= w) dx -= w
+			while (dy < 0) dy += h
+			while (dy >= h) dy -= h
+			context.putImageData(this.data, dx, dy)
+			context.putImageData(this.data, dx-w, dy)
+			context.putImageData(this.data, dx, dy-h)
+			context.putImageData(this.data, dx-w, dy-h)
+			if (End) // todo: actually make sure we always get rid of this layer all the time (actually why dont we just use the overlay layer?)
+				this.data = null
+			return true
 		}
 	},
 	
