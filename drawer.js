@@ -66,6 +66,8 @@ class CanvasDrawer extends CanvasPerformer {
 					return
 				this.interval = null
 				this.frameCount++
+				if (!this.action.Alive)
+					return // gh
 				let tool = this.tools[this.currentTool]
 				if (!tool)
 					return
