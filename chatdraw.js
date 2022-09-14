@@ -47,7 +47,7 @@ class Button extends HTMLInputElement {
 					clearTimeout(x._timeout)
 					x._timeout = null
 				}
-				x._change(x, false)
+				x._change(x, null)
 			}
 		} else {
 			x.onclick = ev=>{
@@ -79,7 +79,7 @@ class Button extends HTMLInputElement {
 	select() {
 		if (!this.checked) {
 			this.checked = true
-			this._change(this, false)
+			this._change(this, null)
 		} else
 			this.checked = true
 	}
@@ -155,7 +155,7 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer.get_extra = ()=>{
 			return {
-				palette: this.color_buttons.map(x=>x.value)
+				palette: this.color_buttons.map(x=>x.dataset.color)
 			}
 		}
 		this.drawer.set_extra = ({palette})=>{
@@ -177,16 +177,24 @@ class ChatDraw extends HTMLElement {
 		)
 		
 		for (let i=0; i<BaseColors.length; i++) {
-			let input = new Button('color', 'radio', "■", null, e=>{
+			let input = new Button('color', 'radio', "■", "", e=>{
 				this.show_picker(e)
-			}, (e,nw)=>{
-				if (nw) {
-					// todo?
-				} else
-					this.use_color(e)
+			}, (e, old)=>{
+				if (old) {
+					if (e.dataset.color != e.value) {
+						this.drawer.UpdateUndoBuffer()
+						this.drawer.SwapColor(e.dataset.color, e.value)
+						e.dataset.color = e.value
+					}
+					e.nextSibling.style.color = e.value
+					if (!e.checked)
+						return
+				}
+				this.use_color(e)
 			})
 			this.color_buttons.push(input)
-			this.set_color(input, BaseColors[i])
+			input.dataset.color = BaseColors[i]
+			input.set(BaseColors[i])
 			this.$row1.append(input.parentNode)
 		}
 		
@@ -214,8 +222,8 @@ class ChatDraw extends HTMLElement {
 		let tool_click = e=>{
 			e.cycle()
 		}
-		let tool_change = (e,nw)=>{
-			if (!nw || e.checked)
+		let tool_change = (e, old)=>{
+			if (old==null || e.checked)
 				this.use_tool(e.value)
 		}
 		
@@ -262,7 +270,9 @@ class ChatDraw extends HTMLElement {
 	
 	restore_colors(list) {
 		for (let i=0; i<this.color_buttons.length; i++) {
-			this.set_color(this.color_buttons[i], list[i])
+			let btn = this.color_buttons[i]
+			btn.dataset.color = list[i]
+			btn.set(list[i])
 		}
 	}
 	
@@ -273,25 +283,12 @@ class ChatDraw extends HTMLElement {
 		this.drawer.currentTool = name
 	}
 	
-	set_color(btn, color, swap=false) {
-		if (swap) {
-			this.drawer.UpdateUndoBuffer()
-			this.drawer.SwapColor(btn.value, color)
-		}
-		
-		btn.nextSibling.style.color = color
-		btn.value = color
-		if (btn.checked)
-			this.use_color(btn)
-	}
-	
 	show_picker(btn) {
 		let picker = this.$color_picker
 		picker.value = btn.value
 		picker.onchange = ev=>{
 			picker.onchange = null
-			let e = ev.target
-			this.set_color(btn, picker.value, true)
+			btn.set(picker.value)
 		}
 		picker.click()
 	}
