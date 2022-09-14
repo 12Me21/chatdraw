@@ -16,10 +16,70 @@
 // valuechange: when the value of a button changes (due to cycling or otherwise)
 // maybe merge those 2 into onchange. with a flag saying whether the value changed or a different button was selected (so the palette btns can swap colors when needed)
 
-// zoom button: ({type:'button', name:'zoom', cycle:[...], onclick:x=>x.cycle(), onvaluechange:...})
-// tool button: ({type:'radio', name:'tool', cycle:[...], onchoose:..., onreclick:x=>x.cycle(), onvaluechange:...})
-// clear button: ({type:'button', name:'clear', onclick:...})
-// color button: ({type:'radio', name:'color', onchoose:..., onreclick:x=>picker(x), onvaluechange:...})
+// zoom button: ('zoom', 'button', [...], [...], x=>x.cycle(), x=>set_zoom())
+// tool button: ('tool', 'radio', [...], [...], x=>x.cycle(), x=>currentTool=x)
+// clear button: ('clear', 'button', "X", null, x=>clear(), null)
+// color button: ('color', 'radio', "o", "#000000", x=>picker(x), (x,change)=>{if (change){swap_colors()} currentColor=x})
+
+class Button extends HTMLInputElement {
+	constructor(name, type, label, value, click, change) {
+		let x = Object.setPrototypeOf(document.createElement('input'), new.target.prototype)
+		x.name = name
+		x.type = type
+		if (Array.isArray(value)) {
+			x._values = value
+			x._labels = label
+			value = value[0]
+			label = label[0]
+		}
+		x.textContent = label
+		x.value = value
+		x._click = click
+		x._change = change
+		if (type=='radio') {
+			x.onclick = ev=>{
+				x._timeout = setTimeout(()=>{
+					x._click(x)
+				})
+			}
+			x.onchange = ev=>{
+				if (x._timeout) {
+					clearTimeout(x._timeout)
+					x._timeout = null
+				}
+				x._change(x, false)
+			}
+		} else {
+			x.onclick = ev=>{
+				x._click(x)
+			}
+		}
+
+		return x
+	}
+	cycle(dir) {
+		let n = this._values.indexOf(x.value)
+		if (n<0)
+			n=0
+		n = (n+dir+this._values.length) % this._values.length
+		this.value = this._values[n]
+		this.textContent = this._labels[n]
+		if (this._change)
+			this._change(this, true)
+	}
+	set(value) {
+		this.value = value
+		if (this._change)
+			this._change(this, true)
+	}
+	select() {
+		if (!this.checked) {
+			this.checked = true
+			this._change(this, false)
+		} else
+			this.checked = true
+	}
+}
 
 let HTML = ([html])=>{
 	let temp = document.createElement('template')
