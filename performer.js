@@ -18,7 +18,22 @@ class CanvasPerformer {
 		let lastZDistance = 0
 		this.last_touch = [-1, -1]
 		
-		this.lastAction = null
+		this.action = {
+			Start: false,
+			End: false,
+			Interrupt: false,
+			
+			Drag: false,
+			Zoom: false,
+			Pan: false,
+			
+			x: 0,
+			y: 0,
+			zoomDelta: 0,
+			
+			onTarget: false,
+			ctrlKey: false,
+		}
 		this.ignoring_stroke = false
 		
 		let evtc = ev=>{
@@ -129,11 +144,6 @@ class CanvasPerformer {
 		return Math.log2(distance / oDistance)
 	}
 	
-	//System uses this function to determine if touches should be captured. Users can override this function to give their own rules for captured touches. Capturing a touch prevents scrolling.
-	ShouldCapture(data) {
-		return data.onTarget
-	}
-	
 	do_listeners(state) {
 		for (let [type, is_doc, func] of this._listeners) {
 			let target = is_doc ? document : this.canvas
@@ -170,62 +180,58 @@ class CanvasPerformer {
 		let sx = rect.width / this.canvas.width
 		let sy = rect.height / this.canvas.height
 		
-		let data = {
-			Start: start,
-			End: end,
-			Interrupt: interrupt,
-			
-			Drag: (action & 1)==1,
-			Zoom: (action & 2)==2,
-			Pan: (action & 4)==4,
-			
-			// adjust the position of the cursor within the pixel to account for the fact that the cursor is 1×1px, not a point.
-			// so if scale is 3 and dpr is 2, and the cursor is "at" (0,0) then,
-			// the cursor's tip pixel will span from (0,0) to (1/(3*2),1/(3*2)) (in canvas pixels)
-			// ...well actually we don't know whether a cursor pixel will scale with DPR.
-			// it's possible that the cursor's tip is 2x2 pixels in that case,
-			x: (x - rect.x + 0.5/(sx*devicePixelRatio)) / sx,
-			y: (y - rect.y + 0.5/(sy*devicePixelRatio)) / sy,
-			zoomDelta,
-			
-			onTarget: ev.composedPath()[0]===this.canvas,
-			ctrlKey: ev.ctrlKey,
-		}
+		let data = this.action
+		data.Start = start
+		data.End = end
+		data.Interrupt = interrupt
+		data.Drag = (action & 1)==1
+		data.Zoom = (action & 2)==2
+		data.Pan = (action & 4)==4
 		
-		if (ev && this.ShouldCapture(data))
-			ev.preventDefault()
-		
-		if (!data.Drag)
-			return
-		
+		let ox = data.x
+		let oy = data.y
+		// adjust the position of the cursor within the pixel to account for the fact that the cursor is 1×1px, not a point.
+		// so if scale is 3 and dpr is 2, and the cursor is "at" (0,0) then,
+		// the cursor's tip pixel will span from (0,0) to (1/(3*2),1/(3*2)) (in canvas pixels)
+		// ...well actually we don't know whether a cursor pixel will scale with DPR.
+		// it's possible that the cursor's tip is 2x2 pixels in that case,
+		data.x = (x - rect.x + 0.5/(sx*devicePixelRatio)) / sx
+		data.y = (y - rect.y + 0.5/(sy*devicePixelRatio)) / sy
+		data.zoomDelta = zoomDelta
 		if (data.Start) {
 			data.oldX = data.x
 			data.oldY = data.y
 			data.startX = data.x
 			data.startY = data.y
-			if (data.Interrupt || !data.onTarget) {
-				this.ignoring_stroke = true
-				//console.debug("ignoring stroke. Interrupt: " + data.Interr		
-			}
 		} else {
-			// todo: what if lastAction isn't set? if we somehow get a non-start event first
-			data.oldX = this.lastAction.x
-			data.oldY = this.lastAction.y
-			data.startX = this.lastAction.startX
-			data.startY = this.lastAction.startY
+			data.oldX = ox
+			data.oldY = oy
+		}
+		
+		data.onTarget = ev.composedPath()[0]===this.canvas
+		data.ctrlKey = ev.ctrlKey
+		
+		if (ev && data.onTarget)
+			ev.preventDefault()
+		
+		if (!data.Drag)
+			return
+		
+		if ((data.Start && data.Interrupt) || !data.onTarget) {
+			this.ignoring_stroke = true
+			//console.debug("ignoring stroke. Interrupt: " + data.Interr		
 		}
 		if (data.End && data.Interrupt) {
 			this.ignoring_stroke = true
 			this.Revert()
 		}
 		if (!this.ignoring_stroke)
-			this.OnAction(data)
+			this.OnAction()
 		if (data.End) {
 			if (this.ignoring_stroke)
 				; //console.debug("No longer ignoring stroke")
 			this.ignoring_stroke = false
 		}
-		this.lastAction = data
 	}
 }
 CanvasPerformer.prototype.OnAction = null

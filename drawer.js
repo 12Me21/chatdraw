@@ -44,17 +44,17 @@ class CanvasDrawer extends CanvasPerformer {
 		this.lineWidth = null
 		
 		this.frameActions = []
-		this.lastAction = null
 		this.frameCount = 0
 		
 		this.strokeCount = 0
 	}
 	
-	OnAction(data) {
+	OnAction() {
 		let tool = this.tools[this.currentTool]
 		if (!tool)
 			return
 		
+		let data = this.action
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
 			;//this.canvas.style.cursor = this.defaultCursor
@@ -63,10 +63,10 @@ class CanvasDrawer extends CanvasPerformer {
 			this.strokeCount++
 		}
 		
-		if (tool.framelock)
-			this.frameActions.push(data)
-		else
-			this.PerformDrawAction(data)
+		//if (tool.framelock)
+		//	this.frameActions.push(data)
+		//else
+		this.PerformDrawAction(data)
 	}
 	
 	do_frame() {
