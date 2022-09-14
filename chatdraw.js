@@ -149,7 +149,7 @@ class ChatDraw extends HTMLElement {
 		this.drawer = new CanvasDrawer()
 		
 		this.drawer.ResetUndoBuffer(10)
-		this.drawer.undoBuffer.OnUndoStateChange = ()=>{
+		this.drawer.undoBuffer.onchange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
 		}
@@ -182,7 +182,7 @@ class ChatDraw extends HTMLElement {
 				this.show_picker(+e.value)
 			}, (e,nw)=>{
 				if (nw) {
-					//
+					// todo?
 				} else
 					this.use_color(+e.value)
 			})

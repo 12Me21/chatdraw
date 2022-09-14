@@ -291,7 +291,7 @@ let Math2 = {
 class UndoBuffer {
 	constructor(maxSize=5) {
 		this.maxSize = maxSize
-		this.OnUndoStateChange = null
+		this.onchange = null
 		this.Clear()
 	}
 	
@@ -340,7 +340,7 @@ class UndoBuffer {
 	}
 	
 	DoUndoStateChange() {
-		if (this.OnUndoStateChange)
-			this.OnUndoStateChange()
+		if (this.onchange)
+			this.onchange()
 	}
 }
