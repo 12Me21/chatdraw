@@ -80,9 +80,10 @@ class Grp extends CanvasRenderingContext2D {
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()
+		original = Color.int32(original)
 		let color = Color.int32(this.fillStyle)
 		for (let i=0; i<pixels.length; i++) {
-			if (original.color == pixels[i])
+			if (original == pixels[i])
 				pixels[i] = color
 		}
 		this.put_pixels(pixels)
