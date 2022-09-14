@@ -103,7 +103,7 @@ class CanvasDrawer extends CanvasPerformer {
 	}
 	
 	SwapColor(original, newColor) {
-		this.grp.fill_color = newColor
+		this.grp.fillStyle = newColor
 		this.grp.replace_color(original)
 	}
 	
@@ -158,7 +158,7 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	PerformDrawAction(data) {
 		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
-		this.grp.fill_color = this.color
+		this.grp.fillStyle = this.color
 		this.grp.lineWidth = this.lineWidth
 		let tool = this.tools[this.currentTool]
 		
@@ -194,7 +194,7 @@ class CanvasDrawer extends CanvasPerformer {
 			
 			if (tool.overlay && this.overlay) {
 				let oc = this.overlay
-				oc.fill_color = this.color
+				oc.fillStyle = this.color
 				oc.lineWidth = this.lineWidth
 				oc.clearRect(0, 0, oc.width, oc.height)
 				this.overlayActive = tool.overlay(data, oc, this)!==false

@@ -156,7 +156,7 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer.get_extra = ()=>{
 			return {
-				palette: this.palette.map(x=>x.to_hex())
+				palette: this.palette.concat()
 			}
 		}
 		this.drawer.set_extra = ({palette})=>{
@@ -257,14 +257,14 @@ class ChatDraw extends HTMLElement {
 	
 	clear() {
 		this.grp.save()
-		this.grp.fill_color = this.getClearColor()
+		this.grp.fillStyle = this.getClearColor()
 		this.grp.clear()
 		this.grp.restore()
 	}
 	
 	restore_colors(list) {
 		for (let i=0; i<this.palette.length; i++) {
-			this.set_color(i, Color.from_hex(list[i]))
+			this.set_color(i, list[i])
 		}
 	}
 	
@@ -284,19 +284,18 @@ class ChatDraw extends HTMLElement {
 		this.palette[index] = color
 		
 		let btn = this.color_buttons[index]
-		let hex = color.to_hex()
-		btn.nextSibling.style.color = hex
+		btn.nextSibling.style.color = color
 		if (btn.checked)
 			this.use_color(index)
 	}
 	
 	show_picker(index) {
 		let picker = this.$color_picker
-		picker.value = this.palette[index].to_hex()
+		picker.value = this.palette[index]
 		picker.onchange = ev=>{
 			picker.onchange = null
 			let e = ev.target
-			this.set_color(index, Color.from_hex(picker.value), true)
+			this.set_color(index, picker.value, true)
 		}
 		picker.click()
 	}
@@ -317,7 +316,7 @@ class ChatDraw extends HTMLElement {
 	//Get the color that is best suited to be a clearing color (the color that is closest to either white or black, whichever comes first)
 	getClearColor() {
 		let [col] = Math2.FindBest(this.palette, (col)=>{
-			return col.clear_score()
+			return Color.clear_score(col)
 		})
 		return col
 	}
@@ -445,10 +444,10 @@ ChatDraw.template = HTML`
 //#A7E258
 
 let BaseColors = [
-	new Color(255,255,255),
-	new Color(0,0,0),
-	new Color(255,0,0),
-	new Color(0,0,255),
+	"#FFFFFF",
+	"#000000",
+	"#FF0000",
+	"#0000FF",
 ]
 
 customElements.define('chat-draw', ChatDraw)

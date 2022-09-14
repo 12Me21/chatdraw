@@ -35,13 +35,6 @@ class Grp extends CanvasRenderingContext2D {
 	put_pixels(pixels, x=0, y=0) {
 		this.putImageData(pixels._image, x, y)
 	}
-	set fill_color(color) {
-		this._color = color
-		this.fillStyle = color.to_hex()
-	}
-	get fill_color() {
-		return this._color
-	}
 	clear() {
 		this.fillRect(0, 0, this.width, this.height)
 	}
@@ -52,7 +45,7 @@ class Grp extends CanvasRenderingContext2D {
 		let {width, height} = pixels
 		let queue = []
 		let old = pixels[x+y*width]
-		let col = this.fill_color.color
+		let col = Color.int32(this.fillStyle)
 		
 		let check = (x, y)=>{
 			if (x<0 || y<0 || x>=width || y>=height)
@@ -87,7 +80,7 @@ class Grp extends CanvasRenderingContext2D {
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()
-		let color = this.fill_color.color
+		let color = Color.int32(this.fillStyle)
 		for (let i=0; i<pixels.length; i++) {
 			if (original.color == pixels[i])
 				pixels[i] = color
@@ -179,69 +172,28 @@ class Grp extends CanvasRenderingContext2D {
 
 const LITTLE = new Uint8Array(new Uint32Array([5]).buffer)[0] == 5
 
-if (LITTLE) {
-	window.Color = class Color {
-		constructor(r, g, b, a=255) {
-			if (g===undefined)
-				this.color = r
-			else
-				this.color = r|g<<8|b<<16|a<<24
-		}
-		get r() { return this.color & 255 }
-		get g() { return this.color>>>8 & 255 }
-		get b() { return this.color>>>16 & 255 }
-		get a() { return this.color>>>24 & 255 }
-		
-		clear_score() { //idk
-			return Math.pow(this.r + this.g + this.b - (255 * 3/2 - 0.1), 2)
-		}
-		
-		ToArray() {
-			return [this.r, this.g, this.b, this.a]
-		}
-		
-		to_hex() {
-			let num = this.r<<16 | this.g<<8 | this.b
-			return "#"+num.toString(16).padStart(2*3, "0")
-		}
-		
-		static from_hex(value) {
-			let num = parseInt(value.slice(1), 16)
-			return new this(num>>>16&255, num>>>8&255, num&255)
-		}
-	}
-} else {
-	window.Color = class Color {
-		constructor(r, g, b, a=255) {
-			if (g===undefined)
-				this.color = r
-			else
-				this.color = r<<24 | g<<16 | b<<8 | a
-		}
-		get r() { return this.color>>>24 & 255 }
-		get g() { return this.color>>>16 & 255 }
-		get b() { return this.color>>>8 & 255 }
-		get a() { return this.color & 255 }
-		
-		clear_score() { //idk
-			return Math.pow(this.r + this.g + this.b - (255 * 3/2 - 0.1), 2)
-		}
-		
-		ToArray() {
-			return [this.r, this.g, this.b, this.a]
-		}
-		
-		to_hex() {
-			let num = this.r<<16 | this.g<<8 | this.b
-			return "#"+num.toString(16).padStart(2*3, "0")
-		}
-		
-		static from_hex(value) {
-			let num = parseInt(value.slice(1), 16)
-			return new this(num>>>16&255, num>>>8&255, num&255)
-		}
+let buffer_32 = new Int32Array(1)
+let buffer_8 = new Uint8Array(buffer_32.buffer)
+let Color = {
+	// return color as an int32 in system endianness, for use with imageData
+	int32(hex) {
+		let x = parseInt(hex.slice(1), 16)
+		buffer_8[0] = x>>>16 // assigning strips upper bits
+		buffer_8[1] = x>>>8
+		buffer_8[2] = x
+		buffer_8[3] = 255
+		return buffer_32[0]
+	},
+	// pick a good background color?
+	clear_score(hex) {
+		let x = parseInt(hex.slice(1), 16)
+		let r = x>>>16 & 255
+		let g = x>>>8 & 255
+		let b = x & 255
+		return Math.pow(r + g + b - (255 * 3/2 - 0.1), 2)
 	}
 }
+
 // --- CanvasUtilities ---
 // Helper functions for dealing with Canvases.
 
