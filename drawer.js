@@ -29,6 +29,7 @@ class CanvasDrawer extends CanvasPerformer {
 		super()
 		
 		this.undoBuffer = null
+		
 		this.tools = {}
 		for (let tool of ['freehand','slow','spray','line','square','clear','fill','mover','disc']) {
 			this.tools[tool] = new CanvasDrawer.tools[tool]()
@@ -88,7 +89,13 @@ class CanvasDrawer extends CanvasPerformer {
 			// todo: check if anything was actually drawn yet
 			//this.Undo()
 			//this.undoBuffer.ClearRedos()
+			
+			//if (tool && tool.interrupt)
+			//	tool.interrupt(data, this.grp, this)
+			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
+			//CanvasUtilities.Clear(this.overlay)
 		}
+		this.overlayActive = false
 		if (this.interval) {
 			window.cancelAnimationFrame(this.interval)
 			this.interval = null
@@ -98,6 +105,30 @@ class CanvasDrawer extends CanvasPerformer {
 	SwapColor(original, newColor) {
 		this.grp.fillStyle = newColor
 		this.grp.replace_color(original)
+	}
+	
+	PerformDrawAction() {
+		let tool = this.tools[this.currentTool]
+		if (!tool)
+			return
+		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
+		this.grp.fillStyle = this.color
+		this.grp.lineWidth = this.lineWidth
+		
+		if (tool.overlay && this.overlay) {
+			this.overlay.fillStyle = this.color
+			this.overlay.lineWidth = this.lineWidth
+			this.overlay.clear(true)
+			this.overlayActive = tool.overlay(this.action, this.overlay, this)!==false
+		}
+		
+		if (this.action.Start) {
+			if (tool.updateUndoBuffer) {
+				this.UpdateUndoBuffer()
+				this.strokeCount++
+			}
+		}
+		tool.tool(this.action, this.grp, this)
 	}
 	
 	CanUndo() {
@@ -145,47 +176,6 @@ class CanvasDrawer extends CanvasPerformer {
 	
 	UpdateUndoBuffer() {
 		this.undoBuffer.Add(this.get_state_data())
-	}
-	
-	PerformDrawAction() {
-		let data = this.action
-		//Ensure the drawing canvases are properly set up before we hand the data off to a tool action thingy.
-		this.grp.fillStyle = this.color
-		this.grp.lineWidth = this.lineWidth
-		let tool = this.tools[this.currentTool]
-		
-		if (data.Interrupt) {
-			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
-			this.overlayActive = false
-			if (tool && tool.interrupt)
-				tool.interrupt(data, this.grp, this)
-			//CanvasUtilities.Clear(this.overlay)
-		}
-		
-		if (!tool)
-			return
-		
-		if (data.Start) {
-			if (tool && tool.updateUndoBuffer) {
-				this.UpdateUndoBuffer()
-				this.strokeCount++
-			}
-		}
-		
-		if (tool.overlay && this.overlay) {
-			let oc = this.overlay
-			oc.fillStyle = this.color
-			oc.lineWidth = this.lineWidth
-			oc.clearRect(0, 0, oc.width, oc.height)
-			this.overlayActive = tool.overlay(data, oc, this)!==false
-		}
-		
-		tool.tool(data, this.grp, this)
-	}
-	
-	Revert() {
-		this.Undo()
-		this.undoBuffer.ClearRedos()
 	}
 	
 	ResetUndoBuffer(size) {

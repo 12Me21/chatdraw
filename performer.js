@@ -129,7 +129,7 @@ class CanvasPerformer {
 		this.canvas = null
 	}
 	
-	Begin(ev, interrupt, action) {
+	Begin(ev, interrupt) {
 		let data = this.action
 		let on_target = ev.composedPath()[0]===this.canvas
 		if (interrupt || !on_target) {
@@ -153,7 +153,7 @@ class CanvasPerformer {
 		this.OnAction()
 	}
 	
-	Continue(ev, end, interrupt, action) {
+	Continue(ev, end, interrupt) {
 		let data = this.action
 		if (!data.Alive)
 			return

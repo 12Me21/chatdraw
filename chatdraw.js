@@ -147,7 +147,7 @@ class ChatDraw extends HTMLElement {
 		
 		this.drawer = new CanvasDrawer()
 		
-		this.drawer.ResetUndoBuffer(10)
+		this.drawer.ResetUndoBuffer(10) // why is this called here?
 		this.drawer.undoBuffer.onchange = ()=>{
 			this.$form.undo.disabled = !this.drawer.CanUndo()
 			this.$form.redo.disabled = !this.drawer.CanRedo()
