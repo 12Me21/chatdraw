@@ -87,7 +87,7 @@ class CanvasDrawer extends CanvasPerformer {
 		let fa = this.frameActions
 		if (!fa.length) {
 			let tool = this.tools[this.currentTool]
-			if (tool.stationaryReportInterval && tool.tool) {
+			if (tool && tool.stationaryReportInterval && tool.tool) {
 				let data = this.lastAction
 				if (data && data.Drag && !data.End)
 					if (this.frameCount % tool.stationaryReportInterval == 0)
@@ -165,7 +165,7 @@ class CanvasDrawer extends CanvasPerformer {
 		if (data.Interrupt) {
 			//Interrupted? Clear the overlay... don't know what we were doing but whatever, man. Oh and call the tool's interrupt function...
 			this.overlayActive = false
-			if (tool.interrupt)
+			if (tool && tool.interrupt)
 				tool.interrupt(data, this.grp, this)
 			//CanvasUtilities.Clear(this.overlay)
 		}
@@ -176,20 +176,20 @@ class CanvasDrawer extends CanvasPerformer {
 				this.ignoreCurrentStroke = true
 				//console.debug("ignoring stroke. Interrupt: " + data.Interrupt)
 			} else {
-				if (tool.updateUndoBuffer)
+				if (tool && tool.updateUndoBuffer)
 					this.UpdateUndoBuffer()
 			}
 		}
 		
 		//A special case: The last stroke that was valid was interrupted, so we need to undo the stroke (only if the stroke wasn't ignored in the first place)
-		if (!this.ignoreCurrentStroke && (data.End && data.Interrupt) && tool.updateUndoBuffer) {
+		if (!this.ignoreCurrentStroke && (data.End && data.Interrupt) && tool && tool.updateUndoBuffer) {
 			this.ignoreCurrentStroke = true
 			this.Undo()
 			this.undoBuffer.ClearRedos()
 		}
 		
 		//Now actually perform the action.
-		if (!this.ignoreCurrentStroke) {
+		if (!this.ignoreCurrentStroke && tool) {
 			tool.tool(data, this.grp, this)
 			
 			if (tool.overlay && this.overlay) {
