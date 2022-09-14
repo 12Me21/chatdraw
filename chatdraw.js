@@ -32,7 +32,7 @@ class Button extends HTMLInputElement {
 			value = value[0]
 			label = label[0]
 		}
-		x.textContent = label
+		//x.textContent = label
 		x.value = value
 		x._click = click
 		x._change = change
@@ -54,16 +54,20 @@ class Button extends HTMLInputElement {
 				x._click(x)
 			}
 		}
-
+		
+		let btn = document.createElement('span')
+		btn.textContent = label
+		document.createElement('label').append(x, btn)
+		
 		return x
 	}
-	cycle(dir) {
-		let n = this._values.indexOf(x.value)
+	cycle(dir=1) {
+		let n = this._values.indexOf(this.value)
 		if (n<0)
 			n=0
 		n = (n+dir+this._values.length) % this._values.length
 		this.value = this._values[n]
-		this.textContent = this._labels[n]
+		this.nextSibling.textContent = this._labels[n]
 		if (this._change)
 			this._change(this, true)
 	}
@@ -165,52 +169,23 @@ class ChatDraw extends HTMLElement {
 		
 		make_cursor(3)
 		
-		// URGENT TODO: this is inefficient, since it captures all mouse moves and etc. we need to fix the inner stroke detector to work with shadow DOM.
-		//drawer.onlyInnerStrokes = false
-		
-		this.$form.onchange = ev=>{
-			let e = ev.target
-			if (e.dataset.timer) {
-				clearTimeout(e.dataset.timer)
-				delete e.dataset.timer
-			}
-			if (e.name=='color') {
-				this.use_color(+e.value)
-			} else if (e.name=='tool') {
-				this.use_tool(e.value)
-			}
-		}
-		this.$form.oncontextmenu = ev=>ev.preventDefault()
-		this.$form.onauxclick = this.$form.onclick = ev=>{
-			let e = ev.target
-			if (e.type=='radio') {
-				if (ev.type=='click')
-					e.dataset.timer = setTimeout(()=>{
-						if (e.name=='color') {
-							this.show_picker(+e.value)
-						} else if (e.name=='tool') {
-							this.cycle_tool(e)
-						}
-					})
-				else {
-					if (e.name=='tool') {
-						this.cycle_tool(e, -1)
-					}
-				}
-			}
-			let p = e.onplay
-			if (p)
-				p(ev)
-		}
-		
 		this.$row1.append(
-			this.button('zoom', '1', "🔍", ev=>{ this.scaleInterface() }).parentNode,
-			this.button('undo', null, "↶", ev=>{ this.drawer.Undo() }).parentNode,
-			this.button('redo', null, "↷", ev=>{ this.drawer.Redo() }).parentNode
+			new Button('zoom', 'button', "🔍", 1, e=>{
+				this.scaleInterface()
+			}, ev=>{}).parentNode,
+			new Button('undo', 'button', "↶", null, e=>{ this.drawer.Undo() }).parentNode,
+			new Button('redo', 'button', "↷", null, e=>{ this.drawer.Redo() }).parentNode,
 		)
 		
 		for (let i=0; i<BaseColors.length; i++) {
-			let input = this.button('color', i, "■")
+			let input = new Button('color', 'radio', "■", i, e=>{
+				this.show_picker(+e.value)
+			}, (e,nw)=>{
+				if (nw) {
+					//
+				} else
+					this.use_color(+e.value)
+			})
 			this.color_buttons.push(input)
 			this.palette.push(null)
 			this.set_color(i, BaseColors[i])
@@ -218,21 +193,19 @@ class ChatDraw extends HTMLElement {
 		}
 		
 		this.$row1.append(
-			this.button('send', null, "➥", ev=>{ this.sendDrawing() }).parentNode
+			new Button('send', 'button', "➥", null, ev=>{ this.sendDrawing() }).parentNode
 		)
 		
 		// todo: make this like toolbutotn
-		let thickness = this.button('thickness', 1, 1, ev=>{
-			let e = ev.target
-			let dir = ev.button==2 ? -1 : 1
-			let width = (+e.value-1 + dir + this.maxLineWidth) % this.maxLineWidth + 1
-			e.nextSibling.textContent = width
-			e.value = width
-			this.drawer.lineWidth = width
+		let sizes = ['1','2','3','4','5','6','7']
+		let thickness = new Button('thickness', 'button', sizes, sizes, x=>{
+			x.cycle()
+		}, x=>{
+			this.drawer.lineWidth = +x.value
 		})
 		
 		this.$row2.append(
-			this.button('clear', null, "❌️", ev=>{
+			new Button('clear', 'button', "❌️", null, e=>{
 				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
 				this.clear()
@@ -240,18 +213,26 @@ class ChatDraw extends HTMLElement {
 			thickness.parentNode
 		)
 		
-		let def_tool = this.createToolButton(["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'])
-		let p = this.createToolButton(["🤚"], ['mover'])
-		p.style.order = "-1"
+		let tool_click = e=>{
+			e.cycle()
+		}
+		let tool_change = (e,nw)=>{
+			if (!nw || e.checked)
+				this.use_tool(e.value)
+		}
+		
+		let def_tool = new Button('tool', 'radio', ["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'], tool_click, tool_change)
+		let p = new Button('tool', 'radio', ["🤚️"], ['mover'], tool_click, tool_change)
+		p.parentNode.style.order = "-1"
 		this.$row2.append(
-			p,
-			this.createToolButton(["🪣️", "❎️"], ['fill', 'clear']),
-			this.createToolButton(["📏️", "🔲️", "🔵"], ['line', 'square', 'disc']),
-			def_tool,
-			this.button('toggle', null, "✎", ev=>{	/* ... */ }).parentNode
+			p.parentNode,
+			new Button('tool', 'radio', ["🪣️", "❎️"], ['fill', 'clear'], tool_click, tool_change).parentNode,
+			new Button('tool', 'radio', ["📏️", "🔲️", "🔵"], ['line', 'square', 'disc'], tool_click, tool_change).parentNode,
+			def_tool.parentNode,
+			new Button('toggle', 'button', "✎", null, ev=>{ /* ... */ }).parentNode
 		)
 		
-		def_tool.firstChild.click()
+		def_tool.click()
 		thickness.click()
 		this.color_buttons[1].click()
 		this.clear()
@@ -320,19 +301,6 @@ class ChatDraw extends HTMLElement {
 		picker.click()
 	}
 	
-	cycle_tool(btn, dir=1) {
-		let tools = btn.dataset.tools.split(",")
-		let labels = btn.dataset.labels.split(",")
-		let tool = btn.value
-		let index = tools.indexOf(tool)
-		index = (index+dir+tools.length) % tools.length
-		btn.value = tools[index]
-		btn.nextSibling.textContent = labels[index]
-		//btn.nextSibling.title = tools[index]
-		if (btn.checked)
-			this.use_tool(btn.value)
-	}
-	
 	//Send the current drawing to the chat.
 	sendDrawing(animationLink) {
 		try {
@@ -368,27 +336,6 @@ class ChatDraw extends HTMLElement {
 			scale = 1
 		
 		super.style.setProperty('--scale', scale)
-	}
-	
-	// could be separate class?
-	button(name, value, text, onplay=null) {
-		let input = document.createElement('input')
-		Object.assign(input, {type:onplay?'button':'radio', name, value, onplay})
-		
-		let btn = document.createElement('span')
-		btn.textContent = text
-		//btn.title = onplay?name:value
-		
-		document.createElement('label').append(input, btn)
-		
-		return input
-	}
-	
-	createToolButton(labels, tools) {
-		let input = this.button('tool', tools[0], labels[0])
-		input.dataset.tools = tools.join(",")
-		input.dataset.labels = labels.join(",")
-		return input.parentNode
 	}
 }
 ChatDraw.style = document.createElement('style')
