@@ -8,13 +8,13 @@ class CanvasPerformer {
 		this._oldStyle = ""
 		
 		this.action = {
-			Start: false, End: false, Drag: false,
+			Start: false, End: false,
 			x: 0, y: 0, onTarget: false,
 			ctrlKey: false,
 		}
 		
 		// todo: maybe allow tracking multiple concurrent action paths (like, mouse and touch used at the same time) and store their action data separately. per path not per  device i guess,
-		let last_mouse_action = null
+		let lma = null
 		let lta = null
 		this.last_touch = [-1, -1]
 		
@@ -25,13 +25,13 @@ class CanvasPerformer {
 			
 			//If we enter evTC and there is a last_touch_action, that means that last action has ended. Either we went from 1 touch to 0 or maybe 2 touches to 1 touch. Either way, that specific action has ended (2 touches is a zoom, 1 touch is a drag, etc.).
 			if (lta)
-				this.Continue(ev, true, interrupt, lta)
+				this.Continue(ev, true, interrupt)
 			
 			//if the user is ACTUALLY performing something (and this isn't just a 0 touch event), THEN we're starting something here.
 			lta = nextAction
 			if (lta) {
 				this.last_touch = ev.touches[0]
-				this.Begin(ev, interrupt, lta)
+				this.Begin(ev, interrupt)
 			}
 		}
 		
@@ -39,15 +39,18 @@ class CanvasPerformer {
 		
 		this._listeners = [
 			['mousedown', true, ev=>{
-				last_mouse_action = this.ButtonsToAction([1,4,2,8,16][ev.button])
-				this.Begin(ev, false, last_mouse_action)
+				lma = this.ButtonsToAction([1,4,2,8,16][ev.button])
+				if (lma)
+					this.Begin(ev, false)
 			}],
 			['mousemove', true, ev=>{
-				this.Continue(ev, false, false, last_mouse_action)
+				if (lma)
+					this.Continue(ev, false, false)
 			}],
 			['mouseup', true, ev=>{
-				this.Continue(ev, true, false, last_mouse_action)
-				last_mouse_action = null
+				if (lma)
+					this.Continue(ev, true, false)
+				lma = null
 			}],
 			['contextmenu', false, evpd],
 			
@@ -140,7 +143,6 @@ class CanvasPerformer {
 		data.Start = true
 		data.End = false
 		data.Alive = true
-		data.Drag = action
 		
 		data.onTarget = on_target
 		data.ctrlKey = ev.ctrlKey
@@ -168,7 +170,6 @@ class CanvasPerformer {
 		
 		data.Start = false
 		data.End = end
-		data.Drag = action
 		
 		data.onTarget = on_target
 		data.ctrlKey = ev.ctrlKey
