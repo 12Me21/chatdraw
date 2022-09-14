@@ -37,13 +37,10 @@ class CanvasDrawer extends CanvasPerformer {
 		this.overlay = null
 		this.overlayActive = false
 		
-		this.onlyInnerStrokes = true
-		
 		this.currentTool = null
 		this.color = null
 		this.lineWidth = null
 		
-		this.frameActions = []
 		this.frameCount = 0
 		
 		this.strokeCount = 0
@@ -58,14 +55,6 @@ class CanvasDrawer extends CanvasPerformer {
 		//Replace this with some generic cursor drawing thing that takes both strings AND functions to draw the cursor.
 		if (!tool.cursor && data.Start) 
 			;//this.canvas.style.cursor = this.defaultCursor
-		
-		if (data.Start) {
-			this.strokeCount++
-		}
-		
-		//if (tool.framelock)
-		//	this.frameActions.push(data)
-		//else
 		
 		if (tool.stationaryReportInterval) {
 			if (!data.Start)
@@ -92,7 +81,12 @@ class CanvasDrawer extends CanvasPerformer {
 		this.PerformDrawAction()
 	}
 	
-	EndStroke() {
+	EndStroke(interrupt) {
+		if (interrupt) {
+			// todo: check if anything was actually drawn yet
+			//this.Undo()
+			//this.undoBuffer.ClearRedos()
+		}
 		if (this.interval) {
 			window.cancelAnimationFrame(this.interval)
 			this.interval = null
@@ -170,12 +164,11 @@ class CanvasDrawer extends CanvasPerformer {
 			return
 		
 		if (data.Start) {
-			if (tool && tool.updateUndoBuffer)
+			if (tool && tool.updateUndoBuffer) {
 				this.UpdateUndoBuffer()
+				this.strokeCount++
+			}
 		}
-		
-		//Now actually perform the action.
-		tool.tool(data, this.grp, this)
 		
 		if (tool.overlay && this.overlay) {
 			let oc = this.overlay
@@ -184,6 +177,8 @@ class CanvasDrawer extends CanvasPerformer {
 			oc.clearRect(0, 0, oc.width, oc.height)
 			this.overlayActive = tool.overlay(data, oc, this)!==false
 		}
+		
+		tool.tool(data, this.grp, this)
 	}
 	
 	Revert() {

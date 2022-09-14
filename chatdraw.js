@@ -215,6 +215,7 @@ class ChatDraw extends HTMLElement {
 				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
 				this.clear()
+				this.drawer.strokeCount = 0 //todo: hack
 			}).parentNode,
 			thickness.parentNode
 		)
