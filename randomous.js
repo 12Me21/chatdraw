@@ -1,56 +1,55 @@
 'use strict'
 
-async function flood(context, x, y, color) {
-	let {width, height} = context.canvas
-	x = Math.floor(x)
-	y = Math.floor(y)
-	
-	let rows = new Map()
-	let get_row = (y)=>{
-		let row = rows.get(y)
-		if (row)
-			return row.pixels
-		if (y<0 || y>=height)
-			return null
-		let idata = context.getImageData(0, y, width, 1)
-		//let pixels = //new Uint32Array(idata.data.buffer)
-		rows.set(y, {pixels, idata})
-		return pixels
+async function flood(pixels, x, y, nw, cb) {
+	let {width, height} = pixels
+	let color = pixels[x+y*width]
+	async function check(x,y) {
+		//await {then:x=>window.requestAnimationFrame(x)}
+		if (x<0||y<0||x>=width||y>=height)
+			return false
+		let p = pixels[x+y*width]==color
+		//$log.append(x+","+y+":"+p+"\n")
+		return p
 	}
-	
-	let old_color = get_row(y)[x]
-	let check = (row, x)=>{
-		if (row && row[x]==old_color) {
-			row[x] = color
-			return true
+	function set(x,y) {
+		//$log.append("SET "+x+","+y+"\n")
+		pixels[x+y*width] = nw
+		cb()
+	}
+	let s = [
+		[x, x+1, y-1, 1],
+		[x, x+1, y, -1],
+	]
+	while (s.length) {
+		let [x1, x2, y, dy] = s.shift()
+		y+=dy
+		let left=x1
+		if (await check(x1,y)) {
+			while (await check(left-1, y)) {
+				set(left-1, y)
+				left--
+			}
+			if (left<x1)
+				s.push([left, x1, y, -dy])
+		}
+		while (x1 < x2) {
+			x1++
+			while (await check(x1-1, y)) {
+				set(x1-1, y)
+				s.push([left, x1, y, dy])
+				if (x1 > x2)
+					s.push([x2, x1, y, -dy])
+				x1++
+			}
+			x1++
+			while (x1 < x2 && !await check(x1-1, y))
+				x1++
+			x1--
+			left = x1
 		}
 	}
-	
-	let q = [[x, y]]
-	let above, below
-	let qcheck = (x, y)=>{
-		if (check(below, x))
-			q.push([x,y+1])
-		if (check(above, x))
-			q.push([x,y-1])
-	}
-	
-	while (q.length) {
-		let [x, y] = q.shift()
-		let row = get_row(y)
-		below = get_row(y+1)
-		above = get_row(y-1)
-		qcheck(x, y)
-		for (let west=x-1; west>=0 && check(row, west); west--)
-			qcheck(west, y)
-		for (let east=x+1; east<width && check(row, east); east++)
-			qcheck(east, y)
-	}
-	
-	for (let [y, {idata}] of rows)
-		context.putImageData(idata, 0, y)
+	console.log('done')
 }
-
 
 class Pixels extends Int32Array {
 	constructor(image_data) {
@@ -94,12 +93,13 @@ class Grp extends CanvasRenderingContext2D {
 			this.fillRect(0, 0, this.width, this.height)
 	}
 	flood_fill(x, y) {
-		flood(this, x, y, Color.int32(this.fillStyle))
-		return
 		x = Math.floor(x)
 		y = Math.floor(y)
 		let pixels = this.get_pixels()
-		let {width, height} = pixels
+		flood(pixels,x,y,Color.int32(this.fillStyle), x=>{
+			this.put_pixels(pixels)
+		})
+		/*let {width, height} = pixels
 		let queue = []
 		let old = pixels[x+y*width]
 		let col = Color.int32(this.fillStyle)
@@ -132,7 +132,7 @@ class Grp extends CanvasRenderingContext2D {
 			do
 				x++
 			while (check3())
-		} while (queue.length && check3([x,y]=queue.shift()))
+		} while (queue.length && check3([x,y]=queue.shift()))//*/
 		this.put_pixels(pixels)
 	}
 	replace_color(original) {
@@ -242,6 +242,10 @@ let Color = {
 		buffer_8[3] = 255
 		return buffer_32[0]
 	},
+	array(hex) {
+		let x = parseInt(hex.slice(1), 16)
+		return [x>>>16&255, x>>>8&255, x&255, 255]
+	}
 }
 
 // --- CanvasUtilities ---
