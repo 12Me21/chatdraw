@@ -1,6 +1,10 @@
 'use strict'
 
 async function flood(context, x, y, color) {
+	let {width, height} = context.canvas
+	x = Math.floor(x)
+	y = Math.floor(y)
+	
 	let rows = new Map()
 	let get_row = (y)=>{
 		let row = rows.get(y)
@@ -8,20 +12,15 @@ async function flood(context, x, y, color) {
 			return row.pixels
 		if (y<0 || y>=height)
 			return null
-		let idata = context.getImageData(0,y-1, width,3)
-		let pixels = new Uint32Array(idata.data.buffer)
+		let idata = context.getImageData(0, y, width, 1)
+		//let pixels = //new Uint32Array(idata.data.buffer)
 		rows.set(y, {pixels, idata})
 		return pixels
 	}
 	
-	let {width, height} = context.canvas
-	
-	x = Math.floor(x)
-	y = Math.floor(y)
-	
 	let old_color = get_row(y)[x]
 	let check = (row, x)=>{
-		if (row[x]==old_color) {
+		if (row && row[x]==old_color) {
 			row[x] = color
 			return true
 		}
@@ -29,23 +28,23 @@ async function flood(context, x, y, color) {
 	
 	let q = [[x, y]]
 	let above, below
-	let qcheck = (x)=>{
-		if (above && check(above, x))
-			q.push([x,y-1])
-		if (below && check(below, x))
+	let qcheck = (x, y)=>{
+		if (check(below, x))
 			q.push([x,y+1])
+		if (check(above, x))
+			q.push([x,y-1])
 	}
 	
 	while (q.length) {
 		let [x, y] = q.shift()
 		let row = get_row(y)
-		above = get_row(y-1)
 		below = get_row(y+1)
-		qcheck(x)
+		above = get_row(y-1)
+		qcheck(x, y)
 		for (let west=x-1; west>=0 && check(row, west); west--)
-			qcheck(west)
+			qcheck(west, y)
 		for (let east=x+1; east<width && check(row, east); east++)
-			qcheck(east)
+			qcheck(east, y)
 	}
 	
 	for (let [y, {idata}] of rows)
