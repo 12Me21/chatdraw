@@ -3,18 +3,33 @@
 async function flood(pixels, x, y, nw, cb) {
 	let {width, height} = pixels
 	let color = pixels[x+y*width]
-	async function check(x,y) {
-		//await {then:x=>window.requestAnimationFrame(x)}
+	let p=0
+	let cfake = 0xFF00FF00
+	async function check(x,y,fill) {
+		p=p+1
+		if (p>10000) {
+			await {then:x=>window.requestAnimationFrame(x)}
+			p=0
+		}
 		if (x<0||y<0||x>=width||y>=height)
 			return false
-		let p = pixels[x+y*width]==color
-		//$log.append(x+","+y+":"+p+"\n")
-		return p
-	}
-	function set(x,y) {
-		//$log.append("SET "+x+","+y+"\n")
-		pixels[x+y*width] = nw
-		cb()
+		let g = pixels[x+y*width]
+		if (g!=color && g!=cfake) {
+			/*pixels[x+y*width] = 0xFFFF0000
+			cb()
+			await {then:x=>window.requestAnimationFrame(x)}*/
+			return false
+		}
+		if (fill) {
+			pixels[x+y*width] = nw
+			cb()
+			await {then:x=>window.requestAnimationFrame(x)}
+		} else {
+			pixels[x+y*width] = cfake
+			cb()
+			await {then:x=>window.requestAnimationFrame(x)}
+		}
+		return true
 	}
 	let s = [
 		[x, x+1, y-1, 1],
@@ -25,8 +40,7 @@ async function flood(pixels, x, y, nw, cb) {
 		y+=dy
 		let left=x1
 		if (await check(x1,y)) {
-			while (await check(left-1, y)) {
-				set(left-1, y)
+			while (await check(left-1, y, true)) {
 				left--
 			}
 			if (left<x1)
@@ -34,9 +48,8 @@ async function flood(pixels, x, y, nw, cb) {
 		}
 		while (x1 < x2) {
 			x1++
-			while (await check(x1-1, y)) {
-				set(x1-1, y)
-				s.push([left, x1, y, dy])
+			while (await check(x1-1, y, true)) {
+				s.push([left-1, x1, y, dy])
 				if (x1 > x2)
 					s.push([x2, x1, y, -dy])
 				x1++
@@ -48,10 +61,11 @@ async function flood(pixels, x, y, nw, cb) {
 			left = x1
 		}
 	}
+	cb()
 	console.log('done')
 }
 
-class Pixels extends Int32Array {
+class Pixels extends Uint32Array {
 	constructor(image_data) {
 		super(image_data.data.buffer)
 		this._image = image_data
@@ -230,7 +244,7 @@ class Grp extends CanvasRenderingContext2D {
 
 const LITTLE = new Uint8Array(new Uint32Array([5]).buffer)[0] == 5
 
-let buffer_32 = new Int32Array(1)
+let buffer_32 = new Uint32Array(1)
 let buffer_8 = new Uint8Array(buffer_32.buffer)
 let Color = {
 	// return color as an int32 in system endianness, for use with imageData
