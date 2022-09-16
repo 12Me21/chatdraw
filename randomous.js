@@ -126,13 +126,13 @@ class Grp extends CanvasRenderingContext2D {
 			if (x<0 || y<0 || x>=width || y>=height)
 				return false
 			let f = pixels[x+y*width]
-			if (f==old || f==cfake) {
+			if (f==old) {
 				pixels[x+y*width] = col
 				await {then:x=>window.requestAnimationFrame(x)}
 				cb()
 				return true
 			} else {
-				pixels[x+y*width] = cfake
+				pixels[x+y*width] = f + 64
 				await {then:x=>window.requestAnimationFrame(x)}
 				cb()
 			}
