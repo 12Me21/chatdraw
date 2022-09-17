@@ -49,40 +49,49 @@ class Grp extends CanvasRenderingContext2D {
 		
 		let old = pixels[x+y*width]
 		let col = Color.int32(this.fillStyle)
-		let check = (y)=>{
+		
+		let queue = [x, y]
+		let check = (x, y, push)=>{
 			if (x<0 || y<0 || x>=width || y>=height)
 				return false
 			if (pixels[x+y*width]!=old)
 				return false
 			pixels[x+y*width] = col
+			if (push)
+				queue.push([x, y])
 			return true
 		}
-		let queue = []
-		let check3 = (ok)=>{
-			if (ok || check(y)) {
-				if (check(y+1))
-					queue.push([x, y+1])
-				if (check(y-1))
-					queue.push([x, y-1])
-				return true
-			}
-		}
-		check3()
-		if (!queue.length)
+		
+		if (!check(x,y))
 			return
-		while (1) {
-			let s = x
-			do
-				x--
-			while (check3())
-			x = s
-			do
-				x++
-			while (check3())
-			if (!queue.length)
-				break
-			0,[x,y]=queue.pop()
-			check3(true)
+		
+		let check3 = (x, y)=>{
+			check(x, y+1, true)
+			check(x, y-1, true)
+		}
+		//opt to do:
+		// say we're scanning upwards from prev line (i.e. from a coordinate pushed by queue.push(x,y-1))
+		// we only need to scan downwards if we are past the original extent
+		// ex:
+		// ##!!!!!!!!!!!!!!!!!!!!!!!
+		// ##***********************#
+		// ##!!!!!!###ffffffffffffff#
+		// where "f" is the pixels filled by that previous row
+		// and * is the extent of the current row
+		// we only need to check pixels marked with "!"
+		
+		// likewise, `f` should push a SPAN, not individual pixels:
+		// ##         [============]#
+		// ##      ###ffffffffffffff#
+		
+		
+		while (queue.length) {
+			let [x, y] = queue.pop()
+			check3(x, y)
+			for (let s = x-1; check(s, y); s--)
+				check3(s, y)
+			for (let s = x+1; check(s, y); s++)
+				check3(s, y)
 		}
 		this.put_pixels(pixels)
 	}
