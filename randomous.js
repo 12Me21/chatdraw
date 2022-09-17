@@ -105,6 +105,7 @@ class Grp extends CanvasRenderingContext2D {
 			this.fillRect(0, 0, this.width, this.height)
 	}
 	async flood_fill(x, y) {
+		$log.append('filling... ')
 		let cfake = Color.int32("#00FF00")
 		x = Math.floor(x)
 		y = Math.floor(y)
@@ -118,22 +119,28 @@ class Grp extends CanvasRenderingContext2D {
 		let {width, height} = pixels
 		let queue = []
 		let old = pixels[x+y*width]
-		let col = Color.int32(this.fillStyle)
-		
-		
-		
+		let col = Color.int32("#FF0000"/*this.fillStyle*/)
+		let d = pixels._image.data
+		let p = 0
 		let check = async (x, y)=>{
 			if (x<0 || y<0 || x>=width || y>=height)
 				return false
 			let f = pixels[x+y*width]
+			p++
+			if (p>50) {
+				await {then:x=>window.requestAnimationFrame(x)}
+				p=0
+			}
 			if (f==old) {
 				pixels[x+y*width] = col
-				await {then:x=>window.requestAnimationFrame(x)}
 				cb()
 				return true
 			} else {
-				pixels[x+y*width] = f + 64
-				await {then:x=>window.requestAnimationFrame(x)}
+				let i = (x+y*width)*4
+				d[i] = 0
+				d[i+1] += 1<<6
+//				d[i+2] = 255
+				d[i+3] = 255
 				cb()
 			}
 		}
@@ -157,8 +164,9 @@ class Grp extends CanvasRenderingContext2D {
 			do
 				x++
 			while (await check3())
-		} while (queue.length && await check3([x,y]=queue.shift()))//*/
+		} while (queue.length && await check3([x,y]=queue[Math.random()<0.5?'pop':'shift']()))//*/
 		this.put_pixels(pixels)
+		$log.append('done!\n')
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()
