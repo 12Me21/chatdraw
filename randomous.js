@@ -80,9 +80,42 @@ class Grp extends CanvasRenderingContext2D {
 		// and * is the extent of the current row
 		// we only need to check pixels marked with "!"
 		
-		// likewise, `f` should push a SPAN, not individual pixels:
-		// ##         [============]#
-		// ##      ###ffffffffffffff#
+		// SO: `f` should push a SPAN, not individual pixels:
+		
+		// todo: -should this span be extended before pushed to stack?
+		
+		// each span has:
+		// - y coordinate
+		// - start x `(`
+		// - end x `)`
+		// - direction `^`/`v`
+		
+		// pop a span from the stack
+		// ███████        ██      ███
+		// ████       [^^^^^^^]     █
+		// ██      ███▓▓▓▓▓▓▓▓▓██████
+		
+		// to process, first, scan left and right to extend the span
+		// ███████        ██      ███
+		// ███◙○○○○○○○[^^^^^^^]○○○○○◙
+		// ██      ███▓▓▓▓▓▓▓▓▓██████
+		
+		// fill that area
+		// ███████        ██      ███
+		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// ██      ███▓▓▓▓▓▓▓▓▓██████
+		
+		// scan the rows above and below:
+		// excluding the region below the original span
+		// ████◙◙◙○○○○○○○○◙◙○○○○○○◙◙█
+		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// ██  ○○○○◙◙◙▓▓▓▓▓▓▓▓▓◙◙◙◙◙█
+		
+		// identify spans. push them to the stack
+		// ███████(^^^^^^)██(^^^^)███
+		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// ██  (vv)███▓▓▓▓▓▓▓▓▓██████
+		
 		
 		
 		while (queue.length) {
