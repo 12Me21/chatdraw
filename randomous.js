@@ -49,7 +49,7 @@ class Grp extends CanvasRenderingContext2D {
 		
 		let old = pixels[x+y*width]
 		let col = Color.int32(this.fillStyle)
-		let check = (x, y)=>{
+		let check = (y)=>{
 			if (x<0 || y<0 || x>=width || y>=height)
 				return false
 			if (pixels[x+y*width]!=old)
@@ -59,17 +59,18 @@ class Grp extends CanvasRenderingContext2D {
 		}
 		let queue = []
 		let check3 = (ok)=>{
-			if (ok || check(x, y)) {
-				if (check(x, y+1))
+			if (ok || check(y)) {
+				if (check(y+1))
 					queue.push([x, y+1])
-				if (check(x, y-1))
+				if (check(y-1))
 					queue.push([x, y-1])
 				return true
 			}
 		}
-		if (!check3())
+		check3()
+		if (!queue.length)
 			return
-		do {
+		while (1) {
 			let s = x
 			do
 				x--
@@ -78,7 +79,11 @@ class Grp extends CanvasRenderingContext2D {
 			do
 				x++
 			while (check3())
-		} while (queue.length && check3([x,y]=queue.pop()))
+			if (!queue.length)
+				break
+			0,[x,y]=queue.pop()
+			check3(true)
+		}
 		this.put_pixels(pixels)
 	}
 	replace_color(original) {
