@@ -41,19 +41,19 @@ class Grp extends CanvasRenderingContext2D {
 		else
 			this.fillRect(0, 0, this.width, this.height)
 	}
+	//Atomics.compareExchange(pixels, x+dir+y*width, old, col)==old
 	flood_fill(x, y) {
 		x = Math.floor(x)
 		y = Math.floor(y)
 		let pixels = this.get_pixels()
 		let {width, height} = pixels
 		
-		let old = pixels[x+y*width]
-		let col = Color.int32(this.fillStyle)
+		let before = pixels[x+y*width]
+		let after = Color.int32(this.fillStyle)
 		
 		let scan = (x, dir, end, y)=>{
-			//&& Atomics.compareExchange(pixels, x+dir+y*width, old, col)==old
-			while (x!=end && pixels[x+dir + y*width]==old) {
-				pixels[x+dir + y*width] = col
+			while (x!=end && pixels[x+dir+y*width]==before) {
+				pixels[x+dir+y*width] = after
 				x += dir
 			}
 			return x
@@ -77,7 +77,7 @@ class Grp extends CanvasRenderingContext2D {
 			let [x1, x2, y, dy] = queue.pop()
 			// expand current span
 			let left = scan(x1, -1, 0, y)
-			let right = scan(x2, +1, width, y)
+			let right = scan(x2, +1, width-1, y)
 			// "forward"
 			find_spans(left, right, y, dy)
 			// "backward"
