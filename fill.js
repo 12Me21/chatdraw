@@ -1,24 +1,46 @@
-let find_spans = (start,end,y,d)=>{
-	for (let x=start; x<=end; x++) {
-		if (check(x, y)) {
-			let x1 = x
-			while (x+1<=end && check(x+1, y))
-				x++
-			queue.push([x1, x, y, d])
+function flood(x, y) {
+	x = Math.floor(x)
+	y = Math.floor(y)
+	let pixels = this.get_pixels()
+	let {width, height} = pixels
+	
+	let old = pixels[x+y*width]
+	let col = Color.int32(this.fillStyle)
+	
+	let scan = (x, dir, end, y)=>{
+		//&& Atomics.compareExchange(pixels, x+dir+y*width, old, col)==old
+		while (x!=end && pixels[x+dir + y*width]==old) {
+			pixels[x+dir + y*width] = col
+			x += dir
+		}
+		return x
+	}
+	
+	let queue = [[x+1, x-1, y, -1]]
+	let find_spans = (start, end, y, dy)=>{
+		y+=dy
+		if (y<0 || y>=height)
+			return
+		for (let x=start; x<=end; x++) {
+			let stop = scan(x-1, +1, end, y)
+			if (stop>=x) {
+				queue.push([x, stop, y, dy])
+				x = stop
+			}
 		}
 	}
-}
-
-while (queue.length) {
-	let [x1,x2,y,d] = queue.pop()
-	let [left,right] = [x1,x2]
-	while (check(left-1,y))
-		left--
-	while (check(right+1,y))
-		right++
-	// "above"
-	find_spans(left, right, y+d, d)
-	// "below"
-	find_spans(left, x1-1, y-d, -d)
-	find_spans(x2+1, right, y-d, -d)
+	
+	while (queue.length) {
+		let [x1,x2,y,dy] = queue.pop()
+		// expand current span
+		let left = scan(x1, -1, 0, y)
+		let right = scan(x2, +1, width, y)
+		// "forward"
+		find_spans(left, right, y, dy)
+		// "backward"
+		find_spans(left, x1-1, y, -dy)
+		find_spans(x2+1, right, y, -dy)
+	}
+	
+	this.put_pixels(pixels)
 }

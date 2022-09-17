@@ -84,39 +84,42 @@ class Grp extends CanvasRenderingContext2D {
 		
 		// todo: -should this span be extended before pushed to stack?
 		
-		// each span has:
+		// Each span has:
 		// - y coordinate
-		// - start x `(`
-		// - end x `)`
-		// - direction `^`/`v`
+		// - start x (`[`)
+		// - end x (`]`)
+		// - direction (up `^` or down `v`)
+		```
+		// 1: pop a span from the stack:
+		// ██████        ██      ███
+		// ███       [^^^^^^^]     █
+		// █      ███▓▓▓▓▓▓▓▓▓██████
 		
-		// pop a span from the stack
-		// ███████        ██      ███
-		// ████       [^^^^^^^]     █
-		// ██      ███▓▓▓▓▓▓▓▓▓██████
+		// 2: scan left and right, to extend the span:
+		// ██████        ██      ███
+		// ██◙◌◌◌◌◌◌◌[^^^^^^^]◌◌◌◌◌◙
+		// █      ███▓▓▓▓▓▓▓▓▓██████
 		
-		// to process, first, scan left and right to extend the span
-		// ███████        ██      ███
-		// ███◙○○○○○○○[^^^^^^^]○○○○○◙
-		// ██      ███▓▓▓▓▓▓▓▓▓██████
+		// 3: fill that area:
+		// ██████        ██      ███
+		// ███▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// █      ███▓▓▓▓▓▓▓▓▓██████
 		
-		// fill that area
-		// ███████        ██      ███
-		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
-		// ██      ███▓▓▓▓▓▓▓▓▓██████
-		
-		// scan the rows above and below:
-		// excluding the region below the original span
-		// ████◙◙◙○○○○○○○○◙◙○○○○○○◙◙█
-		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
-		// ██  ○○○○◙◙◙▓▓▓▓▓▓▓▓▓◙◙◙◙◙█
-		
-		// identify spans. push them to the stack
-		// ███████(^^^^^^)██(^^^^)███
-		// ████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
-		// ██  (vv)███▓▓▓▓▓▓▓▓▓██████
-		
-		
+		// 4: scan the rows above and below:
+		// ███◙◙◙◌◌◌◌◌◌◌◌◙◙◌◌◌◌◌◌◙◙█
+		// ███▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// █  ◌◌◌◌◙◙◙▓▓▓▓▓▓▓▓▓◙◙◙◙◙█
+		// Optimization: don't check the area
+      // directly below the original span
+      // (or above, if it was 'facing' downwards)
+      // since we know that's already been filled
+      // by whoever pushed that span to the stack
+
+		// identify spans. push them to the stack:
+		// ██████[^^^^^^]██[^^^^]███
+		// ███▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█
+		// █  [vv]███▓▓▓▓▓▓▓▓▓██████
+		```
 		
 		while (queue.length) {
 			let [x, y] = queue.pop()
