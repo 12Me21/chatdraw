@@ -1,68 +1,5 @@
 'use strict'
 
-async function flood(pixels, x, y, nw, cb) {
-	let {width, height} = pixels
-	let color = pixels[x+y*width]
-	let p=0
-	let cfake = Color.int32("#00FF00")
-	async function check(x,y,fill) {
-		p=p+1
-		if (p>10000) {
-			await {then:x=>window.requestAnimationFrame(x)}
-			p=0
-		}
-		if (x<0||y<0||x>=width||y>=height)
-			return false
-		let g = pixels[x+y*width]
-		if (g!=color && g!=cfake) {
-			//pixels[x+y*width] = 0xFFFF0000
-			cb()
-			await {then:x=>window.requestAnimationFrame(x)}
-			return false
-		}
-		if (fill) {
-			pixels[x+y*width] = nw
-			cb()
-			await {then:x=>window.requestAnimationFrame(x)}
-		} else {
-			//pixels[x+y*width] = cfake
-			cb()
-			await {then:x=>window.requestAnimationFrame(x)}
-		}
-		return true
-	}
-	let s = [
-		[x, x, y, 1],
-		[x, x, y-1, -1],
-	]
-	while (s.length) {
-		let [x1, x2, y, dy] = s.pop()
-		//y+=dy
-		let left=x1
-		if (await check(left, y)) {
-			while (await check(left-1, y, true)) {
-				left--
-			}
-		}
-		if (left<x1)
-			s.push([left, x1-1, y-dy, -dy])
-		while (x1 <= x2) {
-			while (await check(x1, y, true)) {
-				x1++
-				s.push([left, x1-1, y+dy, dy])
-				if (x1-1 > x2)
-					s.push([x2+1, x1-1, y-dy, -dy])
-			}
-			x1++
-			while (x1 < x2 && !await check(x1, y))
-				x1++
-			left = x1
-		}
-	}
-	cb()
-	console.log('done')
-}
-
 class Pixels extends Uint32Array {
 	constructor(image_data) {
 		super(image_data.data.buffer)
@@ -104,69 +41,45 @@ class Grp extends CanvasRenderingContext2D {
 		else
 			this.fillRect(0, 0, this.width, this.height)
 	}
-	async flood_fill(x, y) {
-		$log.append('filling... ')
-		let cfake = Color.int32("#00FF00")
+	flood_fill(x, y) {
 		x = Math.floor(x)
 		y = Math.floor(y)
 		let pixels = this.get_pixels()
-		let cb = x=>{
-			this.put_pixels(pixels)
-		}
-/*		flood(pixels,x,y,Color.int32(this.fillStyle), x=>{
-			this.put_pixels(pixels)
-		})*/
 		let {width, height} = pixels
-		let queue = []
+		
 		let old = pixels[x+y*width]
-		let col = Color.int32("#FF0000"/*this.fillStyle*/)
-		let d = pixels._image.data
-		let p = 0
-		let check = async (x, y)=>{
+		let col = Color.int32(this.fillStyle)
+		let check = (x, y)=>{
 			if (x<0 || y<0 || x>=width || y>=height)
 				return false
-			let f = pixels[x+y*width]
-			p++
-			if (p>50) {
-				await {then:x=>window.requestAnimationFrame(x)}
-				p=0
-			}
-			if (f==old) {
-				pixels[x+y*width] = col
-				cb()
-				return true
-			} else {
-				let i = (x+y*width)*4
-				d[i] = 0
-				d[i+1] += 1<<6
-//				d[i+2] = 255
-				d[i+3] = 255
-				cb()
-			}
+			if (pixels[x+y*width]!=old)
+				return false
+			pixels[x+y*width] = col
+			return true
 		}
-		let check3 = async (ok)=>{
-			if (ok || await check(x, y)) {
-				if (await check(x, y+1))
+		let queue = []
+		let check3 = (ok)=>{
+			if (ok || check(x, y)) {
+				if (check(x, y+1))
 					queue.push([x, y+1])
-				if (await check(x, y-1))
+				if (check(x, y-1))
 					queue.push([x, y-1])
 				return true
 			}
 		}
-		if (!await check3())
+		if (!check3())
 			return
 		do {
 			let s = x
 			do
 				x--
-			while (await check3())
+			while (check3())
 			x = s
 			do
 				x++
-			while (await check3())
-		} while (queue.length && await check3([x,y]=queue[Math.random()<0.5?'pop':'shift']()))//*/
+			while (check3())
+		} while (queue.length && check3([x,y]=queue.pop()))
 		this.put_pixels(pixels)
-		$log.append('done!\n')
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()
