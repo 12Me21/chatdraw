@@ -5,7 +5,6 @@ class CanvasPerformer {
 		this.DragButton = 1
 		
 		this.canvas = null
-		this._oldStyle = ""
 		
 		this.action = {
 			Start: false, End: false,
@@ -45,10 +44,8 @@ class CanvasPerformer {
 	Attach(canvas) {
 		if (this.canvas)
 			throw "This CanvasPerformer is already attached to an canvas!"
-		
 		this.canvas = canvas
-		canvas.style.touchAction = 'none'
-		
+		this.canvas.style.touchAction = 'none'
 		this.do_listeners(true)
 	}
 	

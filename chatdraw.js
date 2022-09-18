@@ -406,7 +406,7 @@ canvas-container canvas {
 	font-size: calc(var(--scale) * 14px);
 	line-height: calc(var(--scale) * 25px);
 	cursor: pointer;
-	background: ButtonFace;
+	background: #F0F0F0; /*ButtonFace*/
 	-webkit-user-select: none; -moz-user-select: none; user-select: none;
 	color: #888;
 	text-shadow:
