@@ -4,12 +4,10 @@ function flood(pixels, width, height, x, y, color) {
 	let old = pixels[x + y*width]
 	let scan = (x, dx, limit, y)=>{
 		while (x!=limit && pixels[x + y*width]==old) {
-			if (x<0 || x>=width || y<0 || y>=width)
-				throw new RangeError("out of range check: ("+x+","+y+")")
 			pixels[x + y*width] = color
 			x += dx
 		}
-		return x
+		return x-dx
 	}
 	
 	let queue = [[x, x, y, -1]]
@@ -17,9 +15,11 @@ function flood(pixels, width, height, x, y, color) {
 	let find_spans = (left, right, y, dy)=>{
 		if (y<0 || y>=height)
 			return
-		for (let x=left+1; x<=right-1; x++) {
-			let stop = scan(x, +1, right, y)
+		for (let x=left; x<=right; x++) {
+			let stop = scan(x, +1, right+1, y)
 			if (stop > x) {
+				if (queue.length > 10000)
+					throw new Error('loop')
 				queue.push([x-1, stop, y, dy])
 				x = stop-1
 			}
@@ -34,8 +34,8 @@ function flood(pixels, width, height, x, y, color) {
 		// check row in front
 		find_spans(left, right, y+dy, dy)
 		// check row behind
-		find_spans(left, x1+1, y-dy, -dy)
-		find_spans(x2-1, right, y-dy, -dy)
+		find_spans(left, x1, y-dy, -dy)
+		find_spans(x2, right, y-dy, -dy)
 	}
 }
 
