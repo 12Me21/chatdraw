@@ -12,7 +12,7 @@ function flood(pixels, width, height, x, y, color) {
 		return x
 	}
 	
-	let queue = [[x+1, x-1, y, -1]]
+	let queue = [[x, x, y, -1]]
 	
 	let find_spans = (left, right, y, dy)=>{
 		if (y<0 || y>=height)
@@ -20,7 +20,7 @@ function flood(pixels, width, height, x, y, color) {
 		for (let x=left+1; x<=right-1; x++) {
 			let stop = scan(x, +1, right, y)
 			if (stop > x) {
-				queue.push([x, stop-1, y, dy])
+				queue.push([x-1, stop, y, dy])
 				x = stop-1
 			}
 		}
@@ -29,13 +29,13 @@ function flood(pixels, width, height, x, y, color) {
 	while (queue.length) {
 		let [x1, x2, y, dy] = queue.pop()
 		// expand current span
-		let left = scan(x1-1, -1, -1, y)
-		let right = scan(x2+1, +1, width, y)
+		let left = scan(x1, -1, -1, y)
+		let right = scan(x2, +1, width, y)
 		// check row in front
 		find_spans(left, right, y+dy, dy)
 		// check row behind
-		find_spans(left, x1, y-dy, -dy)
-		find_spans(x2, right, y-dy, -dy)
+		find_spans(left, x1+1, y-dy, -dy)
+		find_spans(x2-1, right, y-dy, -dy)
 	}
 }
 
