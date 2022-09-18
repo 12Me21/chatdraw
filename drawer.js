@@ -16,9 +16,9 @@ class CanvasDrawerOverlayTool extends CanvasDrawerTool {
 		if (data.End)
 			return this._draw(data, context)
 	}
-	overlay(data, context) {
+	overlay(data, context, th) {
 		if (!data.End)
-			return this._draw(data, context)
+			return this._draw(data, context, th)
 		return false
 	}
 }
@@ -238,15 +238,19 @@ CanvasDrawer.tools = {
 		}
 	},
 	
-	fill: class extends CanvasDrawerTool {
-		tool({Start, x, y}, context) {
-			if (Start) {
+	fill: class extends CanvasDrawerOverlayTool {
+		_draw({Start, x, y}, context, dr) {
+			//if (Start) {
 				// even though linewidth doesn't matter, this is to align with the cursor maybe..
 				let [sx, sy] = Math2.correct_pos(x, y, 1/*context.lineWidth*/)
-				let p = performance.now()
-				context.flood_fill(sx, sy)
-				$log.append("flood fill time:", (performance.now()-p).toFixed(1)+" ms\n")
+			let p = performance.now()
+			if (dr) {
+				let data = dr.grp.get_data()
+				context.putImageData(data, 0, 0)
 			}
+				context.flood_fill(sx, sy)
+				//$log.append("flood fill time:", (performance.now()-p).toFixed(1)+" ms\n")
+			//}
 		}
 	},
 	clear: class extends CanvasDrawerTool {

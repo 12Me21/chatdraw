@@ -135,8 +135,8 @@ class ChatDraw extends HTMLElement {
 			this.$root
 		)
 		
-		this.width = 1000
-		this.height = 500
+		this.width = 200
+		this.height = 100
 		
 		this.maxLineWidth = 7
 		

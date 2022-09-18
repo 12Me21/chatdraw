@@ -140,8 +140,6 @@ class Grp extends CanvasRenderingContext2D {
 		let [sx, sy] = [Math.sign(dx), Math.sign(dy)]
 		//
 		let i
-		//$log.textContent = ""
-		//$log.textContent = x1+","+y1+" - "+x2+","+y2+"\n"
 		for (i=0;i<500;i++) {
 			this.draw_circle(x, y, lw/2, lw/2)
 			if (Math.abs(x-x2)<=0.5 && Math.abs(y-y2)<=0.5)
