@@ -1,21 +1,44 @@
-function flood(pixels, width, height, x, y, color) {
+async function flood(pixels, width, height, x, y, color, cb) {
+	let pcount = new Pixels(new ImageData(width, height))
 	let old = pixels[x + y*width]
-	let scan = (x, dx, limit, y)=>{
-		while (x!=limit && pixels[x+dx + y*width]==old) {
-			pixels[x+dx + y*width] = color
-			x += dx
-		}
-		return x
+	if (old==color) // would cause an infinite loop
+		return false
+	
+	function log(x,y) {
+		if (x<0 || x>=width || y<0 || y>=width)
+			throw new Error('range')
+		let p = pcount[x+y*width]
+		if (!p)
+			pcount[x+y*width] = 0xFFFF0000
+		else if (p==0xFFFF0000)
+			pcount[x+y*width] = 0xFFFFFF00
+		else if (p==0xFFFFFF00)
+			pcount[x+y*width] = 0xFF00FF00
+		else if (p==0xFF00FF00)
+			pcount[x+y*width] = 0xFF00FFFF
+		else if (p==0xFF00FFFF)
+			pcount[x+y*width] = 0xFF0000FF
+		return pixels[x + y*width]==old
 	}
 	
-	let queue = [[x+1, x-1, y, -1]]
+	let scan = async (x, dx, limit, y)=>{
+		while (x!=limit+dx && log(x,y)) {
+			pixels[x + y*width] = color
+			x += dx
+		}
+		return x-dx
+	}
 	
-	let find_spans = (left, right, y, dy)=>{
+	let queue = [[x+1, x, y, -1]]
+	
+	let find_spans = async (left, right, y, dy)=>{
 		if (y<0 || y>=height)
 			return
 		for (let x=left; x<=right; x++) {
-			let stop = scan(x-1, +1, right, y)
-			if (stop>=x) {
+			let stop = await scan(x, +1, right, y)
+			if (stop >= x) {
+				cb(pixels)
+				await {then:x=>setTimeout(x,200)}
 				queue.push([x, stop, y, dy])
 				x = stop
 			}
@@ -24,17 +47,22 @@ function flood(pixels, width, height, x, y, color) {
 	
 	while (queue.length) {
 		let [x1, x2, y, dy] = queue.pop()
-		// expand current span
-		let left = scan(x1, -1, 0, y)
-		let right = scan(x2, +1, width-1, y)
-		// check row in front
-		find_spans(left, right, y+dy, dy)
-		// check row behind
-		find_spans(left, x1-1, y-dy, -dy)
-		find_spans(x2+1, right, y-dy, -dy)
+		// expand span
+		let left = await scan(x1-1, -1, 0, y)
+		let right = await scan(x2+1, +1, width-1, y)
+		// check row "in front of" span
+		await find_spans(left, right, y+dy, dy)
+		// check row "behind" span
+		if (x2<x1) {
+			await find_spans(left, right, y-dy, -dy)
+		} else {
+			await find_spans(left, x1-1, y-dy, -dy)
+			await find_spans(x2+1, right, y-dy, -dy)
+		}
 	}
+	pixels.set(pcount)
+	//console.log(pcount)
 }
-
 
 		//opt to do:
 		// say we're scanning upwards from prev line (i.e. from a coordinate pushed by queue.push(x,y-1))
