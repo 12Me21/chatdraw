@@ -1,26 +1,5 @@
 'use strict'
 
-// button
-// features:
-// - cycling (cycles between options when clicked while already selected (or always, if normal button))
-// - toggle (is checkbox)
-// - radio (is radio)
-// - special action when selected radio button clicked
-// - regular button (performs action when clicked)
-
-// click: when a momentary button is clicked
-// reclick: when a selected radio button is clicked again
-// (we can merge the above)
-
-// choose: when a radio button is selected
-// valuechange: when the value of a button changes (due to cycling or otherwise)
-// maybe merge those 2 into onchange. with a flag saying whether the value changed or a different button was selected (so the palette btns can swap colors when needed)
-
-// zoom button: ('zoom', 'button', [...], [...], x=>x.cycle(), x=>set_zoom())
-// tool button: ('tool', 'radio', [...], [...], x=>x.cycle(), x=>currentTool=x)
-// clear button: ('clear', 'button', "X", null, x=>clear(), null)
-// color button: ('color', 'radio', "o", "#000000", x=>picker(x), (x,change)=>{if (change){swap_colors()} currentColor=x})
-
 class Button extends HTMLInputElement {
 	constructor(name, type, label, value, click, change) {
 		let x = Object.setPrototypeOf(document.createElement('input'), new.target.prototype)
@@ -57,7 +36,9 @@ class Button extends HTMLInputElement {
 		
 		let btn = document.createElement('span')
 		btn.textContent = label
-		document.createElement('label').append(x, btn)
+		let outer = document.createElement('label')
+		outer.className = "btn layered"
+		outer.append(x, btn)
 		
 		return x
 	}
@@ -85,42 +66,6 @@ class Button extends HTMLInputElement {
 	}
 }
 
-let HTML = ([html])=>{
-	let temp = document.createElement('template')
-	temp.innerHTML = html.replace(/\s*?\n\s*/g, "")
-	let content = temp.content
-	let root = content
-	if (root.childNodes.length==1)
-		root = root.firstChild
-	let get_path = (root, node)=>{
-		let path = ""
-		while (node!==root) {
-			let parent = node.parentNode
-			let pos = [].indexOf.call(parent.childNodes, node)
-			path = ".firstChild"+".nextSibling".repeat(pos) + path
-			node = parent
-		}
-		return path
-	}
-	let init = `const node=document.importNode(this, true)
-holder.$root=node`
-	for (let node of content.querySelectorAll("[\\$]")) {
-		let path = get_path(root, node)
-		let id = node.getAttribute('$')
-		node.removeAttribute('$')
-		init += `
-holder.$${id} = node${path}`
-	}
-	init += `
-return holder`
-	let c = new Function("holder={}", init).bind(root)
-	return c
-}
-
-/*let endian=()=>{
-	return new Uint8Array(new Uint32Array([1]).buffer)[0]
-}*/
-
 //Carlos Sanchez - 2016
 //randomouscrap98@aol.com
 //-Yo, check it out. Drawing. In chat. 
@@ -128,11 +73,23 @@ return holder`
 class ChatDraw extends HTMLElement {
 	constructor() {
 		super()
-		new.target.template(this)
 		super.attachShadow({mode: 'open'})
+		
+		this.$container = document.createElement('div')
+		this.$container.className = "layered"
+		
+		this.$form = document.createElement('form')
+		this.$form.className = "controls"
+		
+		this.$picker = document.createElement('input')
+		this.$picker.hidden = true
+		this.$picker.type = 'color'
+		
 		super.shadowRoot.append(
 			new.target.style.cloneNode(true),
-			this.$root
+			this.$container,
+			this.$form,
+			this.$picker
 		)
 		
 		this.width = 200
@@ -143,6 +100,7 @@ class ChatDraw extends HTMLElement {
 		this.color_buttons = []
 		
 		this.grp = new Grp(this.width, this.height)
+		
 		this.$container.append(this.grp.canvas)
 		
 		this.drawer = new CanvasDrawer()
@@ -168,7 +126,11 @@ class ChatDraw extends HTMLElement {
 		
 		make_cursor(3)
 		
-		this.$row1.append(
+		let row1 = document.createElement('menu')
+		let row2 = document.createElement('menu')
+		this.$form.append(row1, row2)
+		
+		row1.append(
 			new Button('zoom', 'button', "🔍", 1, e=>{
 				this.scaleInterface()
 			}, ev=>{}).parentNode,
@@ -195,10 +157,10 @@ class ChatDraw extends HTMLElement {
 			this.color_buttons.push(input)
 			input.dataset.color = BaseColors[i]
 			input.set(BaseColors[i])
-			this.$row1.append(input.parentNode)
+			row1.append(input.parentNode)
 		}
 		
-		this.$row1.append(
+		row1.append(
 			new Button('send', 'button', "➥", null, ev=>{ this.sendDrawing() }).parentNode
 		)
 		
@@ -210,7 +172,7 @@ class ChatDraw extends HTMLElement {
 			this.drawer.lineWidth = +x.value
 		})
 		
-		this.$row2.append(
+		row2.append(
 			new Button('clear', 'button', "❌️", null, e=>{
 				if (this.drawer.strokeCount)
 					this.drawer.UpdateUndoBuffer()
@@ -231,7 +193,7 @@ class ChatDraw extends HTMLElement {
 		let def_tool = new Button('tool', 'radio', ["✏️", "✒️","🚿️"], ['freehand', 'slow', 'spray'], tool_click, tool_change)
 		let p = new Button('tool', 'radio', ["🤚️"], ['mover'], tool_click, tool_change)
 		p.parentNode.style.order = "-1"
-		this.$row2.append(
+		row2.append(
 			p.parentNode,
 			new Button('tool', 'radio', ["🪣️", "❎️"], ['fill', 'clear'], tool_click, tool_change).parentNode,
 			new Button('tool', 'radio', ["📏️", "🔲️", "🔵"], ['line', 'square', 'disc'], tool_click, tool_change).parentNode,
@@ -285,7 +247,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	show_picker(btn) {
-		let picker = this.$color_picker
+		let picker = this.$picker
 		picker.value = btn.value
 		picker.onchange = ev=>{
 			picker.onchange = null
@@ -338,16 +300,27 @@ class ChatDraw extends HTMLElement {
 }
 ChatDraw.style = document.createElement('style')
 ChatDraw.style.textContent = `
+* {
+	contain: strict;
+}
+
+.layered > * {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	box-sizing: border-box;
+	display: block;
+}
+
 :host {
-	display: flex;
+	display: inline-flex !important;
 	flex-flow: column;
 	--scale: 1;
-	width: min-content;
-	background: #BBB;
 	padding: 1px;
 }
 
-canvas-container {
+:host > div {
 	position: relative;
 	margin-bottom: 1px;
 	cursor: crosshair;
@@ -356,16 +329,10 @@ canvas-container {
 	height: calc(var(--scale) * var(--height) * 1px);
 }
 
-canvas-container canvas {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	margin: 0;
+:host > div canvas {
 	padding: 0;
 	border: none;
 	image-rendering: -moz-crisp-edges;
-	image-rendering: crisp-edges;
-	image-rendering: optimizespeed;
 	image-rendering: pixelated;
 }
 
@@ -373,73 +340,74 @@ canvas-container canvas {
 	display: contents;
 }
 
-.controls > div {
+.controls > menu {
 	display: flex;
 	justify-content: flex-end;
-	background: #E9E9E6;
+	contain: content;
+	padding: 0;
+	margin: 0;
+}
+
+.controls .btn {
+	width: calc(var(--scale) * 25px);
 	height: calc(var(--scale) * 25px);
 }
 
-.controls label {
+.btn {
 	position: relative;
-	/*display: contents;*/
-}
-.controls label > input {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	appearance: none;
-	opacity: 0;
-}
-.controls label > input:focus-visible + span {
-	outline: auto;
-	outline-offset: -2px;
 }
 
-.controls label > span {
-	display: block;
+.btn > input {
+	opacity: 0;
+	appearance: none;
+	cursor: pointer;
+}
+
+.btn > span {
 	pointer-events: none;
 	text-align: center;
-	box-sizing: border-box;
-	width: calc(var(--scale) * 25px);
 	font-size: calc(var(--scale) * 14px);
 	line-height: calc(var(--scale) * 25px);
-	cursor: pointer;
-	background: #F0F0F0; /*ButtonFace*/
 	-webkit-user-select: none; -moz-user-select: none; user-select: none;
+}
+
+/* colors */
+
+:host {
+	background: #BBB;
+}
+
+.controls > menu {
+	background: #E9E9E6;	
+}
+
+.btn > span {
+	background: #F0F0F0; /*ButtonFace*/
 	color: #888;
 	text-shadow:
 		1px 1px 0px black;
 }
 
-.controls label > :hover + span {
+.btn > input:focus-visible + span {
+	outline: auto;
+	outline-offset: -2px;
+}
+
+.btn > :hover + span {
 	background: #2929291A;
 }
 
-.controls label > :disabled + span {
+.btn > :disabled + span {
 	color: #666;
 	background: #2929291A;
 }
 
-.controls label > :checked + span {
+.btn > :checked + span {
 	color: #E9E9E6;
 	background: #888;
 }
-/*.controls label > [name="color"] + span {
-	outline: 10px solid currentColor;
-	outline-offset: -10px;
-}*/
 `
 
-ChatDraw.template = HTML`
-<canvas-container $=container></canvas-container>
-<form $=form class=controls autocomplete=off>
-	<div $=row1></div>
-	<div $=row2></div>
-</form>
-<input $=color_picker type=color hidden>
-`
 //#A7E258
 
 let BaseColors = [
