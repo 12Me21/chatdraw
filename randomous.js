@@ -1,12 +1,14 @@
 'use strict'
 
-function flood(pixels, width, height, x, y, color) {
-	let pcount = new Uint32Array(width*height)
+async function flood(pixels, width, height, x, y, color, cb) {
+	let pcount = new Pixels(new ImageData(width, height))
 	let old = pixels[x + y*width]
 	if (old==color) // would cause an infinite loop
 		return false
 	
 	function log(x,y) {
+		if (x<0 || x>=width || y<0 || y>=width)
+			throw new Error('range')
 		let p = pcount[x+y*width]
 		if (!p)
 			pcount[x+y*width] = 0xFFFF0000
@@ -21,7 +23,7 @@ function flood(pixels, width, height, x, y, color) {
 		return pixels[x + y*width]==old
 	}
 	
-	let scan = (x, dx, limit, y)=>{
+	let scan = async (x, dx, limit, y)=>{
 		while (x!=limit+dx && log(x,y)) {
 			pixels[x + y*width] = color
 			x += dx
@@ -29,14 +31,17 @@ function flood(pixels, width, height, x, y, color) {
 		return x-dx
 	}
 	
-	let queue = [[x+1, x-1, y, -1]]
+	let queue = [[x+1, x, y, -1]]
 	
-	let find_spans = (left, right, y, dy)=>{
+	let find_spans = async (left, right, y, dy)=>{
 		if (y<0 || y>=height)
 			return
 		for (let x=left; x<=right; x++) {
-			let stop = scan(x, +1, right, y)
+			//console.log('finding', x, left, right)
+			let stop = await scan(x, +1, right, y)
 			if (stop >= x) {
+				cb(pcount)
+				await {then:x=>setTimeout(x,200)}
 				queue.push([x, stop, y, dy])
 				x = stop
 			}
@@ -46,13 +51,17 @@ function flood(pixels, width, height, x, y, color) {
 	while (queue.length) {
 		let [x1, x2, y, dy] = queue.pop()
 		// expand span
-		let left = scan(x1-1, -1, 0, y)
-		let right = scan(x2+1, +1, width-1, y)
+		let left = await scan(x1-1, -1, 0, y)
+		let right = await scan(x2+1, +1, width-1, y)
 		// check row "in front of" span
-		find_spans(left, right, y+dy, dy)
+		await find_spans(left, right, y+dy, dy)
 		// check row "behind" span
-		find_spans(left, x1-1, y-dy, -dy)
-		find_spans(x2+1, right, y-dy, -dy)
+		if (x2<x1) {
+			await find_spans(left, right, y-dy, -dy)
+		} else {
+			await find_spans(left, x1-1, y-dy, -dy)
+			await find_spans(x2+1, right, y-dy, -dy)
+		}
 	}
 	pixels.set(pcount)
 	//console.log(pcount)
@@ -106,9 +115,11 @@ class Grp extends CanvasRenderingContext2D {
 		let pixels = this.get_pixels()
 		let {width, height} = pixels
 		
-		flood(pixels, width, height, x, y, Color.int32(this.fillStyle))
+		flood(pixels, width, height, x, y, Color.int32(this.fillStyle), (p)=>{
+			this.put_pixels(p)
+		})
 		
-		this.put_pixels(pixels)
+		//this.put_pixels(pixels)
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()
