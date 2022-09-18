@@ -1,5 +1,42 @@
 'use strict'
 
+function flood(pixels, width, height, x, y, color) {
+	let old = pixels[x + y*width]
+	let scan = (x, dx, limit, y)=>{
+		while (x!=limit && pixels[x+dx + y*width]==old) {
+			pixels[x+dx + y*width] = color
+			x += dx
+		}
+		return x
+	}
+	
+	let queue = [[x+1, x-1, y, -1]]
+	
+	let find_spans = (left, right, y, dy)=>{
+		if (y<0 || y>=height)
+			return
+		for (let x=left; x<=right; x++) {
+			let stop = scan(x-1, +1, right, y)
+			if (stop>=x) {
+				queue.push([x, stop, y, dy])
+				x = stop
+			}
+		}
+	}
+	
+	while (queue.length) {
+		let [x1, x2, y, dy] = queue.pop()
+		// expand current span
+		let left = scan(x1, -1, 0, y)
+		let right = scan(x2, +1, width-1, y)
+		// check row in front
+		find_spans(left, right, y+dy, dy)
+		// check row behind
+		find_spans(left, x1-1, y-dy, -dy)
+		find_spans(x2+1, right, y-dy, -dy)
+	}
+}
+
 class Pixels extends Uint32Array {
 	constructor(image_data) {
 		super(image_data.data.buffer)
@@ -48,42 +85,7 @@ class Grp extends CanvasRenderingContext2D {
 		let pixels = this.get_pixels()
 		let {width, height} = pixels
 		
-		let before = pixels[x+y*width]
-		let after = Color.int32(this.fillStyle)
-		
-		let scan = (x, dir, end, y)=>{
-			while (x!=end && pixels[x+dir+y*width]==before) {
-				pixels[x+dir+y*width] = after
-				x += dir
-			}
-			return x
-		}
-		
-		let queue = [[x+1, x-1, y, -1]]
-		let find_spans = (left, right, y, dy)=>{
-			y+=dy
-			if (y<0 || y>=height)
-				return
-			for (let x=left; x<=right; x++) {
-				let stop = scan(x-1, +1, right, y)
-				if (stop>=x) {
-					queue.push([x, stop, y, dy])
-					x = stop
-				}
-			}
-		}
-		
-		while (queue.length) {
-			let [x1, x2, y, dy] = queue.pop()
-			// expand current span
-			let left = scan(x1, -1, 0, y)
-			let right = scan(x2, +1, width-1, y)
-			// "forward"
-			find_spans(left, right, y, dy)
-			// "backward"
-			find_spans(left, x1-1, y, -dy)
-			find_spans(x2+1, right, y, -dy)
-		}
+		flood(pixels, width, height, x, y, Color.int32(this.fillStyle))
 		
 		this.put_pixels(pixels)
 	}
