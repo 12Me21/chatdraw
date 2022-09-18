@@ -1,42 +1,61 @@
 'use strict'
 
 function flood(pixels, width, height, x, y, color) {
+	let pcount = new Uint32Array(width*height)
 	let old = pixels[x + y*width]
+	if (old==color) // would cause an infinite loop
+		return false
+	
+	function log(x,y) {
+		let p = pcount[x+y*width]
+		if (!p)
+			pcount[x+y*width] = 0xFFFF0000
+		else if (p==0xFFFF0000)
+			pcount[x+y*width] = 0xFFFFFF00
+		else if (p==0xFFFFFF00)
+			pcount[x+y*width] = 0xFF00FF00
+		else if (p==0xFF00FF00)
+			pcount[x+y*width] = 0xFF00FFFF
+		else if (p==0xFF00FFFF)
+			pcount[x+y*width] = 0xFF0000FF
+		return pixels[x + y*width]==old
+	}
+	
 	let scan = (x, dx, limit, y)=>{
-		while (x!=limit && pixels[x + y*width]==old) {
+		while (x!=limit+dx && log(x,y)) {
 			pixels[x + y*width] = color
 			x += dx
 		}
 		return x-dx
 	}
 	
-	let queue = [[x, x, y, -1]]
+	let queue = [[x+1, x-1, y, -1]]
 	
 	let find_spans = (left, right, y, dy)=>{
 		if (y<0 || y>=height)
 			return
 		for (let x=left; x<=right; x++) {
-			let stop = scan(x, +1, right+1, y)
-			if (stop > x) {
-				if (queue.length > 10000)
-					throw new Error('loop')
-				queue.push([x-1, stop, y, dy])
-				x = stop-1
+			let stop = scan(x, +1, right, y)
+			if (stop >= x) {
+				queue.push([x, stop, y, dy])
+				x = stop
 			}
 		}
 	}
 	
 	while (queue.length) {
 		let [x1, x2, y, dy] = queue.pop()
-		// expand current span
-		let left = scan(x1, -1, -1, y)
-		let right = scan(x2, +1, width, y)
-		// check row in front
+		// expand span
+		let left = scan(x1-1, -1, 0, y)
+		let right = scan(x2+1, +1, width-1, y)
+		// check row "in front of" span
 		find_spans(left, right, y+dy, dy)
-		// check row behind
-		find_spans(left, x1, y-dy, -dy)
-		find_spans(x2, right, y-dy, -dy)
+		// check row "behind" span
+		find_spans(left, x1-1, y-dy, -dy)
+		find_spans(x2+1, right, y-dy, -dy)
 	}
+	pixels.set(pcount)
+	//console.log(pcount)
 }
 
 class Pixels extends Uint32Array {
