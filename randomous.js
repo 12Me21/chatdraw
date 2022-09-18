@@ -1,28 +1,14 @@
 'use strict'
 
-async function flood(pixels, width, height, x, y, color, cb) {
-	let pcount = new Pixels(new ImageData(width, height))
+function flood(pixels, width, height, x, y, color, cb) {
 	let old = pixels[x + y*width]
 	if (old==color) // would cause an infinite loop
 		return false
 	
-	function log(x,y) {
-		let p = pcount[x+y*width]
-		if (!p)
-			pcount[x+y*width] = 0xFFFF0000
-		else if (p==0xFFFF0000)
-			pcount[x+y*width] = 0xFFFFFF00
-		else if (p==0xFFFFFF00)
-			pcount[x+y*width] = 0xFF008000
-		else if (p==0xFF008000)
-			pcount[x+y*width] = 0xFF00FFFF
-		else if (p==0xFF00FFFF)
-			pcount[x+y*width] = 0xFF0000FF
-		return pixels[x + y*width]==old
-	}
-	
-	let scan = async (x, dx, limit, y)=>{
-		while (x!=limit+dx && log(x,y)) {
+	// fills pixels in a horizontal line, starting from (x,y),
+	// until it hits a wall or reaches x=limit
+	let to_wall = (x, y, dx, limit)=>{
+		while (x!=limit+dx && pixels[x + y*width]==old) {
 			pixels[x + y*width] = color
 			x += dx
 		}
@@ -31,36 +17,34 @@ async function flood(pixels, width, height, x, y, color, cb) {
 	
 	let queue = [[x+1, x, y, -1]]
 	
-	let find_spans = async (left, right, y, dy)=>{
+	// find fillable areas in row y, between x=left and x=right
+	let find_spans = (left, right, y, dir)=>{
 		if (y<0 || y>=height)
 			return
 		for (let x=left; x<=right; x++) {
-			let stop = await scan(x, +1, right, y)
+			let stop = to_wall(x, y, +1, right)
 			if (stop >= x) {
-				cb(pcount)
-				await {then:x=>setTimeout(x,20)}
-				queue.push([x, stop, y, dy])
+				queue.push([x, stop, y, dir])
 				x = stop
 			}
 		}
 	}
 	
 	while (queue.length) {
-		let [x1, x2, y, dy] = queue.pop()
+		let [x1, x2, y, dir] = queue.pop()
 		// expand span
-		let left = await scan(x1-1, -1, 0, y)
-		let right = await scan(x2+1, +1, width-1, y)
-		// check row "behind" span
+		let left = to_wall(x1-1, y, -1, 0)
+		let right = to_wall(x2+1, y, +1, width-1)
+		// check row backwards:
 		if (x2<x1) {
-			// this only happens on the first iteration
-			await find_spans(left, right, y-dy, -dy)
+			// (this only happens on the first iteration)
+			find_spans(left, right, y-dir, -dir)
 		} else {
-			// we subtract 2 because we know there's a wall on either side of the parent span
-			await find_spans(left, x1-2, y-dy, -dy)
-			await find_spans(x2+2, right, y-dy, -dy)
+			find_spans(left, x1-2, y-dir, -dir)
+			find_spans(x2+2, right, y-dir, -dir)
 		}
-		// check row "in front of" span
-		await find_spans(left, right, y+dy, dy)
+		// check row forwards:
+		find_spans(left, right, y+dir, dir)
 	}
 }
 
@@ -112,11 +96,10 @@ class Grp extends CanvasRenderingContext2D {
 		let pixels = this.get_pixels()
 		let {width, height} = pixels
 		
-		flood(pixels, width, height, x, y, Color.int32(this.fillStyle), (p)=>{
-			this.put_pixels(p)
-		})
+		if (flood(pixels, width, height, x, y, Color.int32(this.fillStyle))==false)
+			return
 		
-		//this.put_pixels(pixels)
+		this.put_pixels(pixels)
 	}
 	replace_color(original) {
 		let pixels = this.get_pixels()

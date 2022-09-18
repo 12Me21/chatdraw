@@ -245,7 +245,7 @@ CanvasDrawer.tools = {
 				let [sx, sy] = Math2.correct_pos(x, y, 1/*context.lineWidth*/)
 				let p = performance.now()
 				context.flood_fill(sx, sy)
-				console.debug("flood fill time:", performance.now()-p)
+				$log.append("flood fill time:", (performance.now()-p).toFixed(1)+" ms\n")
 			}
 		}
 	},

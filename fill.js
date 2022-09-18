@@ -5,16 +5,14 @@ async function flood(pixels, width, height, x, y, color, cb) {
 		return false
 	
 	function log(x,y) {
-		if (x<0 || x>=width || y<0 || y>=width)
-			throw new Error('range')
 		let p = pcount[x+y*width]
 		if (!p)
 			pcount[x+y*width] = 0xFFFF0000
 		else if (p==0xFFFF0000)
 			pcount[x+y*width] = 0xFFFFFF00
 		else if (p==0xFFFFFF00)
-			pcount[x+y*width] = 0xFF00FF00
-		else if (p==0xFF00FF00)
+			pcount[x+y*width] = 0xFF008000
+		else if (p==0xFF008000)
 			pcount[x+y*width] = 0xFF00FFFF
 		else if (p==0xFF00FFFF)
 			pcount[x+y*width] = 0xFF0000FF
@@ -37,8 +35,8 @@ async function flood(pixels, width, height, x, y, color, cb) {
 		for (let x=left; x<=right; x++) {
 			let stop = await scan(x, +1, right, y)
 			if (stop >= x) {
-				cb(pixels)
-				await {then:x=>setTimeout(x,200)}
+				cb(pcount)
+				await {then:x=>setTimeout(x,20)}
 				queue.push([x, stop, y, dy])
 				x = stop
 			}
@@ -50,18 +48,18 @@ async function flood(pixels, width, height, x, y, color, cb) {
 		// expand span
 		let left = await scan(x1-1, -1, 0, y)
 		let right = await scan(x2+1, +1, width-1, y)
-		// check row "in front of" span
-		await find_spans(left, right, y+dy, dy)
 		// check row "behind" span
 		if (x2<x1) {
+			// this only happens on the first iteration
 			await find_spans(left, right, y-dy, -dy)
 		} else {
-			await find_spans(left, x1-1, y-dy, -dy)
-			await find_spans(x2+1, right, y-dy, -dy)
+			// we subtract 2 because we know there's a wall on either side of the parent span
+			await find_spans(left, x1-2, y-dy, -dy)
+			await find_spans(x2+2, right, y-dy, -dy)
 		}
+		// check row "in front of" span
+		await find_spans(left, right, y+dy, dy)
 	}
-	pixels.set(pcount)
-	//console.log(pcount)
 }
 
 		//opt to do:
