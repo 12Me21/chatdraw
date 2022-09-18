@@ -1,53 +1,5 @@
 'use strict'
 
-function flood(pixels, width, height, x, y, color, cb) {
-	let old = pixels[x + y*width]
-	if (old==color) // would cause an infinite loop
-		return false
-	
-	// fills pixels in a horizontal line, starting from (x,y),
-	// until it hits a wall or reaches x=limit
-	let to_wall = (x, y, dx, limit)=>{
-		while (x!=limit+dx && pixels[x + y*width]==old) {
-			pixels[x + y*width] = color
-			x += dx
-		}
-		return x-dx
-	}
-	
-	let queue = [[x+1, x, y, -1]]
-	
-	// find fillable areas in row y, between x=left and x=right
-	let find_spans = (left, right, y, dir)=>{
-		if (y<0 || y>=height)
-			return
-		for (let x=left; x<=right; x++) {
-			let stop = to_wall(x, y, +1, right)
-			if (stop >= x) {
-				queue.push([x, stop, y, dir])
-				x = stop
-			}
-		}
-	}
-	
-	while (queue.length) {
-		let [x1, x2, y, dir] = queue.pop()
-		// expand span
-		let left = to_wall(x1-1, y, -1, 0)
-		let right = to_wall(x2+1, y, +1, width-1)
-		// check row backwards:
-		if (x2<x1) {
-			// (this only happens on the first iteration)
-			find_spans(left, right, y-dir, -dir)
-		} else {
-			find_spans(left, x1-2, y-dir, -dir)
-			find_spans(x2+2, right, y-dir, -dir)
-		}
-		// check row forwards:
-		find_spans(left, right, y+dir, dir)
-	}
-}
-
 class Pixels extends Uint32Array {
 	constructor(image_data) {
 		super(image_data.data.buffer)
@@ -89,18 +41,64 @@ class Grp extends CanvasRenderingContext2D {
 		else
 			this.fillRect(0, 0, this.width, this.height)
 	}
+	
 	//Atomics.compareExchange(pixels, x+dir+y*width, old, col)==old
 	flood_fill(x, y) {
 		x = Math.floor(x)
 		y = Math.floor(y)
 		let pixels = this.get_pixels()
 		let {width, height} = pixels
+		let color = Color.int32(this.fillStyle)
 		
-		if (flood(pixels, width, height, x, y, Color.int32(this.fillStyle))==false)
-			return
+		let old = pixels[x + y*width]
+		if (old==color) // would cause an infinite loop
+			return false
+		
+		// fills pixels in a horizontal line, starting from (x,y),
+		// until it hits a wall or reaches x=limit
+		let to_wall = (x, y, dx, limit)=>{
+			while (x!=limit+dx && pixels[x + y*width]==old) {
+				pixels[x + y*width] = color
+				x += dx
+			}
+			return x-dx
+		}
+		
+		let queue = [[x+1, x, y, -1]]
+		
+		// find fillable areas in row y, between x=left and x=right
+		let find_spans = (left, right, y, dir)=>{
+			if (y<0 || y>=height)
+				return
+			for (let x=left; x<=right; x++) {
+				let stop = to_wall(x, y, +1, right)
+				if (stop >= x) {
+					queue.push([x, stop, y, dir])
+					x = stop
+				}
+			}
+		}
+		
+		while (queue.length) {
+			let [x1, x2, y, dir] = queue.pop()
+			// expand span
+			let left = to_wall(x1-1, y, -1, 0)
+			let right = to_wall(x2+1, y, +1, width-1)
+			// check row backwards:
+			if (x2<x1) {
+				// (this only happens on the first iteration)
+				find_spans(left, right, y-dir, -dir)
+			} else {
+				find_spans(left, x1-2, y-dir, -dir)
+				find_spans(x2+2, right, y-dir, -dir)
+			}
+			// check row forwards:
+			find_spans(left, right, y+dir, dir)
+		}
 		
 		this.put_pixels(pixels)
 	}
+	
 	replace_color(original) {
 		let pixels = this.get_pixels()
 		original = Color.int32(original)
